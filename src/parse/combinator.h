@@ -135,14 +135,24 @@ void c_set(comb_t* a, comb_t* b);
 
 
 
+// parse(comb_t*, char*) -> parse_result_t
+// Parses a string and returns the result.
 parse_result_t parse(comb_t* parser, char* string);
 
+// print_parse_result(parse_result_t) -> void
+// Prints out a parse result.
 void print_parse_result(parse_result_t result);
 
+// clean_parse_result(parse_result_t*) -> void
+// Cleans up a parse result.
 void clean_parse_result(parse_result_t* result);
 
+// clean_ast_node(ast_t*) -> void
+// Cleans up an ast node.
 void clean_ast_node(ast_t* node);
 
+// clean_combinator(comb_t*) -> void
+// Deletes a comb parser.
 void clean_combinator(comb_t* comb);
 
 #endif /* combinator_h */

@@ -23,6 +23,8 @@ comb_t* init_combinator()
 	return comb;
 }
 
+// init_ast_node(char*, int, int) -> ast_t
+// Initialises a child ast node.
 ast_t init_ast_node(char* value, int line, int char_pos)
 {
 	ast_t node;
@@ -35,18 +37,8 @@ ast_t init_ast_node(char* value, int line, int char_pos)
 	return node;
 }
 
-ast_t init_empty_node()
-{
-	ast_t node;
-	node.name = NULL;
-	node.value = NULL;
-	node.line = 0;
-	node.char_pos = 0;
-	node.children_count = 0;
-	node.children = NULL;
-	return node;
-}
-
+// init_ast_node(size_t, int, int) -> ast_t
+// Initialises a parent ast node.
 ast_t init_parent_node(size_t init_size, int line, int char_pos)
 {
 	ast_t node;
@@ -59,15 +51,24 @@ ast_t init_parent_node(size_t init_size, int line, int char_pos)
 	return node;
 }
 
+// init_empty_result(void) -> void
+// Initialises an empty parse result that's ignored by parsers.
 parse_result_t init_empty_result()
 {
 	parse_result_t result;
 	result.succ = true;
 	result.ignore = true;
-	result.ast = init_empty_node();
+	result.ast.name = NULL;
+	result.ast.value = NULL;
+	result.ast.line = 0;
+	result.ast.char_pos = 0;
+	result.ast.children_count = 0;
+	result.ast.children = NULL;
 	return result;
 }
 
+// init_succ_result(ast_t) -> parse_result_t
+// Initialises a successful parse result.
 parse_result_t init_succ_result(ast_t node)
 {
 	parse_result_t result;
@@ -77,6 +78,8 @@ parse_result_t init_succ_result(ast_t node)
 	return result;
 }
 
+// init_error_result(char*, int, int)
+// Initialises an erroneous parse result.
 parse_result_t init_error_result(char* msg, int line, int char_pos)
 {
 	parse_result_t result;
@@ -88,14 +91,16 @@ parse_result_t init_error_result(char* msg, int line, int char_pos)
 	return result;
 }
 
+//
+// ================================================
+//
+// Start of parser combinator functions
+//
+// ================================================
+//
 
-
-
-
-
-
-
-
+// _match_str_func(lexer_t*, void*) -> void
+// Comb function for c_str.
 parse_result_t _match_str_func(lexer_t* lex, void* args)
 {
 	char* to_match = (char*) args;
@@ -123,7 +128,8 @@ comb_t* c_str(char* str)
 	return comb;
 }
 
-
+// get_combs_list(comb_t*, comb_t*, va_list) -> void*
+// Generates a list of combinators from a va_list prefixed with its size.
 void* get_combs_list(comb_t* c1, comb_t* c2, va_list ap)
 {
 	size_t current_size = 10;
@@ -152,6 +158,8 @@ void* get_combs_list(comb_t* c1, comb_t* c2, va_list ap)
 	return result;
 }
 
+// _match_or_func(lexer_t*, void*) -> void
+// Comb function for c_or.
 parse_result_t _match_or_func(lexer_t* lex, void* args)
 {
 	unsigned int count = ((int*) args)[0];
@@ -186,6 +194,8 @@ comb_t* c_or(comb_t* c1, comb_t* c2, ...)
 	return comb;
 }
 
+// _match_seq_func(lexer_t*, void*) -> void
+// Comb function for c_seq.
 parse_result_t _match_seq_func(lexer_t* lex, void* args)
 {
 	unsigned int count = ((int*) args)[0];
@@ -250,6 +260,8 @@ comb_t* c_seq(comb_t* c1, comb_t* c2, ...)
 	return comb;
 }
 
+// _match_zmore_func(lexer_t*, void*) -> void
+// Comb function for c_zmore.
 parse_result_t _match_zmore_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = (comb_t*) args;
@@ -307,6 +319,8 @@ comb_t* c_zmore(comb_t* c)
 	return comb;
 }
 
+// _match_omore_func(lexer_t*, void*) -> void
+// Comb function for c_omore.
 parse_result_t _match_omore_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = (comb_t*) args;
@@ -362,6 +376,8 @@ comb_t* c_omore(comb_t* c)
 	return comb;
 }
 
+// _match_optional_func(lexer_t*, void*) -> void
+// Comb function for c_optional.
 parse_result_t _match_optional_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = (comb_t*) args;
@@ -385,7 +401,8 @@ comb_t* c_optional(comb_t* c)
 	return comb;
 }
 
-
+// _match_not_func(lexer_t*, void*) -> void
+// Comb function for c_not.
 parse_result_t _match_not_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = (comb_t*) args;
@@ -411,6 +428,8 @@ comb_t* c_not(comb_t* c)
 	return comb;
 }
 
+// _match_next_func(lexer_t*, void*) -> void
+// Comb function for c_next.
 parse_result_t _match_next_func(lexer_t* lex, void* args)
 {
 	int line = lex->line;
@@ -428,6 +447,8 @@ comb_t* c_next()
 	return comb;
 }
 
+// _match_ignore_func(lexer_t*, void*) -> void
+// Comb function for c_ignore.
 parse_result_t _match_ignore_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = (comb_t*) args;
@@ -450,6 +471,8 @@ comb_t* c_ignore(comb_t* c)
 	return comb;
 }
 
+// _match_eof_func(lexer_t*, void*) -> void
+// Comb function for c_eof.
 parse_result_t _match_eof_func(lexer_t* lex, void* args)
 {
 	lexer_t _lex = *lex;
@@ -467,6 +490,8 @@ comb_t* c_eof()
 	return comb;
 }
 
+// _match_set_name_func(lexer_t*, void*) -> void
+// Comb function for c_name.
 parse_result_t _match_set_name_func(lexer_t* lex, void* args)
 {
 	comb_t* comb = ((comb_t**) args)[0];
@@ -500,6 +525,14 @@ comb_t* c_name(char* name, comb_t* c)
 	return comb;
 }
 
+//
+// ================================================
+//
+// End of parser combinator functions
+//
+// ================================================
+//
+
 // c_set(comb_t*, comb_t*) -> void
 // Sets one parser to another.
 //
@@ -515,14 +548,8 @@ void c_set(comb_t* a, comb_t* b)
 	free(b);
 }
 
-
-
-
-
-
-
-
-
+// parse(comb_t*, char*) -> parse_result_t
+// Parses a string and returns the result.
 parse_result_t parse(comb_t* parser, char* string)
 {
 	lexer_t lex = lex_str(string);
@@ -531,6 +558,15 @@ parse_result_t parse(comb_t* parser, char* string)
 	return result;
 }
 
+// ast_print_helper(ast_t, int) -> void
+// Prints out one node of an ast and its children.
+// The end result looks something like this:
+// root (1:0)|>
+//     "node1" (1:0)
+//     "node2" (1:5)
+//     node3 (1:8)|>
+//         "node4" (1:8)
+//     (eof) (1:12)
 void ast_print_helper(ast_t node, int level)
 {
 	for (int i = 0; i < level; i++)
@@ -557,6 +593,8 @@ void ast_print_helper(ast_t node, int level)
 	}
 }
 
+// print_parse_result(parse_result_t) -> void
+// Prints out a parse result.
 void print_parse_result(parse_result_t result)
 {
 	if (result.succ)
@@ -573,6 +611,8 @@ void print_parse_result(parse_result_t result)
 	}
 }
 
+// clean_parse_result(parse_result_t*) -> void
+// Cleans up a parse result.
 void clean_parse_result(parse_result_t* result)
 {
 	if (result == NULL)
@@ -586,6 +626,8 @@ void clean_parse_result(parse_result_t* result)
 	}
 }
 
+// clean_ast_node(ast_t*) -> void
+// Cleans up an ast node.
 void clean_ast_node(ast_t* node)
 {
 	if (node == NULL)
@@ -602,6 +644,8 @@ void clean_ast_node(ast_t* node)
 	}
 }
 
+// build_comb_list(comb_t*) -> comb_t*
+// Builds a linked list of comb_t* for deletion.
 comb_t* build_comb_list(comb_t* comb)
 {
 	comb_t* last = comb;
@@ -652,6 +696,8 @@ comb_t* build_comb_list(comb_t* comb)
 	return last;
 }
 
+// clean_combinator(comb_t*) -> void
+// Deletes a comb parser.
 void clean_combinator(comb_t* comb)
 {
 	build_comb_list(comb);
