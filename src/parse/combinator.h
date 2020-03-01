@@ -84,10 +84,12 @@ comb_t* c_str(char* str);
 
 // c_or(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if any given parser is valid.
+// comb_t* list must end with NULL.
 comb_t* c_or(comb_t* c1, comb_t* c2, ...);
 
 // c_seq(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if all given parsers are valid in order.
+// comb_t* list must end with NULL.
 comb_t* c_seq(comb_t* c1, comb_t* c2, ...);
 
 // c_zmore(comb_t*) -> comb_t*

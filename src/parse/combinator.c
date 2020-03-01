@@ -103,15 +103,20 @@ parse_result_t init_error_result(char* msg, int line, int char_pos)
 // Comb function for c_str.
 parse_result_t _match_str_func(lexer_t* lex, void* args)
 {
+	// Get the string
 	char* to_match = (char*) args;
+
+	// Save the state just in case
 	lexer_t _lex = *lex;
 
+	// Match the string one character at a time
 	for (int i = 0; i < strlen(to_match); i++)
 	{
 		if (to_match[i] != lex_next(&_lex))
 			return init_error_result(NULL, lex->line, lex->char_pos);
 	}
 
+	// Set up for returning
 	ast_t node = init_ast_node(to_match, lex->line, lex->char_pos);
 	*lex = _lex;
 	return init_succ_result(node);
@@ -132,28 +137,36 @@ comb_t* c_str(char* str)
 // Generates a list of combinators from a va_list prefixed with its size.
 void* get_combs_list(comb_t* c1, comb_t* c2, va_list ap)
 {
+	// Allocate space for the list
 	size_t current_size = 10;
 	void* result = malloc(sizeof(int) + current_size * sizeof(comb_t*));
 	comb_t** args = (comb_t**) ((int*) result + 1);
 	args[0] = c1;
 	args[1] = c2;
 
+	// Our iterators
 	comb_t* next;
 	unsigned int count = 2;
 
+	// Get the next comb whilst it exists
 	while ((next = va_arg(ap, comb_t*)) != NULL)
 	{
+		// Resize the list if necessary
 		if (current_size <= count)
 		{
 			result = realloc(result, sizeof(int) + (current_size *= 1.9) * sizeof(comb_t*));
 			args = (comb_t**) ((int*) result + 1);
 		}
+
+		// Append the comb
 		args[count++] = next;
 	}
 
+	// Add the size to the beginning of the list
 	int* count_ptr = (int*) result;
 	count_ptr[0] = count;
 
+	// Resize the list and return
 	result = realloc(result, sizeof(int) + count * sizeof(comb_t*));
 	return result;
 }
@@ -162,25 +175,32 @@ void* get_combs_list(comb_t* c1, comb_t* c2, va_list ap)
 // Comb function for c_or.
 parse_result_t _match_or_func(lexer_t* lex, void* args)
 {
+	// Get the list
 	unsigned int count = ((int*) args)[0];
 	comb_t** combs = (comb_t**) (args + sizeof(int));
 
+	// Iterate over the combs
 	parse_result_t result;
 	for (int i = 0; i < count; i++)
 	{
+		// Clean up if necessary
 		if (i != 0)
 			clean_parse_result(&result);
 
+		// Try the next comb
 		comb_t* comb = combs[i];
 		result = comb->func(lex, comb->args);
 		if (result.succ)
 			return result;
 	}
+
+	// Error :(
 	return result;
 }
 
 // c_or(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if any given parser is valid.
+// comb_t* list must end with NULL.
 comb_t* c_or(comb_t* c1, comb_t* c2, ...)
 {
 	va_list ap;
@@ -198,43 +218,58 @@ comb_t* c_or(comb_t* c1, comb_t* c2, ...)
 // Comb function for c_seq.
 parse_result_t _match_seq_func(lexer_t* lex, void* args)
 {
+	// Get the list
 	unsigned int count = ((int*) args)[0];
 	comb_t** combs = (comb_t**) ((int*) args + 1);
 
+	// Create the parent node
 	ast_t ast = init_parent_node(count, lex->line, lex->char_pos);
 	size_t current_size = count;
 	lexer_t _lex = *lex;
 
+	// Iterate over every comb
 	for (int i = 0; i < count; i++)
 	{
+		// Parse the comb
 		comb_t* comb = combs[i];
 		parse_result_t result = comb->func(&_lex, comb->args);
 
 		if (result.ignore)
 		{
+			// Ignore these
 			clean_parse_result(&result);
 			continue;
 		} else if (!result.succ)
 		{
+			// Error :(
 			clean_ast_node(&ast);
 			return result;
 		}
 
+		// Unnamed parent nodes have their children stolen
+		// This is because you don't want something like /ab*/ to have /b*/ with a separate parent
 		if (result.ast.name == NULL && result.ast.children_count > 0)
 		{
+			// Resize the array to fit the unexpected children
 			ast.children = realloc(ast.children, (current_size += result.ast.children_count) * sizeof(ast_t));
 
+			// Append all children
 			for (int j = 0; j < result.ast.children_count; j++)
 			{
 				ast.children[ast.children_count++] = result.ast.children[j];
 			}
+
+			// Free the children
 			free(result.ast.children);
 		} else
+			// Append the result to the array
 			ast.children[ast.children_count++] = result.ast;
 	}
 
+	// Save
 	*lex = _lex;
 
+	// If one child, just return the child without the parent
 	if (ast.children_count == 1)
 	{
 		ast_t temp = ast.children[0];
@@ -242,11 +277,13 @@ parse_result_t _match_seq_func(lexer_t* lex, void* args)
 		ast = temp;
 	}
 
+	// Success! :D
 	return init_succ_result(ast);
 }
 
 // c_seq(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if all given parsers are valid in order.
+// comb_t* list must end with NULL.
 comb_t* c_seq(comb_t* c1, comb_t* c2, ...)
 {
 	va_list ap;
@@ -264,23 +301,29 @@ comb_t* c_seq(comb_t* c1, comb_t* c2, ...)
 // Comb function for c_zmore.
 parse_result_t _match_zmore_func(lexer_t* lex, void* args)
 {
+	// Get the parser
 	comb_t* comb = (comb_t*) args;
 	parse_result_t res;
 
+	// Parent node
 	int current_size = 8;
 	ast_t ast = init_parent_node(current_size, lex->line, lex->char_pos);
 
+	// Iterate whilst the parser is still valid
 	while ((res = comb->func(lex, comb->args)).succ)
 	{
 		if (res.ignore)
 		{
+			// Ignore these
 			clean_parse_result(&res);
 			continue;
 		}
 
+		// Resize the array whenever necessary
 		if (current_size <= ast.children_count)
 			ast.children = realloc(ast.children, (current_size <<= 1) * sizeof(ast_t));
 
+		// 
 		if (res.ast.name == NULL && res.ast.value == NULL && res.ast.children_count > 0)
 		{
 			if (current_size <= ast.children_count + res.ast.children_count)
