@@ -102,6 +102,40 @@ parse_result_t init_error_result(char* msg, int line, int char_pos)
 //
 
 // _match_str_func(lexer_t*, void*) -> void
+// Comb function for c_char.
+parse_result_t _match_char_func(lexer_t* lex, void* args)
+{
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
+	// Get the character
+	char to_match = (char) args;
+
+	// Save the state just in case
+	lexer_t _lex = *lex;
+
+	// Match the character
+	if (lex_next(&_lex) != to_match)
+		return init_error_result(NULL, lex->line, lex->char_pos);
+	
+	// Return the value
+	char buffer[] = {to_match, '\0'};
+	ast_t node = init_ast_node(buffer, lex->line, lex->char_pos);
+	*lex = _lex;
+	return init_succ_result(node);
+}
+
+// c_char(char) -> comb_t*
+// Creates a parser valid for a given character.
+comb_t* c_char(char c)
+{
+	comb_t* comb = init_combinator();
+	comb->func = _match_char_func;
+	comb->args = (void*) ((long) c); // to suppress a warning
+	return comb;
+}
+
+// _match_str_func(lexer_t*, void*) -> void
 // Comb function for c_str.
 parse_result_t _match_str_func(lexer_t* lex, void* args)
 {
@@ -202,6 +236,55 @@ comb_t* c_regex(char* pattern)
 	comb_t* comb = init_combinator();
 	comb->func = _match_regex_func;
 	comb->args = (void*) regex;
+	return comb;
+}
+
+// _match_next_func(lexer_t*, void*) -> void
+// Comb function for c_next.
+parse_result_t _match_next_func(lexer_t* lex, void* args)
+{
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
+	// Just get the next character
+	int line = lex->line;
+	int char_pos = lex->char_pos;
+	char string[] = {lex_next(lex), '\0'};
+	return init_succ_result(init_ast_node(string, line, char_pos));
+}
+
+// c_next(void) -> comb_t*
+// Creates a parser that's always valid.
+comb_t* c_next()
+{
+	comb_t* comb = init_combinator();
+	comb->func = _match_next_func;
+	return comb;
+}
+
+// _match_eof_func(lexer_t*, void*) -> void
+// Comb function for c_eof.
+parse_result_t _match_eof_func(lexer_t* lex, void* args)
+{
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
+	lexer_t _lex = *lex;
+
+	// Test for end of file
+	if (lex_next(&_lex) == '\0')
+		return init_succ_result(init_ast_node("", lex->line, lex->char_pos));
+	
+	// Error because the next character wasn't the end
+	return init_error_result(NULL, lex->line, lex->char_pos);
+}
+
+// c_eof(void) -> comb_t*
+// Creates a parser valid if end of file.
+comb_t* c_eof()
+{
+	comb_t* comb = init_combinator();
+	comb->func = _match_eof_func;
 	return comb;
 }
 
@@ -577,29 +660,6 @@ comb_t* c_not(comb_t* c)
 	return comb;
 }
 
-// _match_next_func(lexer_t*, void*) -> void
-// Comb function for c_next.
-parse_result_t _match_next_func(lexer_t* lex, void* args)
-{
-	// Skip whitespace
-	lex_skip_whitespace(lex);
-
-	// Just get the next character
-	int line = lex->line;
-	int char_pos = lex->char_pos;
-	char string[] = {lex_next(lex), '\0'};
-	return init_succ_result(init_ast_node(string, line, char_pos));
-}
-
-// c_next(void) -> comb_t*
-// Creates a parser that's always valid.
-comb_t* c_next()
-{
-	comb_t* comb = init_combinator();
-	comb->func = _match_next_func;
-	return comb;
-}
-
 // _match_ignore_func(lexer_t*, void*) -> void
 // Comb function for c_ignore.
 parse_result_t _match_ignore_func(lexer_t* lex, void* args)
@@ -625,32 +685,6 @@ comb_t* c_ignore(comb_t* c)
 	comb_t* comb = init_combinator();
 	comb->func = _match_ignore_func;
 	comb->args = (void*) c;
-	return comb;
-}
-
-// _match_eof_func(lexer_t*, void*) -> void
-// Comb function for c_eof.
-parse_result_t _match_eof_func(lexer_t* lex, void* args)
-{
-	// Skip whitespace
-	lex_skip_whitespace(lex);
-
-	lexer_t _lex = *lex;
-
-	// Test for end of file
-	if (lex_next(&_lex) == '\0')
-		return init_succ_result(init_ast_node("", lex->line, lex->char_pos));
-	
-	// Error because the next character wasn't the end
-	return init_error_result(NULL, lex->line, lex->char_pos);
-}
-
-// c_eof(void) -> comb_t*
-// Creates a parser valid if end of file.
-comb_t* c_eof()
-{
-	comb_t* comb = init_combinator();
-	comb->func = _match_eof_func;
 	return comb;
 }
 

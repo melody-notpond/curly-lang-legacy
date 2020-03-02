@@ -79,6 +79,10 @@ comb_t* init_combinator();
 
 
 
+// c_char(char) -> comb_t*
+// Creates a parser valid for a given character.
+comb_t* c_char(char c);
+
 // c_str(char*) -> comb_t*
 // Creates a parser valid for a given string.
 comb_t* c_str(char* str);
@@ -86,6 +90,14 @@ comb_t* c_str(char* str);
 // c_regex(char*) -> comb_t*
 // Creates a parser valid for a given regex.
 comb_t* c_regex(char* pattern);
+
+// c_next(void) -> comb_t*
+// Creates a parser that's always valid.
+comb_t* c_next();
+
+// c_eof(void) -> comb_t*
+// Creates a parser valid if end of file.
+comb_t* c_eof();
 
 // c_or(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if any given parser is valid.
@@ -113,18 +125,10 @@ comb_t* c_optional(comb_t* c);
 // Creates a parser valid if the given parser is invalid.
 comb_t* c_not(comb_t* c);
 
-// c_next(void) -> comb_t*
-// Creates a parser that's always valid.
-comb_t* c_next();
-
 // c_ignore(comb_t*) -> comb_t*
 // Creates a parser that ignores the output of a given parser.
 // Validity is still dependent on the given parser.
 comb_t* c_ignore(comb_t* c);
-
-// c_eof(void) -> comb_t*
-// Creates a parser valid if end of file.
-comb_t* c_eof();
 
 // c_name(char*, comb_t*) -> comb_t*
 // Creates a parser that gives a name to a given parser.
