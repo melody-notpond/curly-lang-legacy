@@ -68,6 +68,7 @@ typedef parse_result_t (*comb_fn)(lexer_t*, void*);
 typedef struct comb_s
 {
 	comb_fn func;
+	bool ignore_whitespace;
 	void* args;
 	struct comb_s* next;
 } comb_t;
@@ -81,6 +82,10 @@ comb_t* init_combinator();
 // c_str(char*) -> comb_t*
 // Creates a parser valid for a given string.
 comb_t* c_str(char* str);
+
+// c_regex(char*) -> comb_t*
+// Creates a parser valid for a given regex.
+comb_t* c_regex(char* pattern);
 
 // c_or(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if any given parser is valid.

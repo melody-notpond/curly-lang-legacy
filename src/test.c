@@ -37,6 +37,42 @@ void test_c_str()
 	puts("");
 }
 
+void test_c_regex()
+{
+	// match the regex 
+	comb_t* comb = c_regex("-?[0-9]+(.[0-9]+)?(e[-+]?[0-9]+)?");
+	parse_result_t res;
+
+	puts("Testing c_regex(char*)");
+	res = parse(comb, "9843"); // success
+	assert(res.succ);
+	print_parse_result(res);
+	clean_parse_result(&res);
+
+	res = parse(comb, "-6.02"); // success
+	assert(res.succ);
+	print_parse_result(res);
+	clean_parse_result(&res);
+
+	res = parse(comb, "9.5e+4c"); // success
+	assert(res.succ);
+	print_parse_result(res);
+	clean_parse_result(&res);
+
+	res = parse(comb, "a8"); // error
+	assert(!res.succ);
+	print_parse_result(res);
+	clean_parse_result(&res);
+
+	res = parse(comb, "a\n8"); // error
+	assert(!res.succ);
+	print_parse_result(res);
+	clean_parse_result(&res);
+
+	clean_combinator(comb);
+	puts("");
+}
+
 void test_c_or()
 {
 	// match all strings that start with either owo, uwu, or uwo
@@ -227,20 +263,22 @@ void test_c_name()
 
 void test_parens()
 {
+	// match proper parentheses, ignoring whitespace
 	comb_t* parens = init_combinator();
 	c_set(parens, c_name("parens", c_seq(
 		c_str("("), c_zmore(parens), c_str(")"), NULL
 	)));
 	parens = c_name("expr", c_seq(c_zmore(parens), c_eof(), NULL));
+	parens->ignore_whitespace = true;
 	parse_result_t res;
 
 	puts("Testing parentheses parser");
-	res = parse(parens, "()"); // success
+	res = parse(parens, "   ( )   "); // success
 	assert(res.succ);
 	print_parse_result(res);
 	clean_parse_result(&res);
 	
-	res = parse(parens, "(())()(())"); // success
+	res = parse(parens, "\r(  ( )\t)     ( )  (  (  )\n)   "); // success
 	assert(res.succ);
 	print_parse_result(res);
 	clean_parse_result(&res);
@@ -262,6 +300,7 @@ void test_parens()
 int main(int argc, char** argv)
 {
 	test_c_str();
+	test_c_regex();
 	test_c_or();
 	test_c_seq();
 	test_c_zmore();

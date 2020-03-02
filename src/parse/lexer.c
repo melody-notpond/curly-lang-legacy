@@ -10,16 +10,31 @@
 
 #include "lexer.h"
 
-// lex_str(char*) -> lexer_t
+// lex_str(char*, bool) -> lexer_t
 // Initialises a new lexer with a given string.
-lexer_t lex_str(char* string)
+lexer_t lex_str(char* string, bool ignore_whitespace)
 {
 	lexer_t lex;
 	lex.string = strdup(string);
+	lex.ignore_whitespace = ignore_whitespace;
 	lex.position = 0;
 	lex.line = 1;
 	lex.char_pos = 0;
 	return lex;
+}
+
+// lex_skip_whitespace(lexer_t*) -> void
+// Skips all whitespace, if applicable.
+void lex_skip_whitespace(lexer_t* lex)
+{
+	// Don't skip whitespace if it isn't being ignored
+	if (!lex->ignore_whitespace)
+		return;
+
+	// Skip whitespace
+	for (char* c = lex->string + lex->position;
+		 *c == ' ' || *c == '\t' || *c == '\n' || *c == '\r' || *c == '\f';
+		 c++, lex->position++);
 }
 
 // lex_next(lexer_t*) -> lexeme_t

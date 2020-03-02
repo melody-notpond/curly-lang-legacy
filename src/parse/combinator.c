@@ -6,6 +6,7 @@
 // February 25 2020
 //
 
+#include <regex.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +19,7 @@ comb_t* init_combinator()
 {
 	comb_t* comb = malloc(sizeof(comb_t));
 	comb->func = NULL;
+	comb->ignore_whitespace = false;
 	comb->args = NULL;
 	comb->next = NULL;
 	return comb;
@@ -103,6 +105,9 @@ parse_result_t init_error_result(char* msg, int line, int char_pos)
 // Comb function for c_str.
 parse_result_t _match_str_func(lexer_t* lex, void* args)
 {
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
 	// Get the string
 	char* to_match = (char*) args;
 
@@ -130,6 +135,73 @@ comb_t* c_str(char* str)
 	comb->func = _match_str_func;
 	comb->args = malloc(strlen(str) + 1);
 	strcpy((char*) comb->args, str);
+	return comb;
+}
+
+// _match_regex_func(lexer_t*, void*) -> parse_result_t
+// Comb function for c_regex.
+parse_result_t _match_regex_func(lexer_t* lex, void* args)
+{
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
+	// Execute the regex
+	regmatch_t match;
+	int status = regexec((regex_t*) args, lex->string + lex->position, 1, &match, 0);
+
+	// Check for error
+	if (status != 0)
+		return init_error_result(NULL, lex->line, lex->char_pos);
+
+	// Create the ast node
+	ast_t node = init_ast_node(NULL, lex->line, lex->char_pos);
+	node.value = malloc(match.rm_eo + 1);
+	strncpy(node.value, lex->string + lex->position, match.rm_eo);
+
+	// Update lexer position
+	lex->position += (int) match.rm_eo;
+
+	return init_succ_result(node);
+}
+
+// c_regex(char*) -> comb_t*
+// Creates a parser valid for a given regex.
+comb_t* c_regex(char* pattern)
+{
+	// No null patterns allowed
+	if (pattern == NULL)
+	{
+		puts("Invalid regex: (null)");
+		exit(1);
+	} else if (pattern[0] != '^')
+	{
+		// Add a starting anchor to the pattern so the regex only searches at the start
+		char* temp = pattern;
+		pattern = malloc(strlen(pattern) + 2);
+		pattern[0] = '^';
+		strcpy(pattern + 1, temp);
+	}
+
+	// Compile the regex
+	regex_t* regex = malloc(sizeof(regex_t));
+	int status = regcomp(regex, pattern, REG_EXTENDED);
+
+	// Error if invalid regex
+	if (status != 0)
+	{
+		size_t length = regerror(status, regex, NULL, 0);
+		char* buffer = malloc(length);
+		regerror(status, regex, buffer, length);
+		printf("%s\n", buffer);
+		free(regex);
+		free(buffer);
+		exit(1);
+	}
+
+	// Create the comb
+	comb_t* comb = init_combinator();
+	comb->func = _match_regex_func;
+	comb->args = (void*) regex;
 	return comb;
 }
 
@@ -203,11 +275,13 @@ parse_result_t _match_or_func(lexer_t* lex, void* args)
 // comb_t* list must end with NULL.
 comb_t* c_or(comb_t* c1, comb_t* c2, ...)
 {
+	// Generate the comb list
 	va_list ap;
 	va_start(ap, c2);
 	void* args = get_combs_list(c1, c2, ap);
 	va_end(ap);
 
+	// Create the comb
 	comb_t* comb = init_combinator();
 	comb->func = _match_or_func;
 	comb->args = args;
@@ -286,11 +360,13 @@ parse_result_t _match_seq_func(lexer_t* lex, void* args)
 // comb_t* list must end with NULL.
 comb_t* c_seq(comb_t* c1, comb_t* c2, ...)
 {
+	// Generate the comb list
 	va_list ap;
 	va_start(ap, c2);
 	void* args = get_combs_list(c1, c2, ap);
 	va_end(ap);
 
+	// Create the comb
 	comb_t* comb = init_combinator();
 	comb->func = _match_seq_func;
 	comb->args = args;
@@ -505,6 +581,9 @@ comb_t* c_not(comb_t* c)
 // Comb function for c_next.
 parse_result_t _match_next_func(lexer_t* lex, void* args)
 {
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
 	// Just get the next character
 	int line = lex->line;
 	int char_pos = lex->char_pos;
@@ -553,6 +632,9 @@ comb_t* c_ignore(comb_t* c)
 // Comb function for c_eof.
 parse_result_t _match_eof_func(lexer_t* lex, void* args)
 {
+	// Skip whitespace
+	lex_skip_whitespace(lex);
+
 	lexer_t _lex = *lex;
 
 	// Test for end of file
@@ -601,13 +683,15 @@ parse_result_t _match_set_name_func(lexer_t* lex, void* args)
 // Creates a parser that gives a name to a given parser.
 comb_t* c_name(char* name, comb_t* c)
 {
-	comb_t* comb = init_combinator();
-	comb->func = _match_set_name_func;
-	comb->args = malloc(sizeof(comb_t*) + strlen(name) + 1);
-
-	void** args = comb->args;
+	// Generate the arguments (comb + name)
+	void** args = malloc(sizeof(comb_t*) + strlen(name) + 1);;
 	args[0] = c;
 	strcpy((char*) (args + 1), name);
+
+	// Create the comb
+	comb_t* comb = init_combinator();
+	comb->func = _match_set_name_func;
+	comb->args = args;
 	return comb;
 }
 
@@ -638,7 +722,7 @@ void c_set(comb_t* a, comb_t* b)
 // Parses a string and returns the result.
 parse_result_t parse(comb_t* parser, char* string)
 {
-	lexer_t lex = lex_str(string);
+	lexer_t lex = lex_str(string, parser->ignore_whitespace);
 	parse_result_t result = parser->func(&lex, parser->args);
 	clean_lex(&lex);
 	return result;
@@ -834,6 +918,11 @@ void clean_combinator(comb_t* comb)
 		 || current->func == _match_seq_func
 		 || current->func == _match_set_name_func)
 			free(current->args);
+		else if (current->func == _match_regex_func)
+		{
+			regfree((regex_t*) current->args);
+			free(current->args);
+		}
 
 		// Get next comb and free current one
 		comb_t* last = current;
