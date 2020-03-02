@@ -29,7 +29,7 @@ ast_t init_ast_node(char* value, int line, int char_pos)
 {
 	ast_t node;
 	node.name = NULL;
-	node.value = strdup(value);
+	node.value = (value != NULL ? strdup(value) : NULL);
 	node.line = line;
 	node.char_pos = char_pos;
 	node.children_count = 0;
@@ -323,30 +323,39 @@ parse_result_t _match_zmore_func(lexer_t* lex, void* args)
 		if (current_size <= ast.children_count)
 			ast.children = realloc(ast.children, (current_size <<= 1) * sizeof(ast_t));
 
-		// 
+		// Unnamed parent nodes have their children stolen
+		// This is because you don't want something like /(ab)*/ to have /ab/ with a separate parent every time
 		if (res.ast.name == NULL && res.ast.value == NULL && res.ast.children_count > 0)
 		{
+			// Resize the array to fit the unexpected children
 			if (current_size <= ast.children_count + res.ast.children_count)
 				ast.children = realloc(ast.children, (current_size += res.ast.children_count) * sizeof(ast_t));
 
+			// Append all children
 			for (int j = 0; j < res.ast.children_count; j++)
 			{
 				ast.children[ast.children_count++] = res.ast.children[j];
 			}
+
+			// Free the children
 			free(res.ast.children);
 		} else
+			// Append the result to the array
 			ast.children[ast.children_count++] = res.ast;
 	}
 
 	if (ast.children_count == 0)
 	{
+		// Zero nodes isn't a bad thing
 		clean_ast_node(&ast);
 		res = init_empty_result();
 	} else if (ast.children_count == 1)
 	{
+		// There was just one, so return the child node
 		res = init_succ_result(ast.children[0]);
 		free(ast.children);
 	} else
+		// Return the entire thing
 		res = init_succ_result(ast);
 
 	return res;
@@ -366,44 +375,59 @@ comb_t* c_zmore(comb_t* c)
 // Comb function for c_omore.
 parse_result_t _match_omore_func(lexer_t* lex, void* args)
 {
+	// Get the parser
 	comb_t* comb = (comb_t*) args;
 	parse_result_t res;
 
+	// Parent node
 	int current_size = 8;
 	ast_t ast = init_parent_node(current_size, lex->line, lex->char_pos);
 
+	// Iterate whilst the parser is still valid
 	while ((res = comb->func(lex, comb->args)).succ)
 	{
 		if (res.ignore)
 		{
+			// Ignore these
 			clean_parse_result(&res);
 			continue;
 		}
 
+		// Resize the array whenever necessary
 		if (current_size <= ast.children_count)
 			ast.children = realloc(ast.children, (current_size <<= 1) * sizeof(ast_t));
 
+		// Unnamed parent nodes have their children stolen
+		// This is because you don't want something like /(ab)+/ to have /ab/ with a separate parent every time
 		if (res.ast.name == NULL && res.ast.value == NULL && res.ast.children_count > 0)
 		{
+			// Resize the array to fit the unexpected children
 			if (current_size <= ast.children_count + res.ast.children_count)
 				ast.children = realloc(ast.children, (current_size += res.ast.children_count) * sizeof(ast_t));
 
+			// Append all children
 			for (int j = 0; j < res.ast.children_count; j++)
 			{
 				ast.children[ast.children_count++] = res.ast.children[j];
 			}
+
+			// Free the children
 			free(res.ast.children);
 		} else
+			// Append the result to the array
 			ast.children[ast.children_count++] = res.ast;
 	}
 
+	// Zero nodes is a problem
 	if (ast.children_count == 0)
 		clean_ast_node(&ast);
 	else if (ast.children_count == 1)
 	{
+		// There was just one, so return the child node
 		res = init_succ_result(ast.children[0]);
 		free(ast.children);
 	} else
+		// Return the entire thing
 		res = init_succ_result(ast);
 
 	return res;
@@ -423,13 +447,15 @@ comb_t* c_omore(comb_t* c)
 // Comb function for c_optional.
 parse_result_t _match_optional_func(lexer_t* lex, void* args)
 {
+	// Parse
 	comb_t* comb = (comb_t*) args;
-
 	parse_result_t result = comb->func(lex, comb->args);
 
+	// Success!
 	if (result.succ)
 		return result;
 	
+	// Failure isn't bad, so return an empty result
 	clean_parse_result(&result);
 	return init_empty_result();
 }
@@ -448,15 +474,19 @@ comb_t* c_optional(comb_t* c)
 // Comb function for c_not.
 parse_result_t _match_not_func(lexer_t* lex, void* args)
 {
+	// Get the parser
 	comb_t* comb = (comb_t*) args;
 	lexer_t _lex = *lex;
 
+	// Parse
 	parse_result_t result = comb->func(&_lex, comb->args);
 	clean_parse_result(&result);
 
+	// Success is failure
 	if (result.succ)
 		return init_error_result(NULL, lex->line, lex->char_pos);
 
+	// Failure is success
 	*lex = _lex;
 	return init_empty_result();
 }
@@ -475,6 +505,7 @@ comb_t* c_not(comb_t* c)
 // Comb function for c_next.
 parse_result_t _match_next_func(lexer_t* lex, void* args)
 {
+	// Just get the next character
 	int line = lex->line;
 	int char_pos = lex->char_pos;
 	char string[] = {lex_next(lex), '\0'};
@@ -494,11 +525,15 @@ comb_t* c_next()
 // Comb function for c_ignore.
 parse_result_t _match_ignore_func(lexer_t* lex, void* args)
 {
+	// Parse
 	comb_t* comb = (comb_t*) args;
 	parse_result_t result = comb->func(lex, comb->args);
 
+	// Errors are still bad
 	if (!result.succ)
 		return result;
+	
+	// Ignore the result generated
 	clean_parse_result(&result);
 	return init_empty_result();
 }
@@ -519,8 +554,12 @@ comb_t* c_ignore(comb_t* c)
 parse_result_t _match_eof_func(lexer_t* lex, void* args)
 {
 	lexer_t _lex = *lex;
+
+	// Test for end of file
 	if (lex_next(&_lex) == '\0')
 		return init_succ_result(init_ast_node("", lex->line, lex->char_pos));
+	
+	// Error because the next character wasn't the end
 	return init_error_result(NULL, lex->line, lex->char_pos);
 }
 
@@ -537,11 +576,13 @@ comb_t* c_eof()
 // Comb function for c_name.
 parse_result_t _match_set_name_func(lexer_t* lex, void* args)
 {
+	// Parse
 	comb_t* comb = ((comb_t**) args)[0];
 	parse_result_t result = comb->func(lex, comb->args);
 
 	if (result.succ)
 	{
+		// Make a new parent if the node already has a name
 		if (result.ast.name != NULL)
 		{
 			ast_t new = init_parent_node(1, result.ast.line, result.ast.char_pos);
@@ -549,6 +590,8 @@ parse_result_t _match_set_name_func(lexer_t* lex, void* args)
 			new.children_count = 1;
 			result.ast = new;
 		}
+
+		// Give the node a name
 		result.ast.name = strdup((char*) (args + sizeof(comb_t*)));
 	}
 	return result;
@@ -612,19 +655,26 @@ parse_result_t parse(comb_t* parser, char* string)
 //     (eof) (1:12)
 void ast_print_helper(ast_t node, int level)
 {
+	// Print out the appropriate amount indentation
 	for (int i = 0; i < level; i++)
 		printf("    ");
 
+	// Print out the name if available
 	if (node.name != NULL)
 		printf("%s ", node.name);
+	
+	// Print out the value if available or necessary
 	if (node.value != NULL && node.value[0] != '\0')
 		printf("\"%s\" ", node.value);
 	else if (node.value != NULL)
 		printf("(eof) ");
 	else if (node.name == NULL)
 		printf("(null) ");
+	
+	// Print out the location in the file
 	printf("(%i:%i)", node.line, node.char_pos);
 
+	// Print out all children
 	if (node.children_count != 0)
 	{
 		printf("|>");
@@ -642,14 +692,18 @@ void print_parse_result(parse_result_t result)
 {
 	if (result.succ)
 	{
+		// Print out the ast tree
 		ast_print_helper(result.ast, 0);
 		puts("");
 	} else
 	{
+		// Print out the error message
 		if (result.error.msg != NULL)
 			printf("Syntax error: %s", result.error.msg);
 		else
 			printf("Unknown syntax error");
+		
+		// Print the location in the file
 		printf(" (%i:%i)\n", result.error.line, result.error.char_pos);
 	}
 }
@@ -661,9 +715,11 @@ void clean_parse_result(parse_result_t* result)
 	if (result == NULL)
 		return;
 	if (result->succ)
+		// Clean up tree
 		clean_ast_node(&(result->ast));
 	else
 	{
+		// Clean up error
 		free(result->error.msg);
 		result->error.msg = NULL;
 	}
@@ -675,6 +731,8 @@ void clean_ast_node(ast_t* node)
 {
 	if (node == NULL)
 		return;
+	
+	// Free all children
 	if (node->children_count > 0)
 	{
 		for (int i = 0; i < node->children_count; i++)
@@ -685,6 +743,14 @@ void clean_ast_node(ast_t* node)
 		node->children = NULL;
 		node->children_count = 0;
 	}
+
+	// Free the name
+	if (node->name != NULL)
+		free(node->name);
+
+	// Free the value
+	if (node->value != NULL)
+		free(node->value);
 }
 
 // build_comb_list(comb_t*) -> comb_t*
@@ -695,8 +761,10 @@ comb_t* build_comb_list(comb_t* comb)
 	
 	while (true)
 	{
+		// Multiple combs to be appended
 		if (last->func == _match_or_func || last->func == _match_seq_func)
 		{
+			// Get the number of combs and the list of combs
 			int count = ((int*) last->args)[0];
 			comb_t** combs = (comb_t**) (last->args + sizeof(int));
 
@@ -704,38 +772,49 @@ comb_t* build_comb_list(comb_t* comb)
 			{
 				comb_t* next = combs[i];
 
+				// This condition tests if the comb was already added to the list
 				if (next != last && next->next == NULL)
 				{
+					// Append next to the linked list
 					last->next = next;
+
+					// Build the link list starting with next and get the very last element
 					last = build_comb_list(next);
 				}
 			}
 			break;
+
+		// One comb to be appended
 		} else if (last->func == _match_zmore_func
 				|| last->func == _match_omore_func
 				|| last->func == _match_optional_func
 				|| last->func == _match_not_func
-				|| last->func == _match_ignore_func)
+				|| last->func == _match_ignore_func
+				|| last->func == _match_set_name_func)
 		{
-			comb_t* next = (comb_t*) last->args;
+			// Get the comb
+			comb_t* next;
+			if (last->func == _match_set_name_func)
+				// c_name has a slightly different memory layout than the other combs
+				next = ((comb_t**) last->args)[0];
+			else
+				next = (comb_t*) last->args;
 
+			// This condition tests if the comb was already added to the list
 			if (next != last && next->next == NULL)
 			{
+				// Append next to the linked list
 				last->next = next;
-				last = next;
-			} else break;
-		} else if (last->func == _match_set_name_func)
-		{
-			comb_t* next = ((comb_t**) last->args)[0];
 
-			if (next != last && next->next == NULL)
-			{
-				last->next = next;
+				// Build the link list starting with next and get the very last element
 				last = next;
 			} else break;
+
+		// No combs to be appended
 		} else break;
 	}
 
+	// The last one is returned since this function builds the linked list recursively
 	return last;
 }
 
@@ -743,17 +822,20 @@ comb_t* build_comb_list(comb_t* comb)
 // Deletes a comb parser.
 void clean_combinator(comb_t* comb)
 {
+	// Generate the linked list of combinators for deletion
 	build_comb_list(comb);
 
 	comb_t* current = comb;
 	while (current != NULL)
 	{
+		// Free args if appropriate
 		if (current->func == _match_str_func
 		 || current->func == _match_or_func
 		 || current->func == _match_seq_func
 		 || current->func == _match_set_name_func)
 			free(current->args);
 
+		// Get next comb and free current one
 		comb_t* last = current;
 		current = current->next;
 		free(last);
