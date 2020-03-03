@@ -7,9 +7,9 @@
 ##
 
 CC = gcc
-CFLAGS = -Wall -O0 -ggdb3 -I'curly-comb/src/parse'
+CFLAGS = -Wall -O0 -ggdb3 -I'dep/curly-comb/src/parse'
 LDFLAGS = 
-LIBS = -Lcurly-comb -lcomb
+LIBS = -L'dep/curly-comb' -lcomb
 
 CODE = src/
 
@@ -19,10 +19,11 @@ all: *.o libcomb.a
 *.o: src
 
 libcomb.a:
-	cd curly-comb && make -f makefile && cd ..
+	cd dep/curly-comb && make -f makefile
 
 src: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
 
 clean:
 	-rm *.o
+	-rm dep/curly-comb/*.o
