@@ -7,9 +7,9 @@
 ##
 
 CC = gcc
-CFLAGS = -Wall -O0 -ggdb3
+CFLAGS = -Wall -O0 -ggdb3 -I'curly-comb/src/parse'
 LDFLAGS = 
-LIBS = 
+LIBS = -Lcurly-comb -lcomb
 
 CODE = src/
 
