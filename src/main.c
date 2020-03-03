@@ -10,15 +10,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "combinator.h"
+#include "parser.h"
 
 int main(int argc, char** argv)
 {
-	// Just to test importing the combinator library
-	comb_t* comb = c_char('a');
-	parse_result_t res = parse(comb, "a");
+	if (argc <= 1)
+	{
+		puts("input at least one argument");
+		return -1;
+	}
+
+	comb_t* parser = create_lang_parser();
+	parse_result_t res = parse(parser, argv[1]);
 	print_parse_result(res);
 	clean_parse_result(&res);
-	clean_combinator(comb);
+	clean_combinator(parser);
 	return 0;
 }
