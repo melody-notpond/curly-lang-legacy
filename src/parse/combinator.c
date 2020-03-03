@@ -81,16 +81,18 @@ parse_result_t init_succ_result(ast_t node)
 	return result;
 }
 
-// init_error_result(comb_t*, int, int)
+// init_error_result(comb_t*, lexer_t*)
 // Initialises an erroneous parse result.
-parse_result_t init_error_result(void* cause, int line, int char_pos)
+parse_result_t init_error_result(void* cause, lexer_t* lex)
 {
 	parse_result_t result;
 	result.succ = false;
 	result.ignore = false;
 	result.error.cause = cause;
-	result.error.line = line;
-	result.error.char_pos = char_pos;
+	result.error.string = NULL;
+	result.error.position = lex->position;
+	result.error.line = lex->line;
+	result.error.char_pos = lex->char_pos;
 	return result;
 }
 
@@ -117,7 +119,7 @@ parse_result_t _match_char_func(void* self, lexer_t* lex, void* args)
 
 	// Match the character
 	if (lex_next(&_lex) != to_match)
-		return init_error_result(self, lex->line, lex->char_pos);
+		return init_error_result(self, lex);
 
 	// Return the value
 	char buffer[] = {to_match, '\0'};
@@ -153,7 +155,7 @@ parse_result_t _match_str_func(void* self, lexer_t* lex, void* args)
 	for (int i = 0; i < strlen(to_match); i++)
 	{
 		if (to_match[i] != lex_next(&_lex))
-			return init_error_result(self, lex->line, lex->char_pos);
+			return init_error_result(self, lex);
 	}
 
 	// Set up for returning
@@ -186,7 +188,7 @@ parse_result_t _match_regex_func(void* self, lexer_t* lex, void* args)
 
 	// Check for error
 	if (status != 0)
-		return init_error_result(self, lex->line, lex->char_pos);
+		return init_error_result(self, lex);
 
 	// Create the ast node
 	ast_t node = init_ast_node(NULL, lex->line, lex->char_pos);
@@ -267,25 +269,34 @@ comb_t* c_next()
 // Comb function for c_eof.
 parse_result_t _match_eof_func(void* self, lexer_t* lex, void* args)
 {
+	// Parse
+	comb_t* comb = (comb_t*) args;
+	parse_result_t res = comb->func(comb, lex, comb->args);
+
+	// Return any errors
+	if (!res.succ)
+		return res;
+
 	// Skip whitespace
 	lex_skip_whitespace(lex);
-
 	lexer_t _lex = *lex;
 
 	// Test for end of file
-	if (lex_next(&_lex) == '\0')
-		return init_succ_result(init_ast_node("", lex->line, lex->char_pos));
-	
+	if (lex_next(lex) == '\0')
+		return res;
+
 	// Error because the next character wasn't the end
-	return init_error_result(self, lex->line, lex->char_pos);
+	clean_parse_result(&res);
+	return init_error_result(self, &_lex);
 }
 
-// c_eof(void) -> comb_t*
-// Creates a parser valid if end of file.
-comb_t* c_eof()
+// c_eof(comb_t*) -> comb_t*
+// Creates a parser valid if a given parser parses the whole file.
+comb_t* c_eof(comb_t* c)
 {
 	comb_t* comb = init_combinator();
 	comb->func = _match_eof_func;
+	comb->args = (void*) c;
 	return comb;
 }
 
@@ -350,7 +361,9 @@ parse_result_t _match_or_func(void* self, lexer_t* lex, void* args)
 			return result;
 	}
 
-	// Error :(
+	// If this comb has a more specific error message, send that error message instead
+	if (((comb_t*) self)->error_msg != NULL && ((comb_t*) result.error.cause)->error_msg == NULL)
+		result.error.cause = self;
 	return result;
 }
 
@@ -399,8 +412,13 @@ parse_result_t _match_seq_func(void* self, lexer_t* lex, void* args)
 			continue;
 		} else if (!result.succ)
 		{
-			// Error :(
+			// Clean up
 			clean_ast_node(&ast);
+
+			// If this comb has a more specific error message, send that error message instead
+			if (((comb_t*) self)->error_msg != NULL && ((comb_t*) result.error.cause)->error_msg == NULL)
+				result.error.cause = self;
+
 			return result;
 		}
 
@@ -580,7 +598,14 @@ parse_result_t _match_omore_func(void* self, lexer_t* lex, void* args)
 
 	// Zero nodes is a problem
 	if (ast.children_count == 0)
+	{
+		// Clean up
 		clean_ast_node(&ast);
+
+		// If this comb has a more specific error message, send that error message instead
+		if (((comb_t*) self)->error_msg != NULL && ((comb_t*) res.error.cause)->error_msg == NULL)
+			res.error.cause = self;
+	}
 	else if (ast.children_count == 1)
 	{
 		// There was just one, so return the child node
@@ -644,7 +669,7 @@ parse_result_t _match_not_func(void* self, lexer_t* lex, void* args)
 
 	// Success is failure
 	if (result.succ)
-		return init_error_result(self, lex->line, lex->char_pos);
+		return init_error_result(self, &_lex);
 
 	// Failure is success
 	*lex = _lex;
@@ -671,7 +696,13 @@ parse_result_t _match_ignore_func(void* self, lexer_t* lex, void* args)
 
 	// Errors are still bad
 	if (!result.succ)
+	{
+		// If this comb has a more specific error message, send that error message instead
+		if (((comb_t*) self)->error_msg != NULL && ((comb_t*) result.error.cause)->error_msg == NULL)
+			result.error.cause = self;
+
 		return result;
+	}
 	
 	// Ignore the result generated
 	clean_parse_result(&result);
@@ -710,7 +741,11 @@ parse_result_t _match_set_name_func(void* self, lexer_t* lex, void* args)
 
 		// Give the node a name
 		result.ast.name = strdup((char*) (args + sizeof(comb_t*)));
-	}
+
+	// If this comb has a more specific error message, send that error message instead
+	} else if (((comb_t*) self)->error_msg != NULL && ((comb_t*) result.error.cause)->error_msg == NULL)
+		result.error.cause = self;
+
 	return result;
 }
 
@@ -767,6 +802,13 @@ parse_result_t parse(comb_t* parser, char* string)
 {
 	lexer_t lex = lex_str(string, parser->ignore_whitespace);
 	parse_result_t result = parser->func(parser, &lex, parser->args);
+
+	if (!result.succ)
+	{
+		result.error.string = lex.string;
+		lex.string = NULL;
+	}
+
 	clean_lex(&lex);
 	return result;
 }
@@ -789,7 +831,7 @@ void ast_print_helper(ast_t node, int level)
 	// Print out the name if available
 	if (node.name != NULL)
 		printf("%s ", node.name);
-	
+
 	// Print out the value if available or necessary
 	if (node.value != NULL && node.value[0] != '\0')
 		printf("\"%s\" ", node.value);
@@ -797,7 +839,7 @@ void ast_print_helper(ast_t node, int level)
 		printf("(eof) ");
 	else if (node.name == NULL)
 		printf("(null) ");
-	
+
 	// Print out the location in the file
 	printf("(%i:%i)", node.line, node.char_pos);
 
@@ -824,11 +866,48 @@ void print_parse_result(parse_result_t result)
 		puts("");
 	} else
 	{
-		// Print out the error message
-		printf("Syntax error: Unknown syntax error");
+		// Get the values
+		parse_error_t err = result.error;
+		comb_t* cause = (comb_t*) (err.cause);
+
+#define match_error_case(f) else if (cause->func == _match_##f##_func)
+
+		// Switch over the possible error messages
+		printf("Syntax error: ");
+		if (cause->error_msg != NULL)
+		{
+			printf("%s", cause->error_msg);
+		} match_error_case(char)
+		{
+			printf("Expected '%c', got ", (char) cause->args);
+
+			// Test if the character is end of file
+			char c = err.string[err.position];
+			if (c != '\0')
+				printf("'%c'", c);
+			else
+				printf("eof");
+		} match_error_case(str)
+		{
+			printf("Expected \"%s\", got \"", (char*) cause->args);
+			for (char *c = cause->args, *m = err.string + err.position; *c && *m; c++, m++)
+			{
+				printf("%c", *m);
+			}
+			printf("\"");
+		} match_error_case(regex)
+		{
+			printf("Regex failed to match");
+		} match_error_case(eof)
+		{
+			printf("Expected eof, got '%c'", err.string[err.position]);
+		} else
+		{
+			printf("An unknown syntax error occured");
+		}
 		
 		// Print the location in the file
-		printf(" (%i:%i)\n", result.error.line, result.error.char_pos);
+		printf(" (%i:%i)\n", err.line, err.char_pos);
 	}
 }
 
@@ -844,6 +923,8 @@ void clean_parse_result(parse_result_t* result)
 	else
 	{
 		// Clean up error
+		free(result->error.string);
+		result->error.string = NULL;
 		result->error.cause = NULL;
 	}
 }
@@ -908,7 +989,8 @@ comb_t* build_comb_list(comb_t* comb)
 			break;
 
 		// One comb to be appended
-		} else if (last->func == _match_zmore_func
+		} else if (last->func == _match_eof_func
+				|| last->func == _match_zmore_func
 				|| last->func == _match_omore_func
 				|| last->func == _match_optional_func
 				|| last->func == _match_not_func

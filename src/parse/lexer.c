@@ -34,7 +34,16 @@ void lex_skip_whitespace(lexer_t* lex)
 	// Skip whitespace
 	for (char* c = lex->string + lex->position;
 		 *c == ' ' || *c == '\t' || *c == '\n' || *c == '\r' || *c == '\f';
-		 c++, lex->position++);
+		 c++, lex->position++)
+	{
+		if (*c == '\n')
+		{
+			// New line updates metadata
+			lex->char_pos = 0;
+			lex->line++;
+		} else
+			lex->char_pos++;
+	}
 }
 
 // lex_next(lexer_t*) -> lexeme_t

@@ -21,20 +21,6 @@ void test_parsing(comb_t* comb, char* string, bool succ)
 	puts("");
 }
 
-void test_c_str()
-{
-	// match all strings that start with owo
-	comb_t* comb = c_str("owo");
-
-	puts("Testing c_str(char*)");
-	test_parsing(comb, "owouwu", true);
-	test_parsing(comb, "uwuowo", false);
-	test_parsing(comb, "owo", true);
-	puts("Testing complete!\n");
-
-	clean_combinator(comb);
-}
-
 void test_c_char()
 {
 	// match the character a
@@ -43,6 +29,21 @@ void test_c_char()
 	puts("Testing c_char(char)");
 	test_parsing(comb, "a", true);
 	test_parsing(comb, "b", false);
+	puts("Testing complete!\n");
+
+	clean_combinator(comb);
+}
+
+void test_c_str()
+{
+	// match all strings that start with owo
+	comb_t* comb = c_str("owo");
+
+	puts("Testing c_str(char*)");
+	test_parsing(comb, "owouwu", true);
+	test_parsing(comb, "uwuowo", false);
+	test_parsing(comb, "no", false);
+	test_parsing(comb, "owo", true);
 	puts("Testing complete!\n");
 
 	clean_combinator(comb);
@@ -169,9 +170,12 @@ void test_parens()
 	// match proper parentheses, ignoring whitespace
 	comb_t* parens = init_combinator();
 	c_set(parens, c_name("parens", c_seq(
-		c_char('('), c_zmore(parens), c_char(')'), NULL
+		c_char('('),
+			c_zmore(parens),
+		c_char(')'),
+		NULL
 	)));
-	parens = c_name("expr", c_seq(c_zmore(parens), c_eof(), NULL));
+	parens = c_name("expr", c_eof(c_omore(parens)));
 	parens->ignore_whitespace = true;
 
 	puts("Testing parentheses parser");
@@ -186,8 +190,8 @@ void test_parens()
 
 int main(int argc, char** argv)
 {
-	test_c_str();
 	test_c_char();
+	test_c_str();
 	test_c_regex();
 	test_c_or();
 	test_c_seq();
@@ -197,6 +201,5 @@ int main(int argc, char** argv)
 	test_c_not();
 	test_c_name();
 	test_parens();
-
 	return 0;
 }

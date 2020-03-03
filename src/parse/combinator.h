@@ -42,6 +42,12 @@ typedef struct
 	// This has to be void since otherwise there's stupid circular referencing stuff.
 	void* cause;
 
+	// The string in which the error was caused.
+	char* string;
+
+	// The position of the error.
+	size_t position;
+
 	// The line of the error.
 	int line;
 
