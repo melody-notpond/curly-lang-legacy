@@ -13,10 +13,13 @@ LIBS = -Lcurly-comb -lcomb
 
 CODE = src/
 
-all: *.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o curly $? $(LIBS)
+all: *.o libcomb.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
 
 *.o: main
+
+libcomb.a:
+	cd curly-comb && make -f makefile && cd ..
 
 main: $(CODE)main.c
 	$(CC) $(CFLAGS) -c $?
