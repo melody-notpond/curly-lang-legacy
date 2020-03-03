@@ -38,8 +38,9 @@ typedef struct ast_node
 // Represents a parsing error.
 typedef struct
 {
-	// The error message.
-	char* msg;
+	// The cause of the error.
+	// This has to be void since otherwise there's stupid circular referencing stuff.
+	void* cause;
 
 	// The line of the error.
 	int line;
@@ -61,15 +62,27 @@ typedef struct
 	};
 } parse_result_t;
 
+// *comb_fn (comb_t*, lexer_t*, void*) -> parse_result_t
 // Represents a combinator function.
-typedef parse_result_t (*comb_fn)(lexer_t*, void*);
+// self has to be void since otherwise there's a lot of stupid circular referencing stuff.
+typedef parse_result_t (*comb_fn)(void* self, lexer_t* lex, void* args);
 
 // Represents a combinator with certain arguments.
 typedef struct comb_s
 {
+	// The function of the comb.
 	comb_fn func;
-	bool ignore_whitespace;
+
+	// The arguments passed into the function.
 	void* args;
+
+	// If true, tells the lexer to ignore whitespace.
+	bool ignore_whitespace;
+
+	// The error message outputted by the comb.
+	char* error_msg;
+
+	// The next comb in the linked list (used for deleting).
 	struct comb_s* next;
 } comb_t;
 
@@ -134,6 +147,8 @@ comb_t* c_ignore(comb_t* c);
 // Creates a parser that gives a name to a given parser.
 comb_t* c_name(char* name, comb_t* c);
 
+
+
 // c_set(comb_t*, comb_t*) -> void
 // Sets one parser to another.
 //
@@ -144,7 +159,9 @@ comb_t* c_name(char* name, comb_t* c);
 //
 void c_set(comb_t* a, comb_t* b);
 
-
+// c_error(comb_t*, char*) -> comb_t*
+// Sets the error message of the parser and returns it.
+comb_t* c_error(comb_t* comb, char* msg);
 
 // parse(comb_t*, char*) -> parse_result_t
 // Parses a string and returns the result.

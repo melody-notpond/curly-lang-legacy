@@ -19,8 +19,9 @@ comb_t* init_combinator()
 {
 	comb_t* comb = malloc(sizeof(comb_t));
 	comb->func = NULL;
-	comb->ignore_whitespace = false;
 	comb->args = NULL;
+	comb->ignore_whitespace = false;
+	comb->error_msg = NULL;
 	comb->next = NULL;
 	return comb;
 }
@@ -80,14 +81,14 @@ parse_result_t init_succ_result(ast_t node)
 	return result;
 }
 
-// init_error_result(char*, int, int)
+// init_error_result(comb_t*, int, int)
 // Initialises an erroneous parse result.
-parse_result_t init_error_result(char* msg, int line, int char_pos)
+parse_result_t init_error_result(void* cause, int line, int char_pos)
 {
 	parse_result_t result;
 	result.succ = false;
 	result.ignore = false;
-	result.error.msg = (msg != NULL ? strdup(msg) : NULL);
+	result.error.cause = cause;
 	result.error.line = line;
 	result.error.char_pos = char_pos;
 	return result;
@@ -101,9 +102,9 @@ parse_result_t init_error_result(char* msg, int line, int char_pos)
 // ================================================
 //
 
-// _match_str_func(lexer_t*, void*) -> void
+// _match_str_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_char.
-parse_result_t _match_char_func(lexer_t* lex, void* args)
+parse_result_t _match_char_func(void* self, lexer_t* lex, void* args)
 {
 	// Skip whitespace
 	lex_skip_whitespace(lex);
@@ -116,8 +117,8 @@ parse_result_t _match_char_func(lexer_t* lex, void* args)
 
 	// Match the character
 	if (lex_next(&_lex) != to_match)
-		return init_error_result(NULL, lex->line, lex->char_pos);
-	
+		return init_error_result(self, lex->line, lex->char_pos);
+
 	// Return the value
 	char buffer[] = {to_match, '\0'};
 	ast_t node = init_ast_node(buffer, lex->line, lex->char_pos);
@@ -135,9 +136,9 @@ comb_t* c_char(char c)
 	return comb;
 }
 
-// _match_str_func(lexer_t*, void*) -> void
+// _match_str_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_str.
-parse_result_t _match_str_func(lexer_t* lex, void* args)
+parse_result_t _match_str_func(void* self, lexer_t* lex, void* args)
 {
 	// Skip whitespace
 	lex_skip_whitespace(lex);
@@ -152,7 +153,7 @@ parse_result_t _match_str_func(lexer_t* lex, void* args)
 	for (int i = 0; i < strlen(to_match); i++)
 	{
 		if (to_match[i] != lex_next(&_lex))
-			return init_error_result(NULL, lex->line, lex->char_pos);
+			return init_error_result(self, lex->line, lex->char_pos);
 	}
 
 	// Set up for returning
@@ -172,9 +173,9 @@ comb_t* c_str(char* str)
 	return comb;
 }
 
-// _match_regex_func(lexer_t*, void*) -> parse_result_t
+// _match_regex_func(comb_t*, lexer_t*, void*) -> parse_result_t
 // Comb function for c_regex.
-parse_result_t _match_regex_func(lexer_t* lex, void* args)
+parse_result_t _match_regex_func(void* self, lexer_t* lex, void* args)
 {
 	// Skip whitespace
 	lex_skip_whitespace(lex);
@@ -185,7 +186,7 @@ parse_result_t _match_regex_func(lexer_t* lex, void* args)
 
 	// Check for error
 	if (status != 0)
-		return init_error_result(NULL, lex->line, lex->char_pos);
+		return init_error_result(self, lex->line, lex->char_pos);
 
 	// Create the ast node
 	ast_t node = init_ast_node(NULL, lex->line, lex->char_pos);
@@ -239,9 +240,9 @@ comb_t* c_regex(char* pattern)
 	return comb;
 }
 
-// _match_next_func(lexer_t*, void*) -> void
+// _match_next_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_next.
-parse_result_t _match_next_func(lexer_t* lex, void* args)
+parse_result_t _match_next_func(void* self, lexer_t* lex, void* args)
 {
 	// Skip whitespace
 	lex_skip_whitespace(lex);
@@ -262,9 +263,9 @@ comb_t* c_next()
 	return comb;
 }
 
-// _match_eof_func(lexer_t*, void*) -> void
+// _match_eof_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_eof.
-parse_result_t _match_eof_func(lexer_t* lex, void* args)
+parse_result_t _match_eof_func(void* self, lexer_t* lex, void* args)
 {
 	// Skip whitespace
 	lex_skip_whitespace(lex);
@@ -276,7 +277,7 @@ parse_result_t _match_eof_func(lexer_t* lex, void* args)
 		return init_succ_result(init_ast_node("", lex->line, lex->char_pos));
 	
 	// Error because the next character wasn't the end
-	return init_error_result(NULL, lex->line, lex->char_pos);
+	return init_error_result(self, lex->line, lex->char_pos);
 }
 
 // c_eof(void) -> comb_t*
@@ -326,9 +327,9 @@ void* get_combs_list(comb_t* c1, comb_t* c2, va_list ap)
 	return result;
 }
 
-// _match_or_func(lexer_t*, void*) -> void
+// _match_or_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_or.
-parse_result_t _match_or_func(lexer_t* lex, void* args)
+parse_result_t _match_or_func(void* self, lexer_t* lex, void* args)
 {
 	// Get the list
 	unsigned int count = ((int*) args)[0];
@@ -344,7 +345,7 @@ parse_result_t _match_or_func(lexer_t* lex, void* args)
 
 		// Try the next comb
 		comb_t* comb = combs[i];
-		result = comb->func(lex, comb->args);
+		result = comb->func(comb, lex, comb->args);
 		if (result.succ)
 			return result;
 	}
@@ -371,9 +372,9 @@ comb_t* c_or(comb_t* c1, comb_t* c2, ...)
 	return comb;
 }
 
-// _match_seq_func(lexer_t*, void*) -> void
+// _match_seq_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_seq.
-parse_result_t _match_seq_func(lexer_t* lex, void* args)
+parse_result_t _match_seq_func(void* self, lexer_t* lex, void* args)
 {
 	// Get the list
 	unsigned int count = ((int*) args)[0];
@@ -389,7 +390,7 @@ parse_result_t _match_seq_func(lexer_t* lex, void* args)
 	{
 		// Parse the comb
 		comb_t* comb = combs[i];
-		parse_result_t result = comb->func(&_lex, comb->args);
+		parse_result_t result = comb->func(comb, &_lex, comb->args);
 
 		if (result.ignore)
 		{
@@ -456,9 +457,9 @@ comb_t* c_seq(comb_t* c1, comb_t* c2, ...)
 	return comb;
 }
 
-// _match_zmore_func(lexer_t*, void*) -> void
+// _match_zmore_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_zmore.
-parse_result_t _match_zmore_func(lexer_t* lex, void* args)
+parse_result_t _match_zmore_func(void* self, lexer_t* lex, void* args)
 {
 	// Get the parser
 	comb_t* comb = (comb_t*) args;
@@ -469,7 +470,7 @@ parse_result_t _match_zmore_func(lexer_t* lex, void* args)
 	ast_t ast = init_parent_node(current_size, lex->line, lex->char_pos);
 
 	// Iterate whilst the parser is still valid
-	while ((res = comb->func(lex, comb->args)).succ)
+	while ((res = comb->func(comb, lex, comb->args)).succ)
 	{
 		if (res.ignore)
 		{
@@ -530,9 +531,9 @@ comb_t* c_zmore(comb_t* c)
 	return comb;
 }
 
-// _match_omore_func(lexer_t*, void*) -> void
+// _match_omore_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_omore.
-parse_result_t _match_omore_func(lexer_t* lex, void* args)
+parse_result_t _match_omore_func(void* self, lexer_t* lex, void* args)
 {
 	// Get the parser
 	comb_t* comb = (comb_t*) args;
@@ -543,7 +544,7 @@ parse_result_t _match_omore_func(lexer_t* lex, void* args)
 	ast_t ast = init_parent_node(current_size, lex->line, lex->char_pos);
 
 	// Iterate whilst the parser is still valid
-	while ((res = comb->func(lex, comb->args)).succ)
+	while ((res = comb->func(comb, lex, comb->args)).succ)
 	{
 		if (res.ignore)
 		{
@@ -602,13 +603,13 @@ comb_t* c_omore(comb_t* c)
 	return comb;
 }
 
-// _match_optional_func(lexer_t*, void*) -> void
+// _match_optional_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_optional.
-parse_result_t _match_optional_func(lexer_t* lex, void* args)
+parse_result_t _match_optional_func(void* self, lexer_t* lex, void* args)
 {
 	// Parse
 	comb_t* comb = (comb_t*) args;
-	parse_result_t result = comb->func(lex, comb->args);
+	parse_result_t result = comb->func(comb, lex, comb->args);
 
 	// Success!
 	if (result.succ)
@@ -629,21 +630,21 @@ comb_t* c_optional(comb_t* c)
 	return comb;
 }
 
-// _match_not_func(lexer_t*, void*) -> void
+// _match_not_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_not.
-parse_result_t _match_not_func(lexer_t* lex, void* args)
+parse_result_t _match_not_func(void* self, lexer_t* lex, void* args)
 {
 	// Get the parser
 	comb_t* comb = (comb_t*) args;
 	lexer_t _lex = *lex;
 
 	// Parse
-	parse_result_t result = comb->func(&_lex, comb->args);
+	parse_result_t result = comb->func(comb, &_lex, comb->args);
 	clean_parse_result(&result);
 
 	// Success is failure
 	if (result.succ)
-		return init_error_result(NULL, lex->line, lex->char_pos);
+		return init_error_result(self, lex->line, lex->char_pos);
 
 	// Failure is success
 	*lex = _lex;
@@ -660,13 +661,13 @@ comb_t* c_not(comb_t* c)
 	return comb;
 }
 
-// _match_ignore_func(lexer_t*, void*) -> void
+// _match_ignore_func(comb_t*, lexer_t*, void*) -> void
 // Comb function for c_ignore.
-parse_result_t _match_ignore_func(lexer_t* lex, void* args)
+parse_result_t _match_ignore_func(void* self, lexer_t* lex, void* args)
 {
 	// Parse
 	comb_t* comb = (comb_t*) args;
-	parse_result_t result = comb->func(lex, comb->args);
+	parse_result_t result = comb->func(comb, lex, comb->args);
 
 	// Errors are still bad
 	if (!result.succ)
@@ -688,13 +689,13 @@ comb_t* c_ignore(comb_t* c)
 	return comb;
 }
 
-// _match_set_name_func(lexer_t*, void*) -> void
+// _match_set_name_func(comb_t* self, lexer_t*, void*) -> void
 // Comb function for c_name.
-parse_result_t _match_set_name_func(lexer_t* lex, void* args)
+parse_result_t _match_set_name_func(void* self, lexer_t* lex, void* args)
 {
 	// Parse
 	comb_t* comb = ((comb_t**) args)[0];
-	parse_result_t result = comb->func(lex, comb->args);
+	parse_result_t result = comb->func(comb, lex, comb->args);
 
 	if (result.succ)
 	{
@@ -752,12 +753,20 @@ void c_set(comb_t* a, comb_t* b)
 	free(b);
 }
 
+// c_error(comb_t*, char*) -> comb_t*
+// Sets the error message of the parser and returns it.
+comb_t* c_error(comb_t* comb, char* msg)
+{
+	comb->error_msg = strdup(msg);
+	return comb;
+}
+
 // parse(comb_t*, char*) -> parse_result_t
 // Parses a string and returns the result.
 parse_result_t parse(comb_t* parser, char* string)
 {
 	lexer_t lex = lex_str(string, parser->ignore_whitespace);
-	parse_result_t result = parser->func(&lex, parser->args);
+	parse_result_t result = parser->func(parser, &lex, parser->args);
 	clean_lex(&lex);
 	return result;
 }
@@ -816,10 +825,7 @@ void print_parse_result(parse_result_t result)
 	} else
 	{
 		// Print out the error message
-		if (result.error.msg != NULL)
-			printf("Syntax error: %s", result.error.msg);
-		else
-			printf("Unknown syntax error");
+		printf("Syntax error: Unknown syntax error");
 		
 		// Print the location in the file
 		printf(" (%i:%i)\n", result.error.line, result.error.char_pos);
@@ -838,8 +844,7 @@ void clean_parse_result(parse_result_t* result)
 	else
 	{
 		// Clean up error
-		free(result->error.msg);
-		result->error.msg = NULL;
+		result->error.cause = NULL;
 	}
 }
 
@@ -957,6 +962,8 @@ void clean_combinator(comb_t* comb)
 			regfree((regex_t*) current->args);
 			free(current->args);
 		}
+
+		free(current->error_msg);
 
 		// Get next comb and free current one
 		comb_t* last = current;
