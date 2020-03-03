@@ -194,6 +194,7 @@ parse_result_t _match_regex_func(void* self, lexer_t* lex, void* args)
 	ast_t node = init_ast_node(NULL, lex->line, lex->char_pos);
 	node.value = malloc(match.rm_eo + 1);
 	strncpy(node.value, lex->string + lex->position, match.rm_eo);
+	node.value[match.rm_eo] = '\0';
 
 	// Update lexer position
 	lex->position += (int) match.rm_eo;

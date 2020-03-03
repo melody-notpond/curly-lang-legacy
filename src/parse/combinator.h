@@ -114,9 +114,9 @@ comb_t* c_regex(char* pattern);
 // Creates a parser that's always valid.
 comb_t* c_next();
 
-// c_eof(void) -> comb_t*
-// Creates a parser valid if end of file.
-comb_t* c_eof();
+// c_eof(comb_t*) -> comb_t*
+// Creates a parser valid if a given parser parses the whole file.
+comb_t* c_eof(comb_t* c);
 
 // c_or(comb_t*, comb_t*, ...) -> comb_t*
 // Creates a parser valid if any given parser is valid.
