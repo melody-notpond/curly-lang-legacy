@@ -16,12 +16,12 @@ CODE = src/
 all: *.o libcomb.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
 
-*.o: src
+*.o: main
 
 libcomb.a:
 	cd dep/curly-comb && make -f makefile
 
-src: $(CODE)*.c
+main: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
 
 clean:
