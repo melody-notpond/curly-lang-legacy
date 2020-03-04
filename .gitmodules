@@ -1,0 +1,3 @@
+[submodule "dep/curly-comb"]
+	path = dep/curly-comb
+	url = https://github.com/jenra-uwu/curly-comb
