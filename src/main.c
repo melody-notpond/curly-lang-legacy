@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 	}
 
 	comb_t* parser = create_lang_parser();
-	parse_result_t res = parse(parser, argv[1]);
+	parse_result_t res = parse_string(parser, argv[1]);
 	print_parse_result(res);
 	clean_parse_result(&res);
 	clean_combinator(parser);
