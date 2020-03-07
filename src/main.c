@@ -16,12 +16,12 @@ int main(int argc, char** argv)
 {
 	if (argc <= 1)
 	{
-		puts("input at least one argument");
+		puts("input must have at least one argument");
 		return -1;
 	}
 
 	comb_t* parser = create_lang_parser();
-	parse_result_t res = parse(parser, argv[1]);
+	parse_result_t res = parse_file(parser, argv[1]);
 	print_parse_result(res);
 	clean_parse_result(&res);
 	clean_combinator(parser);
