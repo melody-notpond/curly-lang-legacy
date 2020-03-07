@@ -14,12 +14,13 @@ comb_t* create_lang_parser()
 {
 	comb_t* expr = init_combinator();
 
+	comb_t* primatives = c_name("prim", c_regex("true|false|nil|pass|stop"));
 	comb_t* integer = c_name("int", c_regex("-?[0-9]+"));
-	comb_t* floating = c_name("float", c_regex("-?[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|(\\.[0-9]+)?[eE][+-]?[0-9]+)"));
+	comb_t* decimal = c_name("float", c_regex("-?[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|(\\.[0-9]+)?[eE][+-]?[0-9]+)"));
 	comb_t* character = c_name("char", c_regex("'([^'\\\\]|\\\\(x[0-9a-fA-F]{2}|[^x]))'"));
 	comb_t* symbol = c_name("symbol", c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*"));
 	comb_t* value = c_or(
-		floating, integer, character, symbol,
+		primatives, decimal, integer, character, symbol,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')), NULL),
 		NULL
 	);
