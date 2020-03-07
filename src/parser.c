@@ -44,7 +44,9 @@ comb_t* create_lang_parser()
 		symbol, c_ignore(c_char('=')), expr, NULL
 	));
 
-	comb_t* with;
+	comb_t* with = c_name("with", c_seq(
+		c_ignore(c_str("with")), c_omore(c_seq(assign, c_char(','), NULL)), NULL
+	));
 
 	comb_t* if_state = c_name("if", c_seq(
 		c_ignore(c_str("if")), c_name("cond", expr),
