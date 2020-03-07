@@ -13,6 +13,7 @@
 comb_t* create_lang_parser()
 {
 	comb_t* expr = init_combinator();
+	comb_t* comprehension = init_combinator();
 
 	comb_t* primatives = c_name("prim", c_regex("true|false|nil|pass|stop"));
 	comb_t* integer = c_name("int", c_regex("-?[0-9]+"));
@@ -21,6 +22,7 @@ comb_t* create_lang_parser()
 	comb_t* symbol = c_name("symbol", c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*"));
 	comb_t* value = c_or(
 		primatives, decimal, integer, character, symbol,
+		comprehension,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')'))),
 		NULL
 	);
@@ -70,11 +72,11 @@ comb_t* create_lang_parser()
 	));
 
 	comb_t* comp_body = c_or(c_seq(c_optional(with), for_loop), such_that);
-	comb_t* comprehension = c_name("comp", c_or(
+	c_set(comprehension, c_name("comp", c_or(
 		c_seq(c_char('['), comp_body, c_char(']')),
 		c_seq(c_char('('), comp_body, c_char(')')),
 		c_seq(c_char('{'), comp_body, c_char('}'))
-	));
+	)));
 
 	c_set(expr, c_or(assign, add));
 
