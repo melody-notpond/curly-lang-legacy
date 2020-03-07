@@ -3,50 +3,55 @@
 
 variable = expression # assignment
 
-function: returnType arg1: type1 arg2: type2 # function declaration
-function value1 value2 = value # pattern matching
+with var1 = expression, # create a scope in which var[123] are used
+     var2 = expression, # these are the only way to define variables in functions, loops, and conditions
+	 var3 = expression,
+	 f var1 var2 var3
+
+function: (type1 type2): type3 # function declaration
 function arg1 arg2 = expression # implementation
 # a function can only have one signature (type1 type2): return_type
 
 [type] # list of values of type
 [[type]] # list of list of values of type
-{type} # set of values of type
 <type> # generator of values of type
-{:type} # dictionary of type
 
 function arg1 (function arg2 arg3) # function application
 function arg1 # lazy evaluation
 function *list # currying
 
-if condition then expression else expression # if statement
+if condition then expression # if statement
+if condition then expression else expression # if else statement
 
 debug expression # can place anywhere, prints out a message like this if debug is enabled:
 # (db) expression evaluated to value on file.curly:lino:charno
 
 [1, 2, 3] # list
 (1, 2, 3) # generator
-{1, 2, 3} # set
-{a = 1, b = 2, c = 3} # dictionary
-(a:b:c) # integers in [a, b) with step size c (negative is backwards) as a generator
+(a:b:c) # numbers in [a, b) with step size c (negative is backwards) as a generator
 list[i,j,k] # get the kth element of the jth element of the ith element of list
 dict['a'] # get the value of key a in dict
 list[a:b:c] # get the sublist of list with indices in range (a:b:c)
 x in set # check if x is in set
 
 # list compehensions are generated lazily
-(for i in iter expression) # creates a generator with results of expression as items
-[for i in iter expression] # creates a list
-{for i in iter expression} # creates a set
-{for i in iter variable = expression} # creates a dictionary / hashmap
-(for i in iter expression with last = value) # reduces iterable into a single value, with initial value of last
+(for i in iter f i) # creates a generator with results of expression as items
+[for i in iter f i] # creates a list
+{for i in iter f i} # creates a set
+(with acc = value, for i in iter acc = f acc i) # folds iterable into a single value, with initial value of last
 pass - does not return a value
 stop - halts a loop
 nil - null, counts as a value
 true, false, and, or, xor
 
-[x in list such that f(x)] # filtering as a list
-# you can do the same with generators, sets, and dictionaries
-<x in list such that f(x)> # filters as a generator, exiting upon the first failure (useful for infinite data structures)
+# quantifiers
+for all i in iter f i # checks that all elements of the iterable follow some predicate
+for some i in iter f i # checks that some element of the iterable follow some predicate
+
+# filtering
+[x in iter such that f x] # list
+(x in iter such that f x) # generator
+{x in list such that f x} # generator that exits on the first failure
 # you can run the above multiple times to get the next one
 
 "string owo" # a string
@@ -55,23 +60,17 @@ true, false, and, or, xor
 
 type names: char, byte, short, int, long, float, double, string, obj, list, set, dict, gen, type, func
 
-# example: fibannaci
+# example: fibonacci
 fib(0) = 1
 fib(1) = 1
 fib(n: int) = fib(n - 1) + fib(n - 2)
 
 # example: primes
 primes = [
-    for i in (2:)
-        if (for p in (p in primes such that p*p <= i)
-            last and i % p != 0 with last = true)
-        then i
-        else pass
+	n in (2:) such that
+		for all p in (p in primes such that p*p <= n)
+			n % p != 0
 ]
-
-# can be written in one line (not whitespace dependent)
-# but don't do this because it's ugly and unreadable
-primes = [for i in (2:) if (for p in (p in primes such that p*p <= i) last and i % p != 0 with last = true) then i else pass]
 
 # this is very much not well established
 struct = type # define a structure
