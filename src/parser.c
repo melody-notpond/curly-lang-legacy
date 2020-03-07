@@ -24,9 +24,13 @@ comb_t* create_lang_parser()
 		NULL
 	);
 
+	comb_t* prefix = c_name("prefix", c_seq(
+		c_optional(c_name("op", c_char('-'))), value, NULL
+	));
+
 	comb_t* mult = c_name("infix", c_seq(
 		value, c_zmore(
-			c_seq(c_name("op", c_regex("[/*]")), value, NULL)
+			c_seq(c_name("op", c_regex("[/*]")), prefix, NULL)
 		), NULL
 	));
 
@@ -36,7 +40,11 @@ comb_t* create_lang_parser()
 		), NULL
 	));
 
-	c_set(expr, c_name("expr", add));
+	comb_t* assign = c_name("assign", c_seq(
+		symbol, c_ignore(c_char('=')), expr, NULL
+	));
+
+	c_set(expr, c_or(assign, add, NULL));
 
 	comb_t* parser = c_eof(c_name("root", c_zmore(expr)));
 	parser->ignore_whitespace = true;
