@@ -62,8 +62,13 @@ comb_t* create_lang_parser()
 			symbol, c_ignore(c_str("in")), c_name("iter", expr),
 		c_name("body", expr), NULL
 	));
-	
-	comb_t* such_that;
+
+	comb_t* such_that = c_name("st", c_seq(
+		symbol, c_ignore(c_str("in")), c_name("iter", expr),
+		c_ignore(c_regex("such[:blank:]*that")),
+		c_name("cond", expr), NULL
+	));
+
 	comb_t* comprehension;
 
 	c_set(expr, c_or(assign, add, NULL));
