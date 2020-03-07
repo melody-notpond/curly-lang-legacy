@@ -69,7 +69,12 @@ comb_t* create_lang_parser()
 		c_name("cond", expr)
 	));
 
-	comb_t* comprehension;
+	comb_t* comp_body = c_or(c_seq(c_optional(with), for_loop), such_that);
+	comb_t* comprehension = c_name("comp", c_or(
+		c_seq(c_char('['), comp_body, c_char(']')),
+		c_seq(c_char('('), comp_body, c_char(')')),
+		c_seq(c_char('{'), comp_body, c_char('}'))
+	));
 
 	c_set(expr, c_or(assign, add));
 
