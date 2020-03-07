@@ -43,8 +43,26 @@ comb_t* create_lang_parser()
 		)
 	));
 
+	comb_t* compare = c_name("compare", c_seq(
+		add, c_zmore(
+			c_seq(c_name("op", c_regex("<=|<|==|!=|>=|>")), add)
+		)
+	));
+
+	comb_t* and = c_name("and", c_seq(
+		compare, c_zmore(
+			c_seq(c_ignore(c_str("and")), compare)
+		)
+	));
+
+	comb_t* or = c_name("or", c_seq(
+		and, c_zmore(
+			c_seq(c_ignore(c_str("or")), and)
+		)
+	));
+
 	comb_t* assign = c_name("assign", c_seq(
-		symbol, c_ignore(c_char('=')), expr
+		symbol, c_ignore(c_char('=')), or
 	));
 
 	comb_t* with = c_name("with", c_seq(
@@ -67,7 +85,7 @@ comb_t* create_lang_parser()
 
 	comb_t* such_that = c_name("st", c_seq(
 		symbol, c_ignore(c_str("in")), c_name("iter", expr),
-		c_ignore(c_regex("such[:blank:]*that")),
+		c_ignore(c_regex("such[:blank:]+that")),
 		c_name("cond", expr)
 	));
 
