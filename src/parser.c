@@ -44,6 +44,20 @@ comb_t* create_lang_parser()
 		symbol, c_ignore(c_char('=')), expr, NULL
 	));
 
+	comb_t* with;
+
+	comb_t* if_state = c_name("if", c_seq(
+		c_ignore(c_str("if")), c_name("cond", expr),
+		c_ignore(c_str("then")), c_name("then", expr),
+		c_optional(c_seq(
+			c_ignore(c_str("else")), c_name("else", expr), NULL
+		)), NULL
+	));
+
+	comb_t* for_loop;
+	comb_t* such_that;
+	comb_t* comprehension;
+
 	c_set(expr, c_or(assign, add, NULL));
 
 	comb_t* parser = c_eof(c_name("root", c_zmore(expr)));
