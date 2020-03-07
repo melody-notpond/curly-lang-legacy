@@ -57,7 +57,12 @@ comb_t* create_lang_parser()
 		)), NULL
 	));
 
-	comb_t* for_loop;
+	comb_t* for_loop = c_name("for", c_seq(
+		c_ignore(c_str("for")), c_optional(c_name("quantif", c_regex("all|some"))),
+			symbol, c_ignore(c_str("in")), c_name("iter", expr),
+		c_name("body", expr), NULL
+	));
+	
 	comb_t* such_that;
 	comb_t* comprehension;
 
