@@ -1,0 +1,5 @@
+sum = (
+	with acc = 0,
+	for i in iter
+		acc = i + acc
+)
