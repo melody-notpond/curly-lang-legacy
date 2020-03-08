@@ -56,7 +56,7 @@ comb_t* create_lang_parser()
 
 	comb_t* compare = c_name("compare", c_seq(
 		add, c_zmore(
-			c_seq(c_name("op", c_regex("<=|<|==|!=|>=|>")), add)
+			c_seq(c_name("op", c_regex("[><]=?|[=!]=")), add)
 		)
 	));
 
@@ -84,7 +84,7 @@ comb_t* create_lang_parser()
 
 	comb_t* such_that = c_name("such that", c_seq(
 		symbol, c_ignore(c_str("in")), expr,
-		c_ignore(c_regex("such[:blank:]+that")),
+		c_ignore(c_regex("such[[:space:]]+that")),
 		expr
 	));
 
