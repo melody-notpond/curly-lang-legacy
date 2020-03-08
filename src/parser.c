@@ -15,6 +15,14 @@ comb_t* create_lang_parser()
 	comb_t* expr = init_combinator();
 	comb_t* comprehension = init_combinator();
 
+	comb_t* if_state = c_name("if", c_seq(
+		c_ignore(c_str("if")), c_name("cond", expr),
+		c_ignore(c_str("then")), c_name("then", expr),
+		c_optional(c_seq(
+			c_ignore(c_str("else")), c_name("else", expr)
+		))
+	));
+
 	comb_t* primatives = c_name("prim", c_regex("true|false|nil|pass|stop"));
 	comb_t* integer = c_name("int", c_regex("-?[0-9]+"));
 	comb_t* decimal = c_name("float", c_regex("-?[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|(\\.[0-9]+)?[eE][+-]?[0-9]+)"));
@@ -22,7 +30,7 @@ comb_t* create_lang_parser()
 	comb_t* symbol = c_name("symbol", c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*"));
 	comb_t* value = c_or(
 		primatives, decimal, integer, character, symbol,
-		comprehension,
+		comprehension, if_state,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')'))),
 		NULL
 	);
@@ -67,14 +75,6 @@ comb_t* create_lang_parser()
 
 	comb_t* with = c_name("with", c_seq(
 		c_ignore(c_str("with")), c_omore(c_seq(assign, c_char(',')))
-	));
-
-	comb_t* if_state = c_name("if", c_seq(
-		c_ignore(c_str("if")), c_name("cond", expr),
-		c_ignore(c_str("then")), c_name("then", expr),
-		c_optional(c_seq(
-			c_ignore(c_str("else")), c_name("else", expr)
-		))
 	));
 
 	comb_t* for_loop = c_name("for", c_seq(
