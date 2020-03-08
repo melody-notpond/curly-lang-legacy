@@ -118,7 +118,9 @@ comb_t* create_lang_parser()
 
 	c_set(expr, or);
 
-	comb_t* parser = c_eof(c_name("root", assign));
+	comb_t* parser = c_eof(c_name("root", c_omore(
+		c_seq(assign, c_newline())
+	)));
 	parser->ignore_whitespace = true;
 	return parser;
 }
