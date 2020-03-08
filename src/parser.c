@@ -22,6 +22,13 @@ comb_t* create_lang_parser()
 	comb_t* character = c_name("char", c_regex("'([^'\\\\]|\\\\(x[0-9a-fA-F]{2}|[^x]))'"));
 	comb_t* symbol = c_name("symbol", c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*"));
 
+	comb_t* range = c_name("range", c_seq(
+		c_ignore(c_char('(')),
+		c_optional(expr), c_char(':'), c_optional(expr),
+		c_optional(c_seq(c_char(':'), expr)),
+		c_ignore(c_char(')'))
+	));
+
 	comb_t* if_state = c_name("if", c_seq(
 		c_ignore(c_str("if")), expr,
 		c_ignore(c_str("then")), assign,
@@ -33,7 +40,7 @@ comb_t* create_lang_parser()
 	comb_t* value = c_or(
 		if_state,
 		primatives, decimal, integer, character, symbol,
-		comprehension,
+		comprehension, range,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')'))),
 		NULL
 	);

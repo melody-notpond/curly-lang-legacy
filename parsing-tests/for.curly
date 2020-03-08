@@ -1,5 +1,5 @@
 sum = (
 	with acc = 0,
-	for i in iter
+	for i in (:5)
 		acc = i + acc
 )
