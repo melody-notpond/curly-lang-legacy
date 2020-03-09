@@ -79,6 +79,12 @@ comb_t* create_lang_parser()
 		)
 	));
 
+	comb_t* application = c_name("apply", c_seq(
+		or, c_zmore(c_seq(
+			c_not(c_newline()), or
+		))
+	));
+
 	comb_t* with_vars = c_seq(
 		c_ignore(c_str("with")), c_omore(c_seq(assign, c_ignore(c_char(','))))
 	);
@@ -116,7 +122,7 @@ comb_t* create_lang_parser()
 		))
 	)));
 
-	c_set(expr, or);
+	c_set(expr, application);
 
 	comb_t* parser = c_eof(c_name("root", c_omore(
 		c_seq(assign, c_newline())
