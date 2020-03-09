@@ -40,8 +40,14 @@ comb_t* create_lang_parser()
 		))
 	));
 
+	comb_t* quantifier = c_name("quantifier", c_seq(
+		c_ignore(c_str("for")), c_name("quantifier", c_regex("all|some")),
+			 symbol, c_ignore(c_str("in")), expr,
+		assign
+	));
+
 	comb_t* value = c_or(
-		if_state,
+		if_state, quantifier,
 		primatives, decimal, integer, character, symbol,
 		comprehension, range,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')'))),
@@ -93,8 +99,7 @@ comb_t* create_lang_parser()
 	);
 
 	comb_t* for_loop = c_name("for", c_seq(
-		c_ignore(c_str("for")), c_optional(c_name("quantifier", c_regex("all|some"))),
-			symbol, c_ignore(c_str("in")), expr,
+		c_ignore(c_str("for")), symbol, c_ignore(c_str("in")), expr,
 		assign
 	));
 
