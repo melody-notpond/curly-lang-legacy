@@ -21,7 +21,7 @@ comb_t* create_lang_parser()
 	comb_t* decimal = c_name("float", c_regex("-?[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|(\\.[0-9]+)?[eE][+-]?[0-9]+)"));
 	comb_t* character = c_name("char", c_regex("'([^'\\\\]|\\\\(x[0-9a-fA-F]{2}|[^x]))'"));
 	comb_t* symbol = c_name("symbol", c_seq(
-		c_not(c_regex("(for|all|some|if|then|else|such|that|in|and|or|with)([[:space:]]|[^_a-zA-Z0-9'])")),
+		c_not(c_regex("(for|all|some|if|then|else|such|that|in|and|or|with)[^_a-zA-Z0-9']")),
 		c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*")
 	));
 
