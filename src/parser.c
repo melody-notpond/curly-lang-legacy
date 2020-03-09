@@ -50,8 +50,7 @@ comb_t* create_lang_parser()
 		if_state, quantifier,
 		primatives, decimal, integer, character, symbol,
 		comprehension, range,
-		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')'))),
-		NULL
+		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
 	);
 
 	comb_t* prefix = c_name("prefix", c_seq(
