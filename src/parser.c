@@ -89,7 +89,7 @@ comb_t* create_lang_parser()
 
 	comb_t* application = c_name("apply", c_seq(
 		or, c_zmore(c_seq(
-			c_not(c_newline()), or
+			c_or(c_seq(c_ignore(c_char('\\')), c_newline()), c_not(c_newline())), or
 		))
 	));
 
