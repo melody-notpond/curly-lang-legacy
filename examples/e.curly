@@ -1,6 +1,6 @@
-factorial = (
+factorials = (
 	with acc = 1,
-	for i in (:)
+	for i in (0..)
 		acc = (
 			if i == 0
 			then 1
@@ -10,6 +10,6 @@ factorial = (
 
 e = (
 	with acc = 0,
-	for n in factorial
+	for n in factorials
 		acc = 1 / n + acc
 )

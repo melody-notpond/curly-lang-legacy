@@ -27,7 +27,7 @@ comb_t* create_lang_parser()
 
 	comb_t* range = c_name("range", c_seq(
 		c_ignore(c_char('(')),
-		c_optional(expr), c_char(':'), c_optional(expr),
+		c_optional(expr), c_str(".."), c_optional(expr),
 		c_optional(c_seq(c_char(':'), expr)),
 		c_ignore(c_char(')'))
 	));
