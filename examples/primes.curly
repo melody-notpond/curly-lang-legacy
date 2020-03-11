@@ -1,5 +1,5 @@
 primes = [
-	n in (2:) such that
+	n in (2..) such that
 		for all p in (p in primes such that p*p <= n)
 			n % p != 0
 ]

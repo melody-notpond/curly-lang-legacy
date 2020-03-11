@@ -1,5 +1,5 @@
 sum = (
 	with acc = 0,
-	for i in (:5)
+	for i in (1..101:-2)
 		acc = i + acc
 )
