@@ -7,6 +7,7 @@
 //
 
 #include "parser.h"
+#include "lex.h"
 
 // create_lang_parser(void) -> parser_t
 // Creates the parser for the language.
@@ -135,7 +136,7 @@ parser_t create_lang_parser()
 		c_seq(assign, c_newline())
 	)));
 
-	parser_t parser = init_parser(root, true, NULL);
+	parser_t parser = init_parser(root, true, curly_lexer_func);
 	parser.ignore_whitespace = true;
 	return parser;
 }
