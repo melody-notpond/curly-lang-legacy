@@ -205,8 +205,10 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		if ('0' <= c && c <= '9')
 			create_int(lex, &token);
 		else lex_revert(lex, &s2);
-	} else if (c == '(' || c == '[' || c == '{'
-			|| c == ')' || c == ']' || c == '}')
+	} else if (c == '+')
+		token.type = LEX_TYPE_OPERATOR;
+	else if (c == '(' || c == '[' || c == '{'
+		  || c == ')' || c == ']' || c == '}')
 		token.type = LEX_TYPE_GROUPING;
 	else
 	{
