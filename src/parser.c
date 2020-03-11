@@ -58,7 +58,7 @@ comb_t* create_lang_parser()
 	));
 
 	comb_t* mult = c_name("infix", c_seq(
-		value, c_zmore(
+		prefix, c_zmore(
 			c_seq(c_name("op", c_regex("[/*%]")), prefix)
 		)
 	));
