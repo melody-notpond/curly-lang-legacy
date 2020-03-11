@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	lexer_t lex = lex_str(argv[1], true, curly_lexer_func);
 
 	lexeme_t* token = lex_next_token(&lex);
-	printf("token: %i: %s\n", token->type, token->string);
+	printf("token: %i: \"%s\"\n", token->type, token->string);
 	free(token->string);
 
 	clean_lex(&lex);
