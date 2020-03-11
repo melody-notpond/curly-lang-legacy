@@ -8,9 +8,9 @@
 
 #include "parser.h"
 
-// create_lang_parser(void) -> comb_t*
+// create_lang_parser(void) -> parser_t
 // Creates the parser for the language.
-comb_t* create_lang_parser()
+parser_t create_lang_parser()
 {
 	comb_t* expr = init_combinator();
 	comb_t* assign = init_combinator();
@@ -131,9 +131,11 @@ comb_t* create_lang_parser()
 
 	c_set(expr, application);
 
-	comb_t* parser = c_eof(c_name("root", c_omore(
+	comb_t* root = c_eof(c_name("root", c_omore(
 		c_seq(assign, c_newline())
 	)));
-	parser->ignore_whitespace = true;
+
+	parser_t parser = init_parser(root, true, NULL);
+	parser.ignore_whitespace = true;
 	return parser;
 }

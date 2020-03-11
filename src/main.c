@@ -20,10 +20,12 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	comb_t* parser = create_lang_parser();
+	parser_t parser = create_lang_parser();
+
 	parse_result_t res = parse_file(parser, argv[1]);
 	print_parse_result(res);
+
 	clean_parse_result(&res);
-	clean_combinator(parser);
+	clean_combinator(parser.comb);
 	return 0;
 }
