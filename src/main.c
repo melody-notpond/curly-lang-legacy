@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compiler/frontend/parser.h"
+#include "compiler/frontend/lex.h"
 
 int main(int argc, char** argv)
 {
@@ -20,12 +20,21 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	parser_t parser = create_lang_parser();
+	lexer_t lex = lex_str(argv[1], true, curly_lexer_func);
 
-	parse_result_t res = parse_file(parser, argv[1]);
-	print_parse_result(res);
+	lexeme_t* token = lex_next_token(&lex);
+	printf("token: %i: %s\n", token->type, token->string);
+	free(token->string);
 
-	clean_parse_result(&res);
-	clean_combinator(parser.comb);
+	clean_lex(&lex);
+
+
+	// parser_t parser = create_lang_parser();
+
+	// parse_result_t res = parse_file(parser, argv[1]);
+	// print_parse_result(res);
+
+	// clean_parse_result(&res);
+	// clean_combinator(parser.comb);
 	return 0;
 }
