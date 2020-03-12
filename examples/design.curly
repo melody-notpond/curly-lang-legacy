@@ -8,7 +8,7 @@ with var1 = expression, # create a scope in which var[123] are used
 	 var3 = expression,
 	 f var1 var2 var3
 
-function: (type1 type2): type3 # function declaration
+function: \type1 type2. type3 # function declaration
 function arg1 arg2 = expression # implementation
 # a function can only have one signature (type1 type2): return_type
 
@@ -28,10 +28,10 @@ debug expression # can place anywhere, prints out a message like this if debug i
 
 [1, 2, 3] # list
 (1, 2, 3) # generator
-(a:b:c) # numbers in [a, b) with step size c (negative is backwards) as a generator
+(a..b:c) # numbers in [a, b) with step size c (negative is backwards) as a generator
 list[i,j,k] # get the kth element of the jth element of the ith element of list
 dict['a'] # get the value of key a in dict
-list[a:b:c] # get the sublist of list with indices in range (a:b:c)
+list[a..b:c] # get the sublist of list with indices in range (a..b:c)
 x in set # check if x is in set
 
 # list compehensions are generated lazily
@@ -61,16 +61,10 @@ for some i in iter f i # checks that some element of the iterable follow some pr
 type names: char, byte, short, int, long, float, double, string, obj, list, set, dict, gen, type, func
 
 # example: fibonacci
-fib(0) = 1
-fib(1) = 1
-fib(n: int) = fib(n - 1) + fib(n - 2)
-
-# example: primes
-primes = [
-	n in (2:) such that
-		for all p in (p in primes such that p*p <= n)
-			n % p != 0
-]
+fib: \int. int
+fib 0 = 1
+fib 1 = 1
+fib n: int = (fib n - 1) + (fib n - 2)
 
 # this is very much not well established
 struct = type # define a structure

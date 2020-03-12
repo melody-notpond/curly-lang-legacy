@@ -1,0 +1,5 @@
+# I know you know how if statements work
+# I'm just testing comments
+if x <= 2 or x in myList # condition
+then y = 2 # on true
+else z = -3 # on false
