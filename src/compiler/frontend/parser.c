@@ -22,13 +22,6 @@ parser_t create_lang_parser()
 	comb_t* decimal = c_name("float", c_type(LEX_TYPE_DECIMAL));
 	comb_t* symbol = c_name("symbol", c_type(LEX_TYPE_SYMBOL));
 
-	comb_t* range = c_name("range", c_seq(
-		c_ignore(c_char('(')),
-		c_optional(expr), c_str(".."), c_optional(expr),
-		c_optional(c_seq(c_char(':'), expr)),
-		c_ignore(c_char(')'))
-	));
-
 	comb_t* if_state = c_name("if", c_seq(
 		c_ignore(c_str("if")), expr,
 		c_ignore(c_str("then")), assign,
@@ -43,21 +36,31 @@ parser_t create_lang_parser()
 		assign
 	));
 
-	comb_t* value = c_or(
-		if_state, quantifier,
+	comb_t* simple_value = c_or(
 		primatives, decimal, integer, symbol,
-		comprehension, range,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
 	);
 
 	comb_t* affix = c_name("affix", c_seq(
-		c_optional(c_name("op", c_char('-'))), value,
+		c_optional(c_name("op", c_char('-'))), simple_value,
 		c_optional(c_name("op", c_type(LEX_TYPE_POSTFIX)))
 	));
 
+	comb_t* range = c_name("range", c_seq(
+		c_optional(c_seq(affix, c_not(c_newline(true)))), c_str(".."),
+		c_optional(c_seq(c_not(c_newline(true)), affix)),
+		c_optional(c_seq(c_not(c_newline(true)), c_char(':'), affix))
+	));
+
+	comb_t* value = c_or(
+		if_state, quantifier,
+		comprehension, range,
+		affix
+	);
+
 	comb_t* mult = c_name("infix", c_seq(
-		affix, c_zmore(
-			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), affix)
+		value, c_zmore(
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), value)
 		)
 	));
 

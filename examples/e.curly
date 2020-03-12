@@ -1,6 +1,6 @@
 factorials = (
 	with acc = 1,
-	for i in (0..)
+	for i in 0..
 		acc = (
 			if i == 0
 			then 1
