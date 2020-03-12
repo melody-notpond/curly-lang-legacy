@@ -20,7 +20,6 @@ parser_t create_lang_parser()
 	comb_t* primatives = c_name("prim", c_type(LEX_TYPE_PRIMATIVE));
 	comb_t* integer = c_name("int", c_type(LEX_TYPE_INT));
 	comb_t* decimal = c_name("float", c_type(LEX_TYPE_DECIMAL));
-	// comb_t* character = c_name("char", c_regex("'([^'\\\\]|\\\\(x[0-9a-fA-F]{2}|[^x]))'"));
 	comb_t* symbol = c_name("symbol", c_type(LEX_TYPE_SYMBOL));
 
 	comb_t* range = c_name("range", c_seq(
@@ -46,18 +45,19 @@ parser_t create_lang_parser()
 
 	comb_t* value = c_or(
 		if_state, quantifier,
-		primatives, decimal, integer, /*character, */ symbol,
+		primatives, decimal, integer, symbol,
 		comprehension, range,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
 	);
 
-	comb_t* prefix = c_name("prefix", c_seq(
-		c_optional(c_name("op", c_char('-'))), value
+	comb_t* affix = c_name("affix", c_seq(
+		c_optional(c_name("op", c_char('-'))), value,
+		c_optional(c_name("op", c_type(LEX_TYPE_POSTFIX)))
 	));
 
 	comb_t* mult = c_name("infix", c_seq(
-		prefix, c_zmore(
-			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), prefix)
+		affix, c_zmore(
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), affix)
 		)
 	));
 
