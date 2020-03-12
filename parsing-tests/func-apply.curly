@@ -1,6 +1,9 @@
+add_vars x y z = x + y + z
+add_vars 4 2 5
+
 a b c d # comment
 s (n s z) # more comments
 x y z a \
 	f? g! y! \ # comment
 	b e? # even more comments
-o r # one last comment
+ o r # one last comment

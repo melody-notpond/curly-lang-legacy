@@ -92,9 +92,12 @@ parser_t create_lang_parser()
 	));
 
 	comb_t* application = c_name("apply", c_seq(
-		or, c_zmore(c_seq(
-			c_or(c_seq(c_ignore(c_char('\\')), c_newline()), c_not(c_newline())), or
-		))
+		or, c_name("args", c_zmore(c_seq(
+			c_or(
+				c_seq(c_ignore(c_char('\\')), c_newline(false)),
+				c_not(c_newline(true))
+			), or
+		)))
 	));
 
 	comb_t* with_vars = c_seq(
@@ -126,7 +129,8 @@ parser_t create_lang_parser()
 
 	c_set(assign, c_name("assign", c_seq(
 		c_optional(c_seq(
-			symbol, c_ignore(c_char('='))
+			symbol, c_name("args", c_zmore(symbol)),
+			c_ignore(c_char('='))
 		)), c_name("with", c_seq(
 			c_optional(with_vars),
 			expr
@@ -136,7 +140,7 @@ parser_t create_lang_parser()
 	c_set(expr, application);
 
 	comb_t* root = c_eof(c_name("root", c_omore(
-		c_seq(assign, c_newline())
+		c_seq(assign, c_newline(true))
 	)));
 
 	parser_t parser = init_parser(root, false, curly_lexer_func);
