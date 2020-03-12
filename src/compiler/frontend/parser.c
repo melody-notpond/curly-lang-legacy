@@ -134,6 +134,5 @@ parser_t create_lang_parser()
 	)));
 
 	parser_t parser = init_parser(root, false, curly_lexer_func);
-	parser.ignore_whitespace = true;
 	return parser;
 }
