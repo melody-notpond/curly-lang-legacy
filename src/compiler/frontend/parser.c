@@ -133,7 +133,7 @@ parser_t create_lang_parser()
 		c_seq(assign, c_newline())
 	)));
 
-	parser_t parser = init_parser(root, true, curly_lexer_func);
+	parser_t parser = init_parser(root, false, curly_lexer_func);
 	parser.ignore_whitespace = true;
 	return parser;
 }

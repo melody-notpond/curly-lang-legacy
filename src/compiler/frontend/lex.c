@@ -202,6 +202,9 @@ void actual_symbol(lexeme_t* token)
 // The lexer function used for lexing curly programs.
 lexeme_t curly_lexer_func(lexer_t* lex)
 {
+	// Skip whitespace
+	skip_whitespace_and_comments(lex);
+
 	// Empty token
 	lexeme_t token = init_lexeme(lex);
 
@@ -211,8 +214,6 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		token.type = LEX_TYPE_EOF;
 		return token;
 	}
-
-	skip_whitespace_and_comments(lex);
 
 	// Save the current state
 	lexer_t save;
