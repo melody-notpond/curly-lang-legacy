@@ -8,6 +8,34 @@
 
 #include "lex.h"
 
+// skip_whitespace_and_comments(lexer_t*) -> void
+// Skips all whitespace and comments.
+void skip_whitespace_and_comments(lexer_t* lex)
+{
+	lexer_t save;
+	lex_save(lex, &save);
+
+	bool in_comment = false;
+	while (true)
+	{
+		char c = lex_next_char(lex);
+
+		if (in_comment && c == '\n')
+			in_comment = false;
+		else if (!in_comment)
+		{
+			if (c == '#')
+				in_comment = true;
+			else if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v'))
+				break;
+		}
+
+		lex_save(lex, &save);
+	}
+
+	lex_revert(lex, &save);
+}
+
 // create_decimal(lexer_t*, lexeme_t*, bool)
 // Creates a decimal.
 bool create_decimal(lexer_t* lex, lexeme_t* token, bool dot_mode)
@@ -183,6 +211,8 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		token.type = LEX_TYPE_EOF;
 		return token;
 	}
+
+	skip_whitespace_and_comments(lex);
 
 	// Save the current state
 	lexer_t save;
