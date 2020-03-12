@@ -226,7 +226,7 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		create_symbol(lex, &token);
 	else if (c == '-')
 	{
-		token.type = LEX_TYPE_OPERATOR;
+		token.type = LEX_TYPE_INFIX_LEVEL_ADD;
 		lexer_t s2;
 		lex_save(lex, &s2);
 
@@ -236,8 +236,56 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 			create_int(lex, &token);
 		else lex_revert(lex, &s2);
 	} else if (c == '+')
-		token.type = LEX_TYPE_OPERATOR;
-	else if (c == '(' || c == '[' || c == '{'
+		token.type = LEX_TYPE_INFIX_LEVEL_ADD;
+	else if (c == '*' || c == '/' || c == '%')
+		token.type = LEX_TYPE_INFIX_LEVEL_MUL;
+	else if (c == '?')
+		token.type = LEX_TYPE_POSTFIX;
+	else if (c == '!')
+	{
+		token.type = LEX_TYPE_POSTFIX;
+		lexer_t s2;
+		lex_save(lex, &s2);
+
+		// Check for inequality (!=)
+		c = lex_next_char(lex);
+		if (c == '=')
+			token.type = LEX_TYPE_INFIX_LEVEL_COMPARE;
+		else lex_revert(lex, &s2);
+	} else if (c == '<' || c == '>')
+	{
+		token.type = LEX_TYPE_INFIX_LEVEL_COMPARE;
+		lexer_t s2;
+		lex_save(lex, &s2);
+
+		// Check for equality (<=, >=)
+		c = lex_next_char(lex);
+		if (c != '=')
+			lex_revert(lex, &s2);
+	} else if (c == '=')
+	{
+		token.type = LEX_TYPE_SPECIAL_CHAR;
+		lexer_t s2;
+		lex_save(lex, &s2);
+
+		// Check for equality (==)
+		c = lex_next_char(lex);
+		if (c == '=')
+			token.type = LEX_TYPE_INFIX_LEVEL_COMPARE;
+		else lex_revert(lex, &s2);
+	} else if (c == ',' || c == ':' || c == '\\')
+		token.type = LEX_TYPE_SPECIAL_CHAR;
+	else if (c == '.')
+	{
+		lexer_t s2;
+		lex_save(lex, &s2);
+
+		// Check for range (..)
+		c = lex_next_char(lex);
+		if (c == '.')
+			token.type = LEX_TYPE_SPECIAL_CHAR;
+		else lex_revert(lex, &s2);
+	} else if (c == '(' || c == '[' || c == '{'
 		  || c == ')' || c == ']' || c == '}')
 		token.type = LEX_TYPE_GROUPING;
 	else

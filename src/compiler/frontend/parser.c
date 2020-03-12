@@ -57,19 +57,19 @@ parser_t create_lang_parser()
 
 	comb_t* mult = c_name("infix", c_seq(
 		prefix, c_zmore(
-			c_seq(c_name("op", c_regex("[/*%]")), prefix)
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), prefix)
 		)
 	));
 
 	comb_t* add = c_name("infix", c_seq(
 		mult, c_zmore(
-			c_seq(c_name("op", c_regex("[+-]")), mult)
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_ADD)), mult)
 		)
 	));
 
 	comb_t* compare = c_name("compare", c_seq(
 		add, c_zmore(
-			c_seq(c_name("op", c_regex("[><]=?|[=!]=")), add)
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_COMPARE)), add)
 		)
 	));
 
