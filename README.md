@@ -4,9 +4,9 @@ Curly is a functional programming language designed to be simple and readable. S
 ## Example
 ```python
 primes = [
-  n in (2:) such that
-    for all p in (p in primes such that p*p <= n)
-      n % p != 0
+	n in 2.. such that
+		for all p in (p in primes such that p*p <= n)
+			n % p != 0
 ]
 ```
 
