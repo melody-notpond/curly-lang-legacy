@@ -73,9 +73,15 @@ parser_t create_lang_parser()
 		)
 	));
 
+	comb_t* in = c_name("in", c_seq(
+		compare, c_optional(
+			c_seq(c_ignore(c_str("in")), compare)
+		)
+	));
+
 	comb_t* and = c_name("and", c_seq(
-		compare, c_zmore(
-			c_seq(c_ignore(c_str("and")), compare)
+		in, c_zmore(
+			c_seq(c_ignore(c_str("and")), in)
 		)
 	));
 
@@ -96,7 +102,7 @@ parser_t create_lang_parser()
 	);
 
 	comb_t* for_loop = c_name("for", c_seq(
-		c_ignore(c_str("for")), symbol, c_ignore(c_str("in")), expr,
+		c_ignore(c_str("for")), symbol, c_ignore(c_str("in")), value,
 		assign
 	));
 
