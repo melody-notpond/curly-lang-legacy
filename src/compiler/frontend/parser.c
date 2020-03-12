@@ -7,23 +7,20 @@
 //
 
 #include "parser.h"
+#include "lex.h"
 
-// create_lang_parser(void) -> comb_t*
+// create_lang_parser(void) -> parser_t
 // Creates the parser for the language.
-comb_t* create_lang_parser()
+parser_t create_lang_parser()
 {
 	comb_t* expr = init_combinator();
 	comb_t* assign = init_combinator();
 	comb_t* comprehension = init_combinator();
 
-	comb_t* primatives = c_name("prim", c_regex("true|false|nil|pass|stop"));
-	comb_t* integer = c_name("int", c_regex("-?[0-9]+"));
-	comb_t* decimal = c_name("float", c_regex("-?[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|(\\.[0-9]+)?[eE][+-]?[0-9]+)"));
-	comb_t* character = c_name("char", c_regex("'([^'\\\\]|\\\\(x[0-9a-fA-F]{2}|[^x]))'"));
-	comb_t* symbol = c_name("symbol", c_seq(
-		c_not(c_regex("(for|all|some|if|then|else|such|that|in|and|or|with)[^_a-zA-Z0-9']")),
-		c_regex("[_a-zA-Z][_a-zA-Z0-9]*'*")
-	));
+	comb_t* primatives = c_name("prim", c_type(LEX_TYPE_PRIMATIVE));
+	comb_t* integer = c_name("int", c_type(LEX_TYPE_INT));
+	comb_t* decimal = c_name("float", c_type(LEX_TYPE_DECIMAL));
+	comb_t* symbol = c_name("symbol", c_type(LEX_TYPE_SYMBOL));
 
 	comb_t* range = c_name("range", c_seq(
 		c_ignore(c_char('(')),
@@ -48,30 +45,31 @@ comb_t* create_lang_parser()
 
 	comb_t* value = c_or(
 		if_state, quantifier,
-		primatives, decimal, integer, character, symbol,
+		primatives, decimal, integer, symbol,
 		comprehension, range,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
 	);
 
-	comb_t* prefix = c_name("prefix", c_seq(
-		c_optional(c_name("op", c_char('-'))), value
+	comb_t* affix = c_name("affix", c_seq(
+		c_optional(c_name("op", c_char('-'))), value,
+		c_optional(c_name("op", c_type(LEX_TYPE_POSTFIX)))
 	));
 
 	comb_t* mult = c_name("infix", c_seq(
-		prefix, c_zmore(
-			c_seq(c_name("op", c_regex("[/*%]")), prefix)
+		affix, c_zmore(
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_MUL)), affix)
 		)
 	));
 
 	comb_t* add = c_name("infix", c_seq(
 		mult, c_zmore(
-			c_seq(c_name("op", c_regex("[+-]")), mult)
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_ADD)), mult)
 		)
 	));
 
 	comb_t* compare = c_name("compare", c_seq(
 		add, c_zmore(
-			c_seq(c_name("op", c_regex("[><]=?|[=!]=")), add)
+			c_seq(c_name("op", c_type(LEX_TYPE_INFIX_LEVEL_COMPARE)), add)
 		)
 	));
 
@@ -104,7 +102,7 @@ comb_t* create_lang_parser()
 
 	comb_t* such_that = c_name("such that", c_seq(
 		symbol, c_ignore(c_str("in")), expr,
-		c_ignore(c_regex("such[[:space:]]+that")),
+		c_ignore(c_seq(c_str("such"), c_str("that"))),
 		expr
 	));
 
@@ -131,9 +129,10 @@ comb_t* create_lang_parser()
 
 	c_set(expr, application);
 
-	comb_t* parser = c_eof(c_name("root", c_omore(
+	comb_t* root = c_eof(c_name("root", c_omore(
 		c_seq(assign, c_newline())
 	)));
-	parser->ignore_whitespace = true;
+
+	parser_t parser = init_parser(root, false, curly_lexer_func);
 	return parser;
 }

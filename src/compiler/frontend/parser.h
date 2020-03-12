@@ -11,8 +11,8 @@
 
 #include "combinator.h"
 
-// create_lang_parser(void) -> comb_t*
+// create_lang_parser(void) -> parser_t
 // Creates the parser for the language.
-comb_t* create_lang_parser();
+parser_t create_lang_parser();
 
 #endif /* parser_h */

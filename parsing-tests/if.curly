@@ -1,3 +1,5 @@
-if x <= 2
-then 'y'
-else 'n'
+# I know you know how if statements work
+# I'm just testing comments
+if x <= 2 # condition
+then y = 2 # on true
+else z = -3 # on false
