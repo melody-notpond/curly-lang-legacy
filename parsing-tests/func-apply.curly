@@ -1,6 +1,6 @@
-a b c d
-s (n s z)
+a b c d # comment
+s (n s z) # more comments
 x y z a \
-	f g y \
-	b e
-o r
+	f? g! y! \
+	b e? # even more comments
+o r # one last comment
