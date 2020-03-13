@@ -20,6 +20,7 @@ parser_t create_lang_parser()
 	comb_t* primatives = c_name("prim", c_type(LEX_TYPE_PRIMATIVE));
 	comb_t* integer = c_name("int", c_type(LEX_TYPE_INT));
 	comb_t* decimal = c_name("float", c_type(LEX_TYPE_DECIMAL));
+	comb_t* string = c_name("string", c_type(LEX_TYPE_STRING));
 	comb_t* symbol = c_name("symbol", c_type(LEX_TYPE_SYMBOL));
 
 	comb_t* if_state = c_name("if", c_seq(
@@ -37,7 +38,7 @@ parser_t create_lang_parser()
 	));
 
 	comb_t* simple_value = c_or(
-		primatives, decimal, integer, symbol,
+		primatives, decimal, integer, string, symbol,
 		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
 	);
 

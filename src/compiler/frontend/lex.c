@@ -132,6 +132,42 @@ void create_int(lexer_t* lex, lexeme_t* token)
 	}
 }
 
+// create_string(lexer_t*, lexeme_t*)
+// Creates a string.
+void create_string(lexer_t* lex, lexeme_t* token)
+{
+	token->type = LEX_TYPE_STRING;
+
+	// Save the current state
+	lexer_t save;
+	lex_save(lex, &save);
+	bool closed = false;
+
+	while (!closed && !lex_eof(lex))
+	{
+		// Get the next character
+		char c = lex_next_char(lex);
+
+		// Check that we're still in the string
+		// TODO: Interpolation
+		if (c == '"')
+			closed = true;
+		else if (c == '\\')
+		{
+			// Do character escape sequences
+			// For now, we're going to just ignore the next character
+			// But later we will implement \xHEX and stuff
+			lex_next_char(lex);
+		}
+	}
+
+	if (!closed)
+	{
+		token->type = LEX_TYPE_INVALID;
+		lex_revert(lex, &save);
+	}
+}
+
 // create_symbol(lexer_t*, lexeme_t*) -> void
 // Creates a symbol.
 void create_symbol(lexer_t* lex, lexeme_t* token)
@@ -223,6 +259,8 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 	char c = lex_next_char(lex);
 	if ('0' <= c && c <= '9')
 		create_int(lex, &token);
+	else if (c == '"')
+		create_string(lex, &token);
 	else if (c == '_' || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))
 		create_symbol(lex, &token);
 	else if (c == '-')
