@@ -18,6 +18,8 @@ int main(int argc, char** argv)
 {
 	chunk_t chunk = init_chunk();
 	chunk_add_i64(&chunk, -5);
+	chunk_add_f64(&chunk, 3.14159);
+	chunk_add_i64(&chunk, 42);
 	write_chunk(&chunk, OPCODE_BREAK);
 	
 	disassemble(&chunk, "test.o");

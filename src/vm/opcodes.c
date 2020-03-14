@@ -24,6 +24,7 @@ int opcode_unknown_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements no op.
 int opcode_nop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
+	printf("doing nothing...\n");
 	return 1;
 }
 
@@ -31,6 +32,7 @@ int opcode_nop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements break.
 int opcode_break_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
+	printf("HALTING!!\n");
 	vm->running = false;
 	return 0;
 }
@@ -39,8 +41,17 @@ int opcode_break_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements loading values onto the stack.
 int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
-	printf("We're loading a value!! It's %lli\n", vm->chunk->pool.values[*(pc + 1)]);
-	return 2;
+	bool long_op = opcode & 1;
+	int index = *(++pc);
+
+	if (long_op)
+	{
+		index |= *(++pc) <<  8
+			  |  *(++pc) << 16;
+	}
+
+	int64_t value = vm->chunk->pool.values[index];
+	return 2 << long_op;
 }
 
 // init_opcodes(void) -> void
@@ -52,10 +63,8 @@ void init_opcodes()
 		opcode_funcs[i] = opcode_unknown_func;
 	}
 
-	opcode_funcs[OPCODE_NOP				] = opcode_nop_func;
-	opcode_funcs[OPCODE_BREAK			] = opcode_break_func;
-	opcode_funcs[OPCODE_LOAD_I64		] = opcode_load_func;
-	opcode_funcs[OPCODE_LOAD_I64_LONG	] = opcode_load_func;
-	opcode_funcs[OPCODE_LOAD_F64		] = opcode_load_func;
-	opcode_funcs[OPCODE_LOAD_F64_LONG	] = opcode_load_func;
+	opcode_funcs[OPCODE_NOP			] = opcode_nop_func;
+	opcode_funcs[OPCODE_BREAK		] = opcode_break_func;
+	opcode_funcs[OPCODE_LOAD		] = opcode_load_func;
+	opcode_funcs[OPCODE_LOAD_LONG	] = opcode_load_func;
 }

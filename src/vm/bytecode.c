@@ -76,11 +76,11 @@ void chunk_add_i64(chunk_t* chunk, int64_t value)
 	// Store the appropriate instruction
 	if (index <= 0xFF)
 	{
-		write_chunk(chunk, OPCODE_LOAD_I64);
+		write_chunk(chunk, OPCODE_LOAD);
 		write_chunk(chunk, index);
 	} else
 	{
-		write_chunk(chunk, OPCODE_LOAD_I64_LONG);
+		write_chunk(chunk, OPCODE_LOAD_LONG);
 		write_chunk(chunk, (index      ) & 0xFF);
 		write_chunk(chunk, (index >>  8) & 0xFF);
 		write_chunk(chunk, (index >> 16) & 0xFF);
@@ -99,21 +99,7 @@ void chunk_add_f64(chunk_t* chunk, double value)
 	} double_to_int;
 	double_to_int.f64 = value;
 
-	// Get the index
-	int index = get_pool_index(&chunk->pool, double_to_int.i64);
-
-	// Store the appropriate instruction
-	if (index <= 0xFF)
-	{
-		write_chunk(chunk, OPCODE_LOAD_F64);
-		write_chunk(chunk, index);
-	} else
-	{
-		write_chunk(chunk, OPCODE_LOAD_F64_LONG);
-		write_chunk(chunk, (index      ) & 0xFF);
-		write_chunk(chunk, (index >>  8) & 0xFF);
-		write_chunk(chunk, (index >> 16)       );
-	}
+	chunk_add_i64(chunk, double_to_int.i64);
 }
 
 // clean_chunk(chunk_t*) -> void

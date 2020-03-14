@@ -36,17 +36,13 @@ int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 	} else
 		printf("    0x%02X (", pool_index);
 
-	if (opcode & 2)
+	union
 	{
-		union
-		{
-			double f64;
-			int64_t i64;
-		} int_to_double;
-		int_to_double.i64 = chunk->pool.values[pool_index];
-		printf("%f)\n", int_to_double.f64);
-	} else
-		printf("%lli)\n", chunk->pool.values[pool_index]);
+		double f64;
+		int64_t i64;
+	} value;
+	value.i64 = chunk->pool.values[pool_index];
+	printf("%lli, %f)\n", value.i64, value.f64);
 
 	return long_op ? 4 : 2;
 }
@@ -68,14 +64,11 @@ int dis_opcode(chunk_t* chunk, int index)
 		case OPCODE_BREAK:
 			// BREAK
 			return simple_opcode("BREAK");
-		case OPCODE_LOAD_I64:
-		case OPCODE_LOAD_I64_LONG:
+		case OPCODE_LOAD:
+		case OPCODE_LOAD_LONG:
 			// i64 VALUE
-			return load_opcode("i64", index, chunk, opcode);
-		case OPCODE_LOAD_F64:
-		case OPCODE_LOAD_F64_LONG:
 			// f64 VALUE
-			return load_opcode("f64", index, chunk, opcode);
+			return load_opcode("LOAD", index, chunk, opcode);
 		default:
 			// UNKNOWN (0xFF)
 			printf("UNKNOWN (0x%02X)\n", opcode);
