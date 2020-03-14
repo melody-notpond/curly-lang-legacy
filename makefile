@@ -19,7 +19,7 @@ all: *.o libcomb.a
 debug: *.o debug_libcomb.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
 
-*.o: main compile
+*.o: main compile vm
 
 debug_libcomb.a:
 	cd dep/curly-comb && make -f makefile debug
@@ -33,6 +33,9 @@ main: $(CODE)*.c
 compile: frontend
 
 frontend: $(CODE)compiler/frontend/*.c
+	$(CC) $(CFLAGS) -c $?
+
+vm: $(CODE)vm/*.c
 	$(CC) $(CFLAGS) -c $?
 
 clean:
