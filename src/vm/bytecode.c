@@ -19,9 +19,9 @@ chunk_t init_chunk()
 	return chunk;
 }
 
-// write_chunk(chunk_t*, int8_t) -> void
+// write_chunk(chunk_t*, uint8_t) -> void
 // Writes a single byte to a chunk.
-void write_chunk(chunk_t* chunk, int8_t value)
+void write_chunk(chunk_t* chunk, uint8_t value)
 {
 	// Resize if necessary
 	if (chunk->size == 0)

@@ -37,7 +37,7 @@ enum
 typedef struct
 {
 	// The bytecode itself
-	int8_t* bytes;
+	uint8_t* bytes;
 
 	// The amount of memory allocated for the list
 	size_t size;
@@ -50,9 +50,9 @@ typedef struct
 // Initialises an empty chunk of bytecode.
 chunk_t init_chunk();
 
-// write_chunk(chunk_t*, int8_t) -> void
+// write_chunk(chunk_t*, uint8_t) -> void
 // Writes a single byte to a chunk.
-void write_chunk(chunk_t* chunk, int8_t value);
+void write_chunk(chunk_t* chunk, uint8_t value);
 
 // clean_chunk(chunk_t*) -> void
 // Cleans up a chunk of bytecode.
