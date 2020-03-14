@@ -32,7 +32,7 @@ int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 		pool_index |= chunk->bytes[index + 3] << 16;
 		printf("0x%06X (", pool_index);
 	} else
-		printf("0x%02X (", pool_index);
+		printf("    0x%02X (", pool_index);
 
 	if (opcode & 2)
 	{
