@@ -33,7 +33,7 @@ enum
 struct s_values
 {
 	// The list of values
-	uint64_t* values;
+	int64_t* values;
 
 	// The amount of memory allocated for the list
 	int size;

@@ -102,11 +102,11 @@ void add_f64(chunk_t* chunk, double value)
 	// Store the appropriate instruction
 	if (index <= 0xFF)
 	{
-		write_chunk(chunk, OPCODE_LOAD_I64);
+		write_chunk(chunk, OPCODE_LOAD_F64);
 		write_chunk(chunk, index);
 	} else
 	{
-		write_chunk(chunk, OPCODE_LOAD_I64_LONG);
+		write_chunk(chunk, OPCODE_LOAD_F64_LONG);
 		write_chunk(chunk, (index      ) & 0xFF);
 		write_chunk(chunk, (index >>  8) & 0xFF);
 		write_chunk(chunk, (index >> 16)       );
