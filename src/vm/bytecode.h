@@ -66,13 +66,13 @@ chunk_t init_chunk();
 // Writes a single byte to a chunk.
 void write_chunk(chunk_t* chunk, uint8_t value);
 
-// add_i64(chunk_t*, int64_t) -> void
+// chunk_add_i64(chunk_t*, int64_t) -> void
 // Adds a 64 bit int to the constant pool.
-void add_i64(chunk_t* chunk, int64_t value);
+void chunk_add_i64(chunk_t* chunk, int64_t value);
 
-// add_f64(chunk_t*, int64_t) -> void
+// chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
-void add_f64(chunk_t* chunk, double value);
+void chunk_add_f64(chunk_t* chunk, double value);
 
 // clean_chunk(chunk_t*) -> void
 // Cleans up a chunk of bytecode.

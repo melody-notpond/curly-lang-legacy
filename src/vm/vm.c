@@ -9,12 +9,12 @@
 #include "opcodes.h"
 #include "vm.h"
 
-// init_vm(CurlyVM*) -> void
+// init_vm(CurlyVM*, chunk_t*) -> void
 // Initialises a vm.
-void init_vm(CurlyVM* vm)
+void init_vm(CurlyVM* vm, chunk_t* chunk)
 {
-	vm->chunk = NULL;
-	vm->pc = NULL;
+	vm->chunk = chunk;
+	vm->pc = chunk->bytes;
 
 	// Initialise jump table if not done so already.
 	if (opcode_funcs[0] == NULL)
@@ -27,16 +27,16 @@ void init_vm(CurlyVM* vm)
 	pc += opcode_funcs[opcode](vm, opcode, pc);		\
 } while (0)
 
-// stepi(CurlyVM*) -> void
+// vm_stepi(CurlyVM*) -> void
 // Steps the vm one instruction.
-void stepi(CurlyVM* vm)
+void vm_stepi(CurlyVM* vm)
 {
 	step_macro(vm, vm->pc);
 }
 
-// run(CurlyVM*) -> void
+// vm_run(CurlyVM*) -> void
 // Runs the virtual machine.
-void run(CurlyVM* vm)
+void vm_run(CurlyVM* vm)
 {
 	uint8_t* pc = vm->pc;
 
@@ -54,6 +54,9 @@ void run(CurlyVM* vm)
 // Cleans up a vm.
 void clean_vm(CurlyVM* vm)
 {
+	if (vm == NULL)
+		return;
+
 	clean_chunk(vm->chunk);
 	vm->chunk = NULL;
 	vm->pc = NULL;

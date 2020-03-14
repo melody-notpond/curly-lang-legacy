@@ -65,9 +65,9 @@ int get_pool_index(struct s_values* pool, int64_t value)
 
 #undef append_element
 
-// add_i64(chunk_t*, int64_t) -> void
+// chunk_add_i64(chunk_t*, int64_t) -> void
 // Adds a 64 bit int to the constant pool.
-void add_i64(chunk_t* chunk, int64_t value)
+void chunk_add_i64(chunk_t* chunk, int64_t value)
 {
 	// Get the index
 	int index = get_pool_index(&chunk->pool, value);
@@ -86,9 +86,9 @@ void add_i64(chunk_t* chunk, int64_t value)
 	}
 }
 
-// add_f64(chunk_t*, int64_t) -> void
+// chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
-void add_f64(chunk_t* chunk, double value)
+void chunk_add_f64(chunk_t* chunk, double value)
 {
 	// This union gets the double's binary representation
 	union
@@ -119,6 +119,9 @@ void add_f64(chunk_t* chunk, double value)
 // Cleans up a chunk of bytecode.
 void clean_chunk(chunk_t* chunk)
 {
+	if (chunk == NULL)
+		return;
+
 	free(chunk->bytes);
 	chunk->bytes = NULL;
 	chunk->size = 0;

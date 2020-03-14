@@ -26,17 +26,17 @@ typedef struct
 	uint8_t* pc;
 } CurlyVM;
 
-// init_vm(CurlyVM*) -> void
+// init_vm(CurlyVM*, chunk_t*) -> void
 // Initialises a vm.
-void init_vm(CurlyVM* vm);
+void init_vm(CurlyVM* vm, chunk_t* chunk);
 
-// stepi(CurlyVM*) -> void
+// vm_stepi(CurlyVM*) -> void
 // Steps the vm one instruction.
-void stepi(CurlyVM* vm);
+void vm_stepi(CurlyVM* vm);
 
-// run(CurlyVM*) -> void
+// vm_run(CurlyVM*) -> void
 // Runs the virtual machine.
-void run(CurlyVM* vm);
+void vm_run(CurlyVM* vm);
 
 // clean_vm(CurlyVM*) -> void
 // Cleans up a vm.
