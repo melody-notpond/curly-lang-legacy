@@ -7,6 +7,7 @@
 //
 
 #include "bytecode.h"
+#include "opcodes.h"
 
 // init_chunk(void) -> chunk_t
 // Initialises an empty chunk of bytecode.

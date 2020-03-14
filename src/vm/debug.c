@@ -8,7 +8,9 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+
 #include "debug.h"
+#include "opcodes.h"
 
 // simple_opcode(char*) -> int
 // Disassembles a simple opcode.
