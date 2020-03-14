@@ -10,12 +10,16 @@
 #include <stdio.h>
 #include "debug.h"
 
+// simple_opcode(char*) -> int
+// Disassembles a simple opcode.
 int simple_opcode(char* name)
 {
 	printf("%s\n", name);
 	return 1;
 }
 
+// load_opcode(char*, int, chunk_t*, uint8_t) -> int
+// Disassembles a loading instruction.
 int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 {
 	printf("%s ", name);

@@ -11,6 +11,10 @@
 
 #include "bytecode.h"
 
+// dis_opcode(chunk_t*, int) -> int
+// Disassembles a single opcode and returns the index offset.
+int dis_opcode(chunk_t* chunk, int index);
+
 // disassemble(chunk_t*, char*) -> void
 // Disassembles a given chunk of bytecode.
 void disassemble(chunk_t* chunk, char* name);

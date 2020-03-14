@@ -24,17 +24,17 @@ chunk_t init_chunk()
 
 // append_element(void*, size_t&, size_t&, type, type_t) -> void
 // Appends an element to a list.
-#define append_element(values, count, size, type, value)				\
+#define append_element(values, count, size, type, value) do				\
 {																		\
 	/* Resize the list if necessary */									\
 	if (size == 0)														\
 		values = malloc((size = 8) * sizeof(type));						\
 	else if (count >= size)												\
-		values = realloc(values, (size <<= 1) * sizeof(type));	\
+		values = realloc(values, (size <<= 1) * sizeof(type));			\
 																		\
 	/* Append the value */												\
 	values[count++] = value;											\
-}
+} while (0);
 
 // write_chunk(chunk_t*, uint8_t) -> void
 // Writes a single byte to a chunk.
