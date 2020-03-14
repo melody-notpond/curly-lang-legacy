@@ -100,11 +100,7 @@ parser_t create_lang_parser()
 	));
 
 	comb_t* application = c_name("apply", c_seq(
-		or, c_name("args", c_zmore(c_seq(
-			c_optional(
-				c_seq(c_ignore(c_char('\\')), newline)
-			), or
-		)))
+		or, c_name("args", c_zmore(or))
 	));
 
 	comb_t* with_vars = c_seq(

@@ -23,7 +23,17 @@ bool skip_whitespace_and_comments(lexer_t* lex)
 		// Get next character
 		char c = lex_next_char(lex);
 
-		if (c == '\n')
+		// Backslashes can be useful for ignoring newlines
+		if (c == '\\')
+		{
+			c = lex_next_char(lex);
+
+			if (c != '\n')
+			{
+				lex_revert(lex, &save);
+				break;
+			}
+		} else if (c == '\n')
 		{
 			// Record newlines and exit comments
 			newline = true;
@@ -34,7 +44,7 @@ bool skip_whitespace_and_comments(lexer_t* lex)
 			// Start comments
 			if (c == '#')
 				in_comment = true;
-			
+
 			// Exit when no longer in whitespace
 			else if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v'))
 				break;
@@ -331,7 +341,7 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		if (c == '=')
 			token.type = LEX_TYPE_INFIX_LEVEL_COMPARE;
 		else lex_revert(lex, &s2);
-	} else if (c == ',' || c == ':' || c == '\\')
+	} else if (c == ',' || c == ':')
 		token.type = LEX_TYPE_SPECIAL_CHAR;
 	else if (c == '.')
 	{
