@@ -10,22 +10,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compiler/frontend/parser.h"
+#include "vm/debug.h"
 
 int main(int argc, char** argv)
 {
-	if (argc <= 1)
-	{
-		puts("input must have at least one argument");
-		return -1;
-	}
-
-	parser_t parser = create_lang_parser();
-
-	parse_result_t res = parse_file(parser, argv[1]);
-	print_parse_result(res);
-
-	clean_parse_result(&res);
-	clean_combinator(parser.comb);
-	return 0;
+	chunk_t chunk = init_chunk();
+	for (int i = 0; i < 259; i++)
+		add_i64(&chunk, i);
+	write_chunk(&chunk, OPCODE_NOP);
+	write_chunk(&chunk, OPCODE_BREAK);
+	disassemble(&chunk, "test.o");
+	clean_chunk(&chunk);
 }
