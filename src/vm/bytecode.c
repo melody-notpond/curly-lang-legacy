@@ -16,21 +16,101 @@ chunk_t init_chunk()
 	chunk.bytes = NULL;
 	chunk.size = 0;
 	chunk.count = 0;
+	chunk.pool.values = NULL;
+	chunk.pool.size = 0;
+	chunk.pool.count = 0;
 	return chunk;
+}
+
+// append_element(void*, size_t&, size_t&, type, type_t) -> void
+// Appends an element to a list.
+#define append_element(values, count, size, type, value)				\
+{																		\
+	/* Resize the list if necessary */									\
+	if (size == 0)														\
+		values = malloc((size = 8) * sizeof(type));						\
+	else if (count >= size)												\
+		values = realloc(values, (size <<= 1) * sizeof(type));	\
+																		\
+	/* Append the value */												\
+	values[count++] = value;											\
 }
 
 // write_chunk(chunk_t*, uint8_t) -> void
 // Writes a single byte to a chunk.
 void write_chunk(chunk_t* chunk, uint8_t value)
 {
-	// Resize if necessary
-	if (chunk->size == 0)
-		chunk->bytes = malloc(chunk->size = 8);
-	else if (chunk->count >= chunk->size)
-		chunk->bytes = realloc(chunk->bytes, (chunk->size <<= 1));
-	
-	// Append the byte
-	chunk->bytes[chunk->count++] = value;
+	// Append the byte to the chunk
+	append_element(chunk->bytes, chunk->count, chunk->size, uint8_t, value);
+}
+
+// get_pool_index(struct s_values*, int64_t) -> size_t
+// Returns the index of the constant in the pool. If the constant
+// isn't in the pool, it appends it to the end.
+int get_pool_index(struct s_values* pool, int64_t value)
+{
+	// Search for the constant
+	int i;
+	for (i = 0; i < pool->count; i++)
+	{
+		if (value == pool->values[i])
+			break;
+	}
+
+	// If it doesn't exist, append it to the pool
+	if (i == pool->count)
+		append_element(pool->values, pool->count, pool->size, int64_t, value);
+	return i;
+}
+
+// add_i64(chunk_t*, int64_t) -> void
+// Adds a 64 bit int to the constant pool.
+void add_i64(chunk_t* chunk, int64_t value)
+{
+	// Get the index
+	int index = get_pool_index(&chunk->pool, value);
+
+	// Store the appropriate instruction
+	if (index <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_LOAD_I64);
+		write_chunk(chunk, index);
+	} else
+	{
+		write_chunk(chunk, OPCODE_LOAD_I64_LONG);
+		write_chunk(chunk, (index      ) & 0xFF);
+		write_chunk(chunk, (index >>  8) & 0xFF);
+		write_chunk(chunk, (index >> 16) & 0xFF);
+	}
+}
+
+// add_f64(chunk_t*, int64_t) -> void
+// Adds a double to the constant pool.
+void add_f64(chunk_t* chunk, double value)
+{
+	// This union gets the double's binary representation
+	union
+	{
+		double f64;
+		int64_t i64;
+	} double_to_int;
+	double_to_int.f64 = value;
+
+	// Get the index
+	int index = get_pool_index(&chunk->pool, double_to_int.i64);
+
+	// Store the appropriate instruction
+	if (index <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_LOAD_I64);
+		write_chunk(chunk, index);
+	} else
+	{
+		write_chunk(chunk, OPCODE_LOAD_I64_LONG);
+		write_chunk(chunk, (index      ) & 0xFF);
+		write_chunk(chunk, (index >>  8) & 0xFF);
+		write_chunk(chunk, (index >> 16)       );
+	}
 }
 
 // clean_chunk(chunk_t*) -> void
@@ -41,4 +121,8 @@ void clean_chunk(chunk_t* chunk)
 	chunk->bytes = NULL;
 	chunk->size = 0;
 	chunk->count = 0;
+	free(chunk->pool.values);
+	chunk->pool.values = NULL;
+	chunk->pool.size = 0;
+	chunk->pool.count = 0;
 }
