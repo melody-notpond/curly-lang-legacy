@@ -12,7 +12,7 @@
 #include "vm.h"
 
 // The jump table for the opcodes.
-extern int (*opcode_funcs[256])(CurlyVM* vm);
+int (*opcode_funcs[256])(CurlyVM* vm, uint8_t opcode, uint8_t* pc);
 
 // init_opcodes(void) -> void
 // Initialises the jump table.

@@ -34,7 +34,7 @@ chunk_t init_chunk()
 																		\
 	/* Append the value */												\
 	values[count++] = value;											\
-} while (0);
+} while (0)
 
 // write_chunk(chunk_t*, uint8_t) -> void
 // Writes a single byte to a chunk.
@@ -62,6 +62,8 @@ int get_pool_index(struct s_values* pool, int64_t value)
 		append_element(pool->values, pool->count, pool->size, int64_t, value);
 	return i;
 }
+
+#undef append_element
 
 // add_i64(chunk_t*, int64_t) -> void
 // Adds a 64 bit int to the constant pool.
