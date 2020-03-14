@@ -39,6 +39,7 @@ void vm_stepi(CurlyVM* vm)
 void vm_run(CurlyVM* vm)
 {
 	uint8_t* pc = vm->pc;
+	vm->running = true;
 
 	while (vm->running)
 	{
