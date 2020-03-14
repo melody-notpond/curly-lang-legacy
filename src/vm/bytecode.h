@@ -50,6 +50,10 @@ typedef struct
 // Initialises an empty chunk of bytecode.
 chunk_t init_chunk();
 
+// write_chunk(chunk_t*, int8_t) -> void
+// Writes a single byte to a chunk.
+void write_chunk(chunk_t* chunk, int8_t value);
+
 // clean_chunk(chunk_t*) -> void
 // Cleans up a chunk of bytecode.
 void clean_chunk(chunk_t* chunk);

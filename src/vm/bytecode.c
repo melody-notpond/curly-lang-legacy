@@ -19,6 +19,20 @@ chunk_t init_chunk()
 	return chunk;
 }
 
+// write_chunk(chunk_t*, int8_t) -> void
+// Writes a single byte to a chunk.
+void write_chunk(chunk_t* chunk, int8_t value)
+{
+	// Resize if necessary
+	if (chunk->size == 0)
+		chunk->bytes = malloc(chunk->size = 8);
+	else if (chunk->count >= chunk->size)
+		chunk->bytes = realloc(chunk->bytes, (chunk->size <<= 1));
+	
+	// Append the byte
+	chunk->bytes[chunk->count++] = value;
+}
+
 // clean_chunk(chunk_t*) -> void
 // Cleans up a chunk of bytecode.
 void clean_chunk(chunk_t* chunk)
