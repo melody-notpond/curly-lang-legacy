@@ -17,6 +17,9 @@ parser_t create_lang_parser()
 	comb_t* assign = init_combinator();
 	comb_t* comprehension = init_combinator();
 
+	comb_t* newline = c_ignore(c_type(LEX_TYPE_NEWLINE));
+	comb_t* onewline = c_optional(newline);
+
 	comb_t* primatives = c_name("prim", c_type(LEX_TYPE_PRIMATIVE));
 	comb_t* integer = c_name("int", c_type(LEX_TYPE_INT));
 	comb_t* decimal = c_name("float", c_type(LEX_TYPE_DECIMAL));
@@ -25,21 +28,22 @@ parser_t create_lang_parser()
 
 	comb_t* if_state = c_name("if", c_seq(
 		c_ignore(c_str("if")), expr,
-		c_ignore(c_str("then")), assign,
-		c_optional(c_seq(
-			c_ignore(c_str("else")), assign
+		onewline,
+		c_ignore(c_str("then")), onewline, assign,
+		c_optional(c_seq(onewline,
+			c_ignore(c_str("else")), onewline, assign
 		))
 	));
 
 	comb_t* quantifier = c_name("quantifier", c_seq(
 		c_ignore(c_str("for")), c_name("quantifier", c_regex("all|some")),
 			 symbol, c_ignore(c_str("in")), expr,
-		assign
+		onewline, assign
 	));
 
 	comb_t* simple_value = c_or(
 		primatives, decimal, integer, string, symbol,
-		c_seq(c_ignore(c_char('(')), expr, c_ignore(c_char(')')))
+		c_seq(c_ignore(c_char('(')), onewline, expr, onewline, c_ignore(c_char(')')))
 	);
 
 	comb_t* affix = c_name("affix", c_seq(
@@ -48,9 +52,9 @@ parser_t create_lang_parser()
 	));
 
 	comb_t* range = c_name("range", c_seq(
-		c_optional(c_seq(affix, c_not(c_newline(true)))), c_str(".."),
-		c_optional(c_seq(c_not(c_newline(true)), affix)),
-		c_optional(c_seq(c_not(c_newline(true)), c_char(':'), affix))
+		c_optional(affix), c_str(".."),
+		c_optional(affix),
+		c_optional(c_seq(c_char(':'), affix))
 	));
 
 	comb_t* value = c_or(
@@ -97,44 +101,43 @@ parser_t create_lang_parser()
 
 	comb_t* application = c_name("apply", c_seq(
 		or, c_name("args", c_zmore(c_seq(
-			c_or(
-				c_seq(c_ignore(c_char('\\')), c_newline(false)),
-				c_not(c_newline(true))
+			c_optional(
+				c_seq(c_ignore(c_char('\\')), newline)
 			), or
 		)))
 	));
 
 	comb_t* with_vars = c_seq(
-		c_ignore(c_str("with")), c_omore(c_seq(assign, c_ignore(c_char(','))))
+		c_ignore(c_str("with")), c_omore(c_seq(assign, c_ignore(c_char(',')), onewline))
 	);
 
 	comb_t* for_loop = c_name("for", c_seq(
 		c_ignore(c_str("for")), symbol, c_ignore(c_str("in")), value,
-		assign
+		onewline, assign
 	));
 
 	comb_t* such_that = c_name("such that", c_seq(
-		symbol, c_ignore(c_str("in")), expr,
+		symbol, c_ignore(c_str("in")), expr, onewline,
 		c_ignore(c_seq(c_str("such"), c_str("that"))),
-		expr
+		onewline, expr
 	));
 
 	comb_t* comp_body = c_or(
 		c_name("with",
-			c_seq(c_optional(with_vars), for_loop)
+			c_seq(c_optional(with_vars), onewline, for_loop)
 		), such_that
 	);
 
 	c_set(comprehension, c_name("comprehension", c_or(
-		c_seq(c_char('['), comp_body, c_char(']')),
-		c_seq(c_char('('), comp_body, c_char(')')),
-		c_seq(c_char('{'), comp_body, c_char('}'))
+		c_seq(c_char('['), onewline, comp_body, onewline, c_char(']')),
+		c_seq(c_char('('), onewline, comp_body, onewline, c_char(')')),
+		c_seq(c_char('{'), onewline, comp_body, onewline, c_char('}'))
 	)));
 
 	c_set(assign, c_name("assign", c_seq(
 		c_optional(c_seq(
 			symbol, c_name("args", c_zmore(symbol)),
-			c_ignore(c_char('='))
+			c_ignore(c_char('=')), onewline
 		)), c_name("with", c_seq(
 			c_optional(with_vars),
 			expr
@@ -144,7 +147,7 @@ parser_t create_lang_parser()
 	c_set(expr, application);
 
 	comb_t* root = c_eof(c_name("root", c_omore(
-		c_seq(assign, c_newline(true))
+		c_seq(assign, c_or(newline, c_type(LEX_TYPE_EOF)))
 	)));
 
 	parser_t parser = init_parser(root, false, curly_lexer_func);

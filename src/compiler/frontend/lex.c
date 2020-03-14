@@ -8,32 +8,45 @@
 
 #include "lex.h"
 
-// skip_whitespace_and_comments(lexer_t*) -> void
-// Skips all whitespace and comments.
-void skip_whitespace_and_comments(lexer_t* lex)
+// skip_whitespace_and_comments(lexer_t*) -> bool
+// Skips all whitespace and comments. Returns true if a newline was encountered.
+bool skip_whitespace_and_comments(lexer_t* lex)
 {
+	// Save
 	lexer_t save;
 	lex_save(lex, &save);
 
 	bool in_comment = false;
+	bool newline = false;
 	while (true)
 	{
+		// Get next character
 		char c = lex_next_char(lex);
 
-		if (in_comment && c == '\n')
-			in_comment = false;
-		else if (!in_comment)
+		if (c == '\n')
 		{
+			// Record newlines and exit comments
+			newline = true;
+			if (in_comment && c == '\n')
+				in_comment = false;
+		} else if (!in_comment)
+		{
+			// Start comments
 			if (c == '#')
 				in_comment = true;
+			
+			// Exit when no longer in whitespace
 			else if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v'))
 				break;
 		}
 
+		// Save current position
 		lex_save(lex, &save);
 	}
 
+	// Backtrack one
 	lex_revert(lex, &save);
+	return newline;
 }
 
 // create_decimal(lexer_t*, lexeme_t*, bool)
@@ -239,7 +252,13 @@ void actual_symbol(lexeme_t* token)
 lexeme_t curly_lexer_func(lexer_t* lex)
 {
 	// Skip whitespace
-	skip_whitespace_and_comments(lex);
+	if (skip_whitespace_and_comments(lex) && lex->lexeme_pos > 0)
+	{
+		// Save newlines
+		lexeme_t token = init_lexeme(lex);
+		token.type = LEX_TYPE_NEWLINE;
+		return token;
+	}
 
 	// Empty token
 	lexeme_t token = init_lexeme(lex);
