@@ -36,10 +36,10 @@ struct s_values
 	uint64_t* values;
 
 	// The amount of memory allocated for the list
-	size_t size;
+	int size;
 
 	// The number of values occupied
-	size_t count;
+	int count;
 };
 
 // Represents a chunk of bytecode
