@@ -60,41 +60,87 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
-// MUL i64 i64
-// MUL i64 f64
-// MUL f64 i64
-// MUL f64 f64
-// Implements multiplication
-int opcode_mul_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+// OPNAME i64 i64
+// OPNAME i64 f64
+// OPNAME f64 i64
+// OPNAME f64 f64
+// Implements an infix operation for ints and doubles.
+#define infix_op_func(opname, op, preprocessing, postprocessing)			\
+int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)		\
+{																			\
+	/* Pop operands from the stack */										\
+	cnumb_t b;																\
+	b.i64 = vm_pop(vm);														\
+	cnumb_t a;																\
+	a.i64 = vm_pop(vm);														\
+																			\
+	/* Print inputs */														\
+	if (opcode & 2)															\
+		 printf("%f * ",   a.f64);											\
+	else printf("%lli * ", a.i64);											\
+	if (opcode & 1)															\
+		 printf("%f = ",   b.f64);											\
+	else printf("%lli = ", b.i64);											\
+																			\
+	/* Do all preprocessing stuff */										\
+	preprocessing															\
+																			\
+	/* Calculate the result */												\
+	if (opcode & 2)															\
+		a.f64 = a.f64 op (opcode & 1 ? b.f64 : b.i64);						\
+	else																	\
+		a.i64 = a.i64 op (opcode & 1 ? b.f64 : b.i64);						\
+																			\
+	/* Do all postprocessing stuff */										\
+	postprocessing															\
+																			\
+	/* Print result */														\
+	if (opcode & 2)															\
+		 printf("%f\n",   a.f64);											\
+	else printf("%lli\n", a.i64);											\
+																			\
+	/* Push the result onto the stack */									\
+	vm_push(vm, a.i64);														\
+	printf("Pushed the result onto the stack (%p)\n", vm->tos);				\
+	return 1;																\
+}
+
+infix_op_func(mul, *,,)
+infix_op_func(div, /,	
+	if (b.i64 == 0)
+	{
+		// Error on divide by zero
+		puts("Error: tried to divide by 0.!");
+		vm->running = false;
+		return 1;
+	}
+,)
+infix_op_func(add, +,,)
+infix_op_func(sub, -,,)
+
+#undef infix_func
+
+// MOD i64 i64
+// Implements modulo for ints.
+// Floating points are unsupported by mod and will never be supported.
+int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
 	// Pop operands from the stack
-	cnumb_t b;
-	b.i64 = vm_pop(vm);
-	cnumb_t a;
-	a.i64 = vm_pop(vm);
+	int64_t b = vm_pop(vm);
+	int64_t a = vm_pop(vm);
 
-	// Output inputs
-	if (opcode & 2)
-		 printf("%f * ",   a.f64);
-	else printf("%lli * ", a.i64);
-	if (opcode & 1)
-		 printf("%f = ",   b.f64);
-	else printf("%lli = ", b.i64);
+	// Error on divide by zero
+	if (b == 0)
+	{
+		puts("Error: tried to modulo by 0.!");
+		vm->running = false;
+		return 1;
+	}
 
-	// Calculate the result
-	if (opcode & 2)
-		a.f64 *= (opcode & 1 ? b.f64 : b.i64);
-	else
-		a.i64 *= (opcode & 1 ? b.f64 : b.i64);
+	printf("%lli %% %lli = %lli\n", a, b, a % b);
 
-	// Output result
-	if (opcode & 2)
-		 printf("%f\n",   a.f64);
-	else printf("%lli\n", a.i64);
-
-	// Push the result onto the stack
-	vm_push(vm, a.i64);
-	printf("Pushed the result onto the stack (%p)\n", vm->tos);
+	// Push result onto the stack
+	vm_push(vm, a % b);
 	return 1;
 }
 
@@ -111,8 +157,26 @@ void init_opcodes()
 	opcode_funcs[OPCODE_BREAK		] = opcode_break_func;
 	opcode_funcs[OPCODE_LOAD		] = opcode_load_func;
 	opcode_funcs[OPCODE_LOAD_LONG	] = opcode_load_func;
+
 	opcode_funcs[OPCODE_MUL_I64_I64	] = opcode_mul_func;
 	opcode_funcs[OPCODE_MUL_I64_F64	] = opcode_mul_func;
 	opcode_funcs[OPCODE_MUL_F64_I64	] = opcode_mul_func;
 	opcode_funcs[OPCODE_MUL_F64_F64	] = opcode_mul_func;
+
+	opcode_funcs[OPCODE_DIV_I64_I64	] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_I64_F64	] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_F64_I64	] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_F64_F64	] = opcode_div_func;
+
+	opcode_funcs[OPCODE_ADD_I64_I64	] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_I64_F64	] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_F64_I64	] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_F64_F64	] = opcode_add_func;
+
+	opcode_funcs[OPCODE_SUB_I64_I64	] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_I64_F64	] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_F64_I64	] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_F64_F64	] = opcode_sub_func;
+
+	opcode_funcs[OPCODE_MOD			] = opcode_mod_func;
 }

@@ -25,14 +25,24 @@ enum
 	OPCODE_LOAD			= 0b00000010,
 	OPCODE_LOAD_LONG	= 0b00000011,
 
-	// MUL i64 i64 - multiplies two ints
-	// MUL i64 f64 - multiplies an int and a double
-	// MUL f64 i64 - multiplies a double and an int
-	// MUL f64 f64 - multiplies two doubles
-	OPCODE_MUL_I64_I64	= 0b00000100,
-	OPCODE_MUL_I64_F64	= 0b00000101,
-	OPCODE_MUL_F64_I64	= 0b00000110,
-	OPCODE_MUL_F64_F64	= 0b00000111
+	// OPNAME i64 i64 - multiplies two ints
+	// OPNAME i64 f64 - multiplies an int and a double (returns int)
+	// OPNAME f64 i64 - multiplies a double and an int (returns double)
+	// OPNAME f64 f64 - multiplies two doubles
+#define opcode_infix(opname, opcode)						\
+	OPCODE_##opname##_I64_I64	= (opcode) | 0b00000000,	\
+	OPCODE_##opname##_I64_F64	= (opcode) | 0b00000001,	\
+	OPCODE_##opname##_F64_I64	= (opcode) | 0b00000010,	\
+	OPCODE_##opname##_F64_F64	= (opcode) | 0b00000011
+
+	opcode_infix(MUL, 0b00000100),
+	opcode_infix(DIV, 0b00001000),
+	opcode_infix(ADD, 0b00001100),
+	opcode_infix(SUB, 0b00010000),
+
+#undef opcode_infix
+
+	OPCODE_MOD = 0b00010100
 };
 
 // The jump table for the opcodes.
