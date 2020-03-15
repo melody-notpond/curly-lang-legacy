@@ -20,6 +20,15 @@ int main(int argc, char** argv)
 	chunk_add_i64(&chunk, -5);
 	chunk_add_i64(&chunk, 23);
 	write_chunk(&chunk, OPCODE_MUL_I64_I64);
+	chunk_add_i64(&chunk, 2);
+	chunk_add_f64(&chunk, 2.5);
+	write_chunk(&chunk, OPCODE_MUL_I64_F64);
+	chunk_add_f64(&chunk, 3.14159);
+	chunk_add_i64(&chunk, 2);
+	write_chunk(&chunk, OPCODE_MUL_F64_I64);
+	chunk_add_f64(&chunk, 3.14159);
+	chunk_add_f64(&chunk, 2.71828);
+	write_chunk(&chunk, OPCODE_MUL_F64_F64);
 	write_chunk(&chunk, OPCODE_BREAK);
 	
 	disassemble(&chunk, "test.o");

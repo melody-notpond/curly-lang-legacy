@@ -6,8 +6,10 @@
 // March 14 2020
 //
 
-#include "opcodes.h"
 #include <stdio.h>
+
+#include "opcodes.h"
+#include "types.h"
 
 // The jump table for the opcodes.
 int (*opcode_funcs[256])(CurlyVM* vm, uint8_t opcode, uint8_t* pc);
@@ -65,21 +67,34 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements multiplication
 int opcode_mul_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
-	if (!(opcode & 3))
-	{
-		// Integer multiplication is simple
-		int64_t b = vm_pop(vm);
-		int64_t a = vm_pop(vm);
-		int64_t r = a * b;
-		printf("%lli * %lli = %lli\n", a, b, r);
-		vm_push(vm, r);
-		printf("Pushed %lli onto the stack (%p)\n", r, vm->tos);
-	} else
-	{
-		// TODO: floating point multiplication
-		puts("OH NO FLOATING POINT ARITHMETIC ISNT IMPLEMENTED YET! D:");
-		vm->running = false;
-	}
+	// Pop operands from the stack
+	cnumb_t b;
+	b.i64 = vm_pop(vm);
+	cnumb_t a;
+	a.i64 = vm_pop(vm);
+
+	// Output inputs
+	if (opcode & 2)
+		 printf("%f * ",   a.f64);
+	else printf("%lli * ", a.i64);
+	if (opcode & 1)
+		 printf("%f = ",   b.f64);
+	else printf("%lli = ", b.i64);
+
+	// Calculate the result
+	if (opcode & 2)
+		a.f64 *= (opcode & 1 ? b.f64 : b.i64);
+	else
+		a.i64 *= (opcode & 1 ? b.f64 : b.i64);
+
+	// Output result
+	if (opcode & 2)
+		 printf("%f\n",   a.f64);
+	else printf("%lli\n", a.i64);
+
+	// Push the result onto the stack
+	vm_push(vm, a.i64);
+	printf("Pushed the result onto the stack (%p)\n", vm->tos);
 	return 1;
 }
 
