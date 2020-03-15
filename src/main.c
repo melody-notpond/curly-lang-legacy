@@ -12,6 +12,8 @@
 
 #include "compiler/backends/curlyvm/compile_bytecode.h"
 #include "compiler/frontend/parser.h"
+#include "vm/debug.h"
+#include "vm/vm.h"
 
 int main(int argc, char** argv)
 {
@@ -25,6 +27,16 @@ int main(int argc, char** argv)
 
 	parse_result_t res = parse_file(parser, argv[1]);
 	print_parse_result(res);
+
+	chunk_t chunk = init_chunk();
+	compile_tree(&chunk, &res, true);
+
+	disassemble(&chunk, argv[1]);
+
+	CurlyVM vm;
+	init_vm(&vm, &chunk);
+	vm_run(&vm);
+	clean_vm(&vm);
 
 	clean_parse_result(&res);
 	clean_combinator(parser.comb);
