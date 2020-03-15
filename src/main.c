@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compiler/backends/curlyvm/compile_bytecode.h"
 #include "compiler/frontend/parser.h"
 
 int main(int argc, char** argv)

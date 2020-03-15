@@ -30,9 +30,14 @@ libcomb.a:
 main: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
 
-compile: frontend
+compile: frontend backends
 
 frontend: $(CODE)compiler/frontend/*.c
+	$(CC) $(CFLAGS) -c $?
+
+backends: curlyvm
+
+curlyvm: $(CODE)compiler/backends/curlyvm/*.c
 	$(CC) $(CFLAGS) -c $?
 
 vm: $(CODE)vm/*.c
