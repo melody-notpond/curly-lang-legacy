@@ -37,7 +37,8 @@ int opcode_break_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 0;
 }
 
-// i64 VALUE, f64 VALUE
+// i64 VALUE
+// f64 VALUE
 // Implements loading values onto the stack.
 int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
@@ -57,6 +58,31 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
+// MUL i64 i64
+// MUL i64 f64
+// MUL f64 i64
+// MUL f64 f64
+// Implements multiplication
+int opcode_mul_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	if (!(opcode & 3))
+	{
+		// Integer multiplication is simple
+		int64_t b = vm_pop(vm);
+		int64_t a = vm_pop(vm);
+		int64_t r = a * b;
+		printf("%lli * %lli = %lli\n", a, b, r);
+		vm_push(vm, r);
+		printf("Pushed %lli onto the stack (%p)\n", r, vm->tos);
+	} else
+	{
+		// TODO: floating point multiplication
+		puts("OH NO FLOATING POINT ARITHMETIC ISNT IMPLEMENTED YET! D:");
+		vm->running = false;
+	}
+	return 1;
+}
+
 // init_opcodes(void) -> void
 // Initialises the jump table.
 void init_opcodes()
@@ -70,4 +96,8 @@ void init_opcodes()
 	opcode_funcs[OPCODE_BREAK		] = opcode_break_func;
 	opcode_funcs[OPCODE_LOAD		] = opcode_load_func;
 	opcode_funcs[OPCODE_LOAD_LONG	] = opcode_load_func;
+	opcode_funcs[OPCODE_MUL_I64_I64	] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_I64_F64	] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_F64_I64	] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_F64_F64	] = opcode_mul_func;
 }

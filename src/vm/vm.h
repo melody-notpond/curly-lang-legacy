@@ -51,6 +51,10 @@ void vm_run(CurlyVM* vm);
 // Pushes a value onto the stack.
 void vm_push(CurlyVM* vm, int64_t value);
 
+// vm_pop(CurlyVM*) -> int64_t
+// Pops a value from the stack.
+int64_t vm_pop(CurlyVM* vm);
+
 // clean_vm(CurlyVM*) -> void
 // Cleans up a vm.
 void clean_vm(CurlyVM* vm);

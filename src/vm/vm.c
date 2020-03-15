@@ -6,6 +6,8 @@
 // March 14 2020
 //
 
+#include <stdio.h>
+
 #include "opcodes.h"
 #include "vm.h"
 
@@ -65,6 +67,22 @@ void vm_push(CurlyVM* vm, int64_t value)
 
 	// Append to stack
 	*vm->tos++ = value;
+}
+
+// vm_pop(CurlyVM*) -> int64_t
+// Pops a value from the stack.
+int64_t vm_pop(CurlyVM* vm)
+{
+	// Error if stack underflow
+	if (vm->tos <= vm->stack)
+	{
+		puts("Error! Stack underflow!");
+		vm->running = false;
+		return 0;
+	}
+
+	// Pop otherwise
+	return *(--vm->tos);
 }
 
 // clean_vm(CurlyVM*) -> void
