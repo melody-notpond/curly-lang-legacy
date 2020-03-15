@@ -25,18 +25,51 @@ compile_result_t tree_chunk(chunk_t* chunk, ast_t* tree);
 // Compiles an infix subtree into bytecode.
 compile_result_t infix_chunk(chunk_t* chunk, ast_t* tree)
 {
-	compile_result_t res = COMPILE_RESULT_INT;
+	compile_result_t left = COMPILE_RESULT_INT;
 	for (int i = 0; i < tree->children_count; i += 2)
 	{
 		// Add operands to the chunk
-		compile_result_t r = tree_chunk(chunk, tree->children + i);
+		compile_result_t right = tree_chunk(chunk, tree->children + i);
 
 		// Check return type
-		if (!r) return r;
-		else if (r == COMPILE_RESULT_FLOAT)
-			res = COMPILE_RESULT_FLOAT;
+		if (!right) return right;
+		
+		if (i != 0)
+		{
+			// Get the operator
+			ast_t* op = tree->children + i - 1;
+
+			// The node should be an operator
+			if (strcmp(op->name, "op"))
+				return COMPILE_RESULT_ERROR;
+
+			// Write the appropriate opcode
+			uint8_t option = (left - COMPILE_RESULT_INT) << 1 | (right - COMPILE_RESULT_INT);
+			if (!strcmp(op->value, "*"))
+				write_chunk(chunk, OPCODE_MUL_I64_I64 | option);
+			else if (!strcmp(op->value, "/"))
+				write_chunk(chunk, OPCODE_DIV_I64_I64 | option);
+			else if (!strcmp(op->value, "+"))
+				write_chunk(chunk, OPCODE_ADD_I64_I64 | option);
+			else if (!strcmp(op->value, "-"))
+				write_chunk(chunk, OPCODE_SUB_I64_I64 | option);
+			else if (!strcmp(op->value, "%"))
+			{
+				// Modulo only takes in integers
+				if (option)
+				{
+					puts("Cannot modulo doubles!");
+					return COMPILE_RESULT_ERROR;
+				}
+				write_chunk(chunk, OPCODE_MOD);
+			}
+		}
+
+		// Update the left side
+		if (right == COMPILE_RESULT_FLOAT)
+			left = right;
 	}
-	return res;
+	return left;
 }
 
 // tree_chunk(chunk_t*, ast_t*) -> compile_result_t
