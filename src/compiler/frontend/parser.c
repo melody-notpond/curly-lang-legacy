@@ -142,8 +142,8 @@ parser_t create_lang_parser()
 
 	c_set(expr, application);
 
-	comb_t* root = c_eof(c_name("root", c_omore(
-		c_seq(assign, c_or(newline, c_type(LEX_TYPE_EOF)))
+	comb_t* root = c_eof(c_name("root", c_zmore(
+		c_seq(assign, c_or(newline, c_ignore(c_type(LEX_TYPE_EOF))))
 	)));
 
 	parser_t parser = init_parser(root, false, curly_lexer_func);
