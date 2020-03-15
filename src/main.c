@@ -23,21 +23,27 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
+	// Initialise the parser
 	parser_t parser = create_lang_parser();
 
+	// Parse the file
 	parse_result_t res = parse_file(parser, argv[1]);
 	print_parse_result(res);
 
+	// Compile the result
 	chunk_t chunk = init_chunk();
 	compile_tree(&chunk, &res, true);
 
+	// Disassemble
 	disassemble(&chunk, argv[1]);
 
+	// Run the bytecode
 	CurlyVM vm;
 	init_vm(&vm, &chunk);
 	vm_run(&vm);
-	clean_vm(&vm);
 
+	// Clean up
+	clean_vm(&vm);
 	clean_parse_result(&res);
 	clean_combinator(parser.comb);
 	return 0;
