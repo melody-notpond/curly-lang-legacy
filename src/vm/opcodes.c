@@ -64,30 +64,30 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // OPNAME f64 i64
 // OPNAME f64 f64
 // Implements an infix operation for ints and doubles.
-#define infix_op_func(opname, op, preprocessing, postprocessing)			\
-int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)		\
-{																			\
-	/* Pop operands from the stack */										\
-	cnumb_t b;																\
-	b.i64 = vm_pop(vm);														\
-	cnumb_t a;																\
-	a.i64 = vm_pop(vm);														\
-																			\
-	/* Do all preprocessing stuff */										\
-	preprocessing															\
-																			\
-	/* Calculate the result */												\
-	if (opcode & 2)															\
-		a.f64 = a.f64 op (opcode & 1 ? b.f64 : b.i64);						\
-	else																	\
-		a.i64 = a.i64 op (opcode & 1 ? b.f64 : b.i64);						\
-																			\
-	/* Do all postprocessing stuff */										\
-	postprocessing															\
-																			\
-	/* Push the result onto the stack */									\
-	vm_push(vm, a.i64);														\
-	return 1;																\
+#define infix_op_func(opname, op, preprocessing, postprocessing)				\
+int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)			\
+{																				\
+	/* Pop operands from the stack */											\
+	cnumb_t b;																	\
+	b.i64 = vm_pop(vm);															\
+	cnumb_t a;																	\
+	a.i64 = vm_pop(vm);															\
+																				\
+	/* Do all preprocessing stuff */											\
+	preprocessing																\
+																				\
+	/* Calculate the result */													\
+	if (opcode & 3)																\
+		a.f64 = (opcode & 2 ? a.f64 : a.i64) op (opcode & 1 ? b.f64 : b.i64);	\
+	else																		\
+		a.i64 = a.i64 op b.i64;													\
+																				\
+	/* Do all postprocessing stuff */											\
+	postprocessing																\
+																				\
+	/* Push the result onto the stack */										\
+	vm_push(vm, a.i64);															\
+	return 1;																	\
 }
 
 infix_op_func(mul, *,,)
