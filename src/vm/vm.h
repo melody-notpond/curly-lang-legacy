@@ -31,6 +31,15 @@ typedef struct
 	// The size of the stack.
 	size_t stack_size;
 
+	// The list of all globals.
+	int64_t* globals;
+
+	// The number of globals.
+	size_t globals_count;
+
+	// The size of the globals list.
+	size_t globals_size;
+
 	// Whether the vm is running or stopped.
 	bool running;
 } CurlyVM;
@@ -59,8 +68,8 @@ int64_t vm_pop(CurlyVM* vm);
 // Peaks in the stack.
 int64_t vm_peak(CurlyVM* vm, size_t offset);
 
-// clean_vm(CurlyVM*) -> void
+// clean_vm(CurlyVM*, bool) -> void
 // Cleans up a vm.
-void clean_vm(CurlyVM* vm);
+void clean_vm(CurlyVM* vm, bool clear_globals);
 
 #endif /* vm_h */

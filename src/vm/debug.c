@@ -37,7 +37,7 @@ int simple_opcode(char* name)
 }
 
 // load_opcode(char*, int, chunk_t*, uint8_t) -> int
-// Disassembles a loading instruction.
+// Disassembles a loading opcode.
 int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 {
 	// Print out the name
@@ -69,9 +69,38 @@ int infix_opcode(char* name, uint8_t opcode)
 	return 1;
 }
 
-// dis_opcode(chunk_t*, int) -> int
+// set_global_opcode(char*, chunk_t*, int*) -> int
+// Disassembles a set global opcode.
+int set_global_opcode(char* name, chunk_t* chunk, int* global_count)
+{
+	printf("%s %s\n", name, chunk->globals.names[(*global_count)++]);
+	return 1;
+}
+
+// global_opcode(char*, int, chunk_t*, uint8_t) -> int
+// Disassembles a global opcode.
+int global_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
+{
+	// Print out the name
+	printf("%s ", name);
+
+	// Get the global index
+	bool long_op = opcode & 1;
+	int globals_index = chunk->bytes[index + 1];
+	if (long_op)
+	{
+		globals_index |= chunk->bytes[index + 2] <<  8;
+		globals_index |= chunk->bytes[index + 3] << 16;
+	}
+
+	// Print out the name
+	printf("0x%06X (%s)\n", globals_index, chunk->globals.names[globals_index]);
+	return long_op ? 4 : 2;
+}
+
+// dis_opcode(chunk_t*, int, int*) -> int
 // Disassembles a single opcode and returns the index offset.
-int dis_opcode(chunk_t* chunk, int index)
+int dis_opcode(chunk_t* chunk, int index, int* global_count)
 {
 	// Index
 	printf("%04X  ", index);
@@ -130,6 +159,14 @@ int dis_opcode(chunk_t* chunk, int index)
 		case OPCODE_MOD:
 			// MOD i64 i64
 			return infix_opcode("MOD", opcode);
+		case OPCODE_SET_GLOBAL:
+			return set_global_opcode("GLOBAL SET", chunk, global_count);
+		case OPCODE_GLOBAL:
+		case OPCODE_GLOBAL_LONG:
+			return global_opcode("GLOBAL", index, chunk, opcode);
+		case OPCODE_POP:
+			puts("POP");
+			return 1;
 		case OPCODE_PRINT_I64:
 		case OPCODE_PRINT_F64:
 			// PRINT i64
@@ -149,10 +186,11 @@ void disassemble(chunk_t* chunk, char* name)
 {
 	// Header
 	printf("== %s ==\n", name);
+	int global_count = 0;
 
 	for (int i = 0; i < chunk->count;)
 	{
 		// Disassemble each opcode
-		i += dis_opcode(chunk, i);
+		i += dis_opcode(chunk, i, &global_count);
 	}
 }

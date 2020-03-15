@@ -127,6 +127,48 @@ int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 1;
 }
 
+// POP
+// Implements discarding values on the stack.
+int opcode_pop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	vm_pop(vm);
+	return 1;
+}
+
+// GLOBAL SET VALUE
+// Implements creating global variables.
+int opcode_set_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	// Resize if necessary
+	if (vm->globals == NULL)
+		vm->globals = calloc((vm->globals_size = 16), 8);
+	else if (vm->globals_count >= vm->globals_size)
+		vm->globals = realloc(vm->globals, (vm->globals_size <<= 1) << 3);
+
+	// Append the global to the list
+	vm->globals[vm->globals_count++] = vm_pop(vm);
+	return 1;
+}
+
+// GLOBAL VALUE
+// Implements pushing global variables onto the stack.
+int opcode_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	bool long_op = opcode & 1;
+
+	// Get the index
+	int index = *(++pc);
+	if (long_op)
+	{
+		index |= *(++pc) <<  8;
+		index |= *(++pc) << 16;
+	}
+
+	// Push the constant onto the top of the stack
+	vm_push(vm, *(vm->globals + index));
+	return 2 << long_op;
+}
+
 // PRINT i64
 // PRINT f64
 // Implements the temporary print opcode.
@@ -176,6 +218,11 @@ void init_opcodes()
 	opcode_funcs[OPCODE_SUB_F64_F64	] = opcode_sub_func;
 
 	opcode_funcs[OPCODE_MOD			] = opcode_mod_func;
+
+	opcode_funcs[OPCODE_SET_GLOBAL	] = opcode_set_global_func;
+	opcode_funcs[OPCODE_GLOBAL		] = opcode_global_func;
+	opcode_funcs[OPCODE_GLOBAL_LONG	] = opcode_global_func;
+	opcode_funcs[OPCODE_POP			] = opcode_pop_func;
 
 	opcode_funcs[OPCODE_PRINT_I64	] = opcode_print_func;
 	opcode_funcs[OPCODE_PRINT_F64	] = opcode_print_func;

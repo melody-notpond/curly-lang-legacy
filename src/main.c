@@ -24,7 +24,12 @@ void repl()
 	parser_t parser = create_lang_parser();
 	parse_result_t res;
 	chunk_t chunk;
+	globals_t globals;
 	CurlyVM vm;
+
+	globals.names = NULL;
+	globals.size = 0;
+	globals.count = 0;
 
 	while (true)
 	{
@@ -43,6 +48,7 @@ void repl()
 
 		// Compile the result
 		chunk = init_chunk();
+		chunk.globals = globals;
 		if (compile_tree(&chunk, &res, true))
 		{
 			// Disassemble
@@ -51,7 +57,7 @@ void repl()
 			// Run the bytecode
 			init_vm(&vm, &chunk);
 			vm_run(&vm);
-			clean_vm(&vm);
+			clean_vm(&vm, false);
 		}
 
 		// Clean up
@@ -87,7 +93,7 @@ int main(int argc, char** argv)
 			CurlyVM vm;
 			init_vm(&vm, &chunk);
 			vm_run(&vm);
-			clean_vm(&vm);
+			clean_vm(&vm, true);
 		}
 
 		// Clean up
