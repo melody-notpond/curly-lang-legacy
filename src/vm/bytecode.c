@@ -109,7 +109,7 @@ void chunk_global(chunk_t* chunk, char* name)
 	if (index == globals.count)
 	{
 		// If it doesn't exist, append it to the list of globals and create the global
-		append_element(globals.names, globals.count, globals.size, char*, name);
+		append_element(globals.names, globals.count, globals.size, char*, strdup(name));
 		write_chunk(chunk, OPCODE_SET_GLOBAL);
 
 	// Store the appropriate load instruction
