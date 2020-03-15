@@ -105,22 +105,25 @@ int64_t vm_peak(CurlyVM* vm, size_t offset)
 	return *(oos);
 }
 
-// clean_vm(CurlyVM*) -> void
+// clean_vm(CurlyVM*, bool) -> void
 // Cleans up a vm.
-void clean_vm(CurlyVM* vm)
+void clean_vm(CurlyVM* vm, bool clear_globals)
 {
 	if (vm == NULL)
 		return;
 
-	clean_chunk(vm->chunk);
+	clean_chunk(vm->chunk, clear_globals);
 	vm->chunk = NULL;
 	vm->pc = NULL;
 	free(vm->stack);
 	vm->stack = NULL;
 	vm->tos = NULL;
 	vm->stack_size = 0;
-	free(vm->globals);
-	vm->globals = NULL;
-	vm->globals_count = 0;
-	vm->globals_size = 0;
+
+	if (clear_globals)
+	{	free(vm->globals);
+		vm->globals = NULL;
+		vm->globals_count = 0;
+		vm->globals_size = 0;
+	}
 }

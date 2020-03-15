@@ -6,6 +6,8 @@
 // March 14 2020
 //
 
+#include <string.h>
+
 #include "bytecode.h"
 #include "opcodes.h"
 #include "types.h"
@@ -21,6 +23,9 @@ chunk_t init_chunk()
 	chunk.pool.values = NULL;
 	chunk.pool.size = 0;
 	chunk.pool.count = 0;
+	chunk.globals.names = NULL;
+	chunk.globals.size = 0;
+	chunk.globals.count = 0;
 	return chunk;
 }
 
@@ -77,8 +82,6 @@ void chunk_add_i64(chunk_t* chunk, int64_t value)
 	}
 }
 
-#undef append_element
-
 // chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
 void chunk_add_f64(chunk_t* chunk, double value)
@@ -90,9 +93,44 @@ void chunk_add_f64(chunk_t* chunk, double value)
 	chunk_add_i64(chunk, double_to_int.i64);
 }
 
-// clean_chunk(chunk_t*) -> void
+// chunk_global(chunk_t*, char*) -> void
+// Adds a global to the list of globals.
+void chunk_global(chunk_t* chunk, char* name)
+{
+	// Search for the global
+	int index;
+	globals_t globals = chunk->globals;
+	for (index = 0; index < globals.count; index++)
+	{
+		if (!strcmp(name, globals.names[index]))
+			break;
+	}
+
+	if (index == globals.count)
+	{
+		// If it doesn't exist, append it to the list of globals and create the global
+		append_element(globals.names, globals.count, globals.size, char*, name);
+		write_chunk(chunk, OPCODE_SET_GLOBAL);
+
+	// Store the appropriate load instruction
+	} else if (index <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_GLOBAL);
+		write_chunk(chunk, index);
+	} else
+	{
+		write_chunk(chunk, OPCODE_GLOBAL_LONG);
+		write_chunk(chunk, (index      ) & 0xFF);
+		write_chunk(chunk, (index >>  8) & 0xFF);
+		write_chunk(chunk, (index >> 16) & 0xFF);
+	}
+}
+
+#undef append_element
+
+// clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.
-void clean_chunk(chunk_t* chunk)
+void clean_chunk(chunk_t* chunk, bool clear_globals)
 {
 	if (chunk == NULL)
 		return;
@@ -105,4 +143,13 @@ void clean_chunk(chunk_t* chunk)
 	chunk->pool.values = NULL;
 	chunk->pool.size = 0;
 	chunk->pool.count = 0;
+
+	if (clear_globals)
+	{
+		for (int i = 0; i < chunk->globals.count; i++)
+		{
+			free(chunk->globals.names[i]);
+		}
+		free(chunk->globals.names);
+	}
 }

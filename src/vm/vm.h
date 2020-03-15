@@ -68,8 +68,8 @@ int64_t vm_pop(CurlyVM* vm);
 // Peaks in the stack.
 int64_t vm_peak(CurlyVM* vm, size_t offset);
 
-// clean_vm(CurlyVM*) -> void
+// clean_vm(CurlyVM*, bool) -> void
 // Cleans up a vm.
-void clean_vm(CurlyVM* vm);
+void clean_vm(CurlyVM* vm, bool clear_globals);
 
 #endif /* vm_h */

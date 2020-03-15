@@ -47,5 +47,5 @@ int main(int argc, char** argv)
 
 	vm_run(&vm);
 
-	clean_vm(&vm);
+	clean_vm(&vm, true);
 }
