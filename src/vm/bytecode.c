@@ -45,33 +45,22 @@ void write_chunk(chunk_t* chunk, uint8_t value)
 	append_element(chunk->bytes, chunk->count, chunk->size, uint8_t, value);
 }
 
-// get_pool_index(struct s_values*, int64_t) -> size_t
-// Returns the index of the constant in the pool. If the constant
-// isn't in the pool, it appends it to the end.
-int get_pool_index(struct s_values* pool, int64_t value)
-{
-	// Search for the constant
-	int i;
-	for (i = 0; i < pool->count; i++)
-	{
-		if (value == pool->values[i])
-			break;
-	}
-
-	// If it doesn't exist, append it to the pool
-	if (i == pool->count)
-		append_element(pool->values, pool->count, pool->size, int64_t, value);
-	return i;
-}
-
-#undef append_element
-
 // chunk_add_i64(chunk_t*, int64_t) -> void
 // Adds a 64 bit int to the constant pool.
 void chunk_add_i64(chunk_t* chunk, int64_t value)
 {
-	// Get the index
-	int index = get_pool_index(&chunk->pool, value);
+	// Search for the constant
+	int index;
+	struct s_values* pool = &chunk->pool;
+	for (index = 0; index < pool->count; index++)
+	{
+		if (value == pool->values[index])
+			break;
+	}
+
+	// If it doesn't exist, append it to the pool
+	if (index == pool->count)
+		append_element(pool->values, pool->count, pool->size, int64_t, value);
 
 	// Store the appropriate instruction
 	if (index <= 0xFF)
@@ -86,6 +75,8 @@ void chunk_add_i64(chunk_t* chunk, int64_t value)
 		write_chunk(chunk, (index >> 16) & 0xFF);
 	}
 }
+
+#undef append_element
 
 // chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
