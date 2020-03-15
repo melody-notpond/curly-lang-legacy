@@ -91,7 +91,7 @@ int64_t vm_peak(CurlyVM* vm, size_t offset)
 {
 	// Error if stack underflow
 	int64_t* oos = vm->tos - offset;
-	if (oos <= vm->stack)
+	if (oos < vm->stack)
 	{
 		puts("Error! Stack underflow!");
 		vm->running = false;
