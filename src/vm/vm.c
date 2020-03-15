@@ -62,7 +62,7 @@ void vm_run(CurlyVM* vm)
 void vm_push(CurlyVM* vm, int64_t value)
 {
 	// Resize if necessary
-	if (vm->stack_size <= vm->tos - vm->stack)
+	if (vm->stack_size <= (vm->tos - vm->stack) >> 3)
 		vm->stack = realloc(vm->stack, (vm->stack_size <<= 1) << 3);
 
 	// Append to stack
