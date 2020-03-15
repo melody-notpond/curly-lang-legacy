@@ -56,7 +56,6 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 
 	// Push the constant onto the top of the stack
 	vm_push(vm, vm->chunk->pool.values[index]);
-	printf("Pushed value #%i onto the stack (%p)\n", index, vm->tos);
 	return 2 << long_op;
 }
 
@@ -74,14 +73,6 @@ int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)		\
 	cnumb_t a;																\
 	a.i64 = vm_pop(vm);														\
 																			\
-	/* Print inputs */														\
-	if (opcode & 2)															\
-		 printf("%f * ",   a.f64);											\
-	else printf("%lli * ", a.i64);											\
-	if (opcode & 1)															\
-		 printf("%f = ",   b.f64);											\
-	else printf("%lli = ", b.i64);											\
-																			\
 	/* Do all preprocessing stuff */										\
 	preprocessing															\
 																			\
@@ -94,14 +85,8 @@ int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)		\
 	/* Do all postprocessing stuff */										\
 	postprocessing															\
 																			\
-	/* Print result */														\
-	if (opcode & 2)															\
-		 printf("%f\n",   a.f64);											\
-	else printf("%lli\n", a.i64);											\
-																			\
 	/* Push the result onto the stack */									\
 	vm_push(vm, a.i64);														\
-	printf("Pushed the result onto the stack (%p)\n", vm->tos);				\
 	return 1;																\
 }
 
@@ -144,6 +129,20 @@ int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 1;
 }
 
+// PRINT i64
+// PRINT f64
+// Implements the temporary print opcode.
+int opcode_print_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	cnumb_t v;
+	v.i64 = vm_peak(vm, 1);
+	if (opcode & 1)
+		printf("%f\n",   v.f64);
+	else
+		printf("%lli\n", v.i64);
+	return 1;
+}
+
 // init_opcodes(void) -> void
 // Initialises the jump table.
 void init_opcodes()
@@ -179,4 +178,7 @@ void init_opcodes()
 	opcode_funcs[OPCODE_SUB_F64_F64	] = opcode_sub_func;
 
 	opcode_funcs[OPCODE_MOD			] = opcode_mod_func;
+
+	opcode_funcs[OPCODE_PRINT_I64	] = opcode_print_func;
+	opcode_funcs[OPCODE_PRINT_F64	] = opcode_print_func;
 }

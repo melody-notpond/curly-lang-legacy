@@ -42,7 +42,14 @@ enum
 
 #undef opcode_infix
 
-	OPCODE_MOD = 0b00010100
+	// MOD i64 i64 - finds the remainder of the integer division
+	OPCODE_MOD			= 0b00010100,
+
+
+	// PRINT i64 - prints an integer
+	// PRINT f64 - prints a double
+	OPCODE_PRINT_I64	= 0b11111110,
+	OPCODE_PRINT_F64	= 0b11111111
 };
 
 // The jump table for the opcodes.

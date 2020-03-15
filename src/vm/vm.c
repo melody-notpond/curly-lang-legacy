@@ -62,7 +62,7 @@ void vm_run(CurlyVM* vm)
 void vm_push(CurlyVM* vm, int64_t value)
 {
 	// Resize if necessary
-	if (vm->stack_size <= (vm->tos - vm->stack) >> 3)
+	if (vm->stack + vm->stack_size <= vm->tos)
 		vm->stack = realloc(vm->stack, (vm->stack_size <<= 1) << 3);
 
 	// Append to stack
@@ -83,6 +83,23 @@ int64_t vm_pop(CurlyVM* vm)
 
 	// Pop otherwise
 	return *(--vm->tos);
+}
+
+// vm_peak(CurlyVM*, size_t) -> int64_t
+// Peaks in the stack.
+int64_t vm_peak(CurlyVM* vm, size_t offset)
+{
+	// Error if stack underflow
+	int64_t* oos = vm->tos - offset;
+	if (oos <= vm->stack)
+	{
+		puts("Error! Stack underflow!");
+		vm->running = false;
+		return 0;
+	}
+
+	// Peak otherwise
+	return *(oos);
 }
 
 // clean_vm(CurlyVM*) -> void
