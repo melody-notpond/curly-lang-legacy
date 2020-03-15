@@ -93,7 +93,7 @@ compile_result_t tree_chunk(chunk_t* chunk, ast_t* tree)
 	else
 	{
 		// Invalid form
-		printf("error");
+		puts("Error: Invalid syntax tree passed");
 		return COMPILE_RESULT_ERROR;
 	}
 }

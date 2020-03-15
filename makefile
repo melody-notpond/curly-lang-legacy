@@ -9,7 +9,7 @@
 CC = gcc
 CFLAGS = -Wall -O0 -ggdb3 -I'dep/curly-comb/src/parse'
 LDFLAGS = 
-LIBS = -L'dep/curly-comb' -lcomb
+LIBS = -L'dep/curly-comb' -lcomb -lreadline
 
 CODE = src/
 
