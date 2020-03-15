@@ -292,18 +292,7 @@ lexeme_t curly_lexer_func(lexer_t* lex)
 		create_string(lex, &token);
 	else if (c == '_' || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))
 		create_symbol(lex, &token);
-	else if (c == '-')
-	{
-		token.type = LEX_TYPE_INFIX_LEVEL_ADD;
-		lexer_t s2;
-		lex_save(lex, &s2);
-
-		// Check if its a - or a negative number
-		c = lex_next_char(lex);
-		if ('0' <= c && c <= '9')
-			create_int(lex, &token);
-		else lex_revert(lex, &s2);
-	} else if (c == '+')
+	else if (c == '+' || c == '-')
 		token.type = LEX_TYPE_INFIX_LEVEL_ADD;
 	else if (c == '*' || c == '/' || c == '%')
 		token.type = LEX_TYPE_INFIX_LEVEL_MUL;
