@@ -8,6 +8,7 @@
 
 #include "bytecode.h"
 #include "opcodes.h"
+#include "types.h"
 
 // init_chunk(void) -> chunk_t
 // Initialises an empty chunk of bytecode.
@@ -83,11 +84,7 @@ void chunk_add_i64(chunk_t* chunk, int64_t value)
 void chunk_add_f64(chunk_t* chunk, double value)
 {
 	// This union gets the double's binary representation
-	union
-	{
-		double f64;
-		int64_t i64;
-	} double_to_int;
+	cnumb_t double_to_int;
 	double_to_int.f64 = value;
 
 	chunk_add_i64(chunk, double_to_int.i64);

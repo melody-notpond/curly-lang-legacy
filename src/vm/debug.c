@@ -11,6 +11,7 @@
 
 #include "debug.h"
 #include "opcodes.h"
+#include "types.h"
 
 // simple_opcode(char*) -> int
 // Disassembles a simple opcode.
@@ -36,11 +37,7 @@ int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 	} else
 		printf("    0x%02X (", pool_index);
 
-	union
-	{
-		double f64;
-		int64_t i64;
-	} value;
+	cnumb_t value;
 	value.i64 = chunk->pool.values[pool_index];
 	printf("%lli, %f)\n", value.i64, value.f64);
 
