@@ -122,8 +122,6 @@ int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 		return 1;
 	}
 
-	printf("%lli %% %lli = %lli\n", a, b, a % b);
-
 	// Push result onto the stack
 	vm_push(vm, a % b);
 	return 1;
