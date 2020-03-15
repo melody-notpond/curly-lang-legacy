@@ -73,7 +73,7 @@ int infix_opcode(char* name, uint8_t opcode)
 // Disassembles a set global opcode.
 int set_global_opcode(char* name, chunk_t* chunk, int* global_count)
 {
-	printf("%s %s", name, chunk->globals.names[(*global_count)++]);
+	printf("%s %s\n", name, chunk->globals.names[(*global_count)++]);
 	return 1;
 }
 

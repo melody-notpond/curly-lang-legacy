@@ -99,17 +99,17 @@ void chunk_global(chunk_t* chunk, char* name)
 {
 	// Search for the global
 	int index;
-	globals_t globals = chunk->globals;
-	for (index = 0; index < globals.count; index++)
+	globals_t* globals = &chunk->globals;
+	for (index = 0; index < globals->count; index++)
 	{
-		if (!strcmp(name, globals.names[index]))
+		if (!strcmp(name, globals->names[index]))
 			break;
 	}
 
-	if (index == globals.count)
+	if (index == globals->count)
 	{
 		// If it doesn't exist, append it to the list of globals and create the global
-		append_element(globals.names, globals.count, globals.size, char*, strdup(name));
+		append_element(globals->names, globals->count, globals->size, char*, strdup(name));
 		write_chunk(chunk, OPCODE_SET_GLOBAL);
 
 	// Store the appropriate load instruction
