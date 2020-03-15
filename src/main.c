@@ -10,42 +10,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vm/debug.h"
-#include "vm/opcodes.h"
-#include "vm/vm.h"
+#include "compiler/frontend/parser.h"
 
 int main(int argc, char** argv)
 {
-	chunk_t chunk = init_chunk();
-	chunk_add_i64(&chunk, -5);
-	chunk_add_i64(&chunk, 23);
-	write_chunk(&chunk, OPCODE_SUB_I64_I64);
-	write_chunk(&chunk, OPCODE_PRINT_I64);
+	if (argc <= 1)
+	{
+		puts("input must have at least one argument");
+		return -1;
+	}
 
-	chunk_add_i64(&chunk, 2);
-	chunk_add_f64(&chunk, 2.5);
-	write_chunk(&chunk, OPCODE_SUB_I64_F64);
-	write_chunk(&chunk, OPCODE_PRINT_I64);
+	parser_t parser = create_lang_parser();
 
-	chunk_add_f64(&chunk, 3.14159);
-	chunk_add_i64(&chunk, 2);
-	write_chunk(&chunk, OPCODE_SUB_F64_I64);
-	write_chunk(&chunk, OPCODE_PRINT_F64);
+	parse_result_t res = parse_file(parser, argv[1]);
+	print_parse_result(res);
 
-	chunk_add_f64(&chunk, 3.14159);
-	chunk_add_f64(&chunk, 2.71828);
-	write_chunk(&chunk, OPCODE_SUB_F64_F64);
-	write_chunk(&chunk, OPCODE_PRINT_F64);
-
-	write_chunk(&chunk, OPCODE_BREAK);
-
-	disassemble(&chunk, "test.o");
-	puts("\n");
-
-	CurlyVM vm;
-	init_vm(&vm, &chunk);
-
-	vm_run(&vm);
-
-	clean_vm(&vm);
+	clean_parse_result(&res);
+	clean_combinator(parser.comb);
+	return 0;
 }
