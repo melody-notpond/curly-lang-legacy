@@ -15,6 +15,10 @@ void init_vm(CurlyVM* vm, chunk_t* chunk)
 {
 	vm->chunk = chunk;
 	vm->pc = chunk->bytes;
+	vm->stack_size = 256;
+	vm->stack = calloc(vm->stack_size, 8);
+	vm->tos = vm->stack;
+	vm->running = false;
 
 	// Initialise jump table if not done so already.
 	if (opcode_funcs[0] == NULL)
@@ -51,6 +55,18 @@ void vm_run(CurlyVM* vm)
 
 #undef step_macro
 
+// vm_push(CurlyVM*, int64_t) -> void
+// Pushes a value onto the stack.
+void vm_push(CurlyVM* vm, int64_t value)
+{
+	// Resize if necessary
+	if (vm->stack_size <= vm->tos - vm->stack)
+		vm->stack = realloc(vm->stack, (vm->stack_size <<= 1) << 3);
+
+	// Append to stack
+	*vm->tos++ = value;
+}
+
 // clean_vm(CurlyVM*) -> void
 // Cleans up a vm.
 void clean_vm(CurlyVM* vm)
@@ -61,4 +77,8 @@ void clean_vm(CurlyVM* vm)
 	clean_chunk(vm->chunk);
 	vm->chunk = NULL;
 	vm->pc = NULL;
+	free(vm->stack);
+	vm->stack = NULL;
+	vm->tos = NULL;
+	vm->stack_size = 0;
 }

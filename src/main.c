@@ -20,6 +20,8 @@ int main(int argc, char** argv)
 	chunk_add_i64(&chunk, -5);
 	chunk_add_f64(&chunk, 3.14159);
 	chunk_add_i64(&chunk, 42);
+	for (int i = 0; i < 256; i++)
+		chunk_add_i64(&chunk, i);
 	write_chunk(&chunk, OPCODE_BREAK);
 	
 	disassemble(&chunk, "test.o");

@@ -42,15 +42,18 @@ int opcode_break_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
 	bool long_op = opcode & 1;
-	int index = *(++pc);
 
+	// Get the index
+	int index = *(++pc);
 	if (long_op)
 	{
-		index |= *(++pc) <<  8
-			  |  *(++pc) << 16;
+		index |= *(++pc) <<  8;
+		index |= *(++pc) << 16;
 	}
 
-	int64_t value = vm->chunk->pool.values[index];
+	// Push the constant onto the top of the stack
+	vm_push(vm, vm->chunk->pool.values[index]);
+	printf("Pushed value #%i onto the stack (%p)\n", index, vm->tos);
 	return 2 << long_op;
 }
 
