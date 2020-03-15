@@ -20,6 +20,9 @@ void init_vm(CurlyVM* vm, chunk_t* chunk)
 	vm->stack_size = 256;
 	vm->stack = calloc(vm->stack_size, 8);
 	vm->tos = vm->stack;
+	vm->globals = NULL;
+	vm->globals_count = 0;
+	vm->globals_size = 0;
 	vm->running = false;
 
 	// Initialise jump table if not done so already.
@@ -51,7 +54,7 @@ void vm_run(CurlyVM* vm)
 	{
 		step_macro(vm, pc);
 	}
-	
+
 	vm->pc = pc;
 }
 
@@ -116,4 +119,8 @@ void clean_vm(CurlyVM* vm)
 	vm->stack = NULL;
 	vm->tos = NULL;
 	vm->stack_size = 0;
+	free(vm->globals);
+	vm->globals = NULL;
+	vm->globals_count = 0;
+	vm->globals_size = 0;
 }

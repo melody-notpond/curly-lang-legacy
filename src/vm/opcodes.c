@@ -139,6 +139,14 @@ int opcode_pop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements creating global variables.
 int opcode_set_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
+	// Resize if necessary
+	if (vm->globals == NULL)
+		vm->globals = calloc((vm->globals_size = 16), 8);
+	else if (vm->globals_count >= vm->globals_size)
+		vm->globals = realloc(vm->globals, (vm->globals_size <<= 1) << 3);
+
+	// Append the global to the list
+	vm->globals[vm->globals_count++] = vm_pop(vm);
 	return 1;
 }
 
@@ -157,7 +165,7 @@ int opcode_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	}
 
 	// Push the constant onto the top of the stack
-	vm_push(vm, NULL);
+	vm_push(vm, *(vm->globals + index));
 	return 2 << long_op;
 }
 

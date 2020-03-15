@@ -31,6 +31,15 @@ typedef struct
 	// The size of the stack.
 	size_t stack_size;
 
+	// The list of all globals.
+	int64_t* globals;
+
+	// The number of globals.
+	size_t globals_count;
+
+	// The size of the globals list.
+	size_t globals_size;
+
 	// Whether the vm is running or stopped.
 	bool running;
 } CurlyVM;
