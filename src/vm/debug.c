@@ -15,8 +15,18 @@
 
 // smart_print_value(cvalue_t) -> void
 // Prints out a cnumb_t as an int or double depending on which is more likely
-void smart_print_value(cvalue_t value)
+void smart_print_value(chunk_t* chunk, cvalue_t value)
 {
+	// If it matches a pointer in the string pool, it's probably a string
+	for (int i = 0; i < chunk->strs.count; i++)
+	{
+		if (value.str == chunk->strs.values[i].str)
+		{
+			printf("\"%s\"", value.str);
+			return;
+		}
+	}
+
 	// See IEEE standard if this makes no sense
 	int exponent = (value.i64 >> 52 & 0b011111111111) - 1023;
 
@@ -55,7 +65,7 @@ int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 	// Print out the value
 	printf("0x%06X (", pool_index);
 	cvalue_t value = chunk->pool.values[pool_index];
-	smart_print_value(value);
+	smart_print_value(chunk, value);
 	puts(")");
 	return long_op ? 4 : 2;
 }
@@ -166,11 +176,17 @@ int dis_opcode(chunk_t* chunk, int index, int* global_count)
 		case OPCODE_POP:
 			puts("POP");
 			return 1;
+		case OPCODE_PRINT_STR:
+			// PRINT str
+			puts("PRINT str");
+			return 1;
 		case OPCODE_PRINT_I64:
-		case OPCODE_PRINT_F64:
 			// PRINT i64
+			puts("PRINT i64");
+			return 1;
+		case OPCODE_PRINT_F64:
 			// PRINT f64
-			printf("PRINT %c64\n", (opcode & 1 ? 'f' : 'i'));
+			puts("PRINT f64");
 			return 1;
 		default:
 			// UNKNOWN (0xFF)
