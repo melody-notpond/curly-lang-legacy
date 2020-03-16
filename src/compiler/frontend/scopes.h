@@ -48,4 +48,12 @@ typedef struct
 	struct s_scope* local;
 } scopes_t;
 
+// init_scopes(scopes_t*) -> void
+// Initialises a stack of scopes.
+void init_scopes(scopes_t* scope);
+
+// clean_scopes(scopes_t*) -> void
+// Cleans a stack of scopes.
+void clean_scopes(scopes_t* scope);
+
 #endif /* scopes_h */
