@@ -3,7 +3,7 @@
 // scopes.c: Implements various tools to help backends check that scopes are used correctly.
 //
 // jenra
-// March 15 2020
+// March 16 2020
 //
 
 #include <stdlib.h>
