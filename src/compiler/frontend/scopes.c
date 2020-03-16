@@ -37,6 +37,36 @@ void push_scope(scopes_t* scopes, bool from_call)
 	scopes->local = local;
 }
 
+// add_variable(scopes_t*, char*, curly_type_t) -> bool
+// Adds a variable to the current scope. Returns true if the variable did not exist prior.
+bool add_variable(scopes_t* scopes, char* name, curly_type_t type)
+{
+	struct s_scope* local = scopes->local;
+
+	// Linear search through the scope's variables
+	for (int i = 0; i < local->count; i++)
+	{
+		if (!strcmp(name, local->names[i]))
+			return false;
+	}
+
+	// Resize the lists if necessary
+	if (local->size == 0)
+	{
+		local->names = calloc((local->size = 8), sizeof(char*));
+		local->types = calloc((local->names), sizeof(curly_type_t));
+	} else if (local->count >= local->size)
+	{
+		local->names = realloc(local->names, (local->size <<= 1) * sizeof(char*));
+		local->types = realloc(local->names, (local->size) * sizeof(curly_type_t*));
+	}
+
+	// Add the variable to the scope
+	local->names[local->count  ] = strdup(name);
+	local->types[local->count++] = type;
+	return true;
+}
+
 // search_local(scopes_t*, char*) -> curly_type_t
 // Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
 curly_type_t search_local(scopes_t* scopes, char* name)

@@ -57,6 +57,10 @@ void init_scopes(scopes_t* scope);
 // Pushes a new scope into the stack of scopes.
 void push_scope(scopes_t* scopes, bool from_call);
 
+// add_variable(scopes_t*, char*, curly_type_t) -> bool
+// Adds a variable to the current scope. Returns true if the variable did not exist prior.
+bool add_variable(scopes_t* scopes, char* name, curly_type_t type);
+
 // search_local(scopes_t*, char*) -> curly_type_t
 // Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
 curly_type_t search_local(scopes_t* scopes, char* name);
