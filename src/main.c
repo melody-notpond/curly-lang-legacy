@@ -17,18 +17,9 @@
 int main(int argc, char** argv)
 {
 	chunk_t chunk = init_chunk();
-	chunk_add_i64(&chunk, 2);
-	chunk_global(&chunk, "two");
-
-	chunk_add_f64(&chunk, 3.14159);
-	chunk_global(&chunk, "pi");
-
-	chunk_global(&chunk, "two");
-	chunk_global(&chunk, "pi");
-	write_chunk(&chunk, OPCODE_MUL_I64_F64);
-	write_chunk(&chunk, OPCODE_PRINT_F64);
+	chunk_add_string(&chunk, "Hello world!");
+	write_chunk(&chunk, OPCODE_PRINT_STR);
 	write_chunk(&chunk, OPCODE_POP);
-
 	write_chunk(&chunk, OPCODE_BREAK);
 
 	disassemble(&chunk, "test.o");
