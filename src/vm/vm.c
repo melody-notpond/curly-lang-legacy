@@ -60,9 +60,9 @@ void vm_run(CurlyVM* vm)
 
 #undef step_macro
 
-// vm_push(CurlyVM*, int64_t) -> void
+// vm_push(CurlyVM*, cvalue_t) -> void
 // Pushes a value onto the stack.
-void vm_push(CurlyVM* vm, int64_t value)
+void vm_push(CurlyVM* vm, cvalue_t value)
 {
 	// Resize if necessary
 	if (vm->stack + vm->stack_size <= vm->tos)
@@ -72,33 +72,33 @@ void vm_push(CurlyVM* vm, int64_t value)
 	*vm->tos++ = value;
 }
 
-// vm_pop(CurlyVM*) -> int64_t
+// vm_pop(CurlyVM*) -> cvalue_t
 // Pops a value from the stack.
-int64_t vm_pop(CurlyVM* vm)
+cvalue_t vm_pop(CurlyVM* vm)
 {
 	// Error if stack underflow
 	if (vm->tos <= vm->stack)
 	{
 		puts("Error! Stack underflow!");
 		vm->running = false;
-		return 0;
+		return (cvalue_t) 0LL;
 	}
 
 	// Pop otherwise
 	return *(--vm->tos);
 }
 
-// vm_peak(CurlyVM*, size_t) -> int64_t
+// vm_peak(CurlyVM*, size_t) -> cvalue_t
 // Peaks in the stack.
-int64_t vm_peak(CurlyVM* vm, size_t offset)
+cvalue_t vm_peak(CurlyVM* vm, size_t offset)
 {
 	// Error if stack underflow
-	int64_t* oos = vm->tos - offset;
+	cvalue_t* oos = vm->tos - offset;
 	if (oos < vm->stack)
 	{
 		puts("Error! Stack underflow!");
 		vm->running = false;
-		return 0;
+		return (cvalue_t) 0LL;
 	}
 
 	// Peak otherwise

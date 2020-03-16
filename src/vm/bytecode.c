@@ -35,7 +35,7 @@ chunk_t init_chunk()
 {																		\
 	/* Resize the list if necessary */									\
 	if (size == 0)														\
-		values = malloc((size = 8) * sizeof(type));						\
+		values = calloc((size = 8), sizeof(type));						\
 	else if (count >= size)												\
 		values = realloc(values, (size <<= 1) * sizeof(type));			\
 																		\
@@ -51,22 +51,22 @@ void write_chunk(chunk_t* chunk, uint8_t value)
 	append_element(chunk->bytes, chunk->count, chunk->size, uint8_t, value);
 }
 
-// chunk_add_i64(chunk_t*, int64_t) -> void
-// Adds a 64 bit int to the constant pool.
-void chunk_add_i64(chunk_t* chunk, int64_t value)
+// chunk_add_constant(chunk_t*, cvalue_t) -> void
+// Adds a constant value to the constant pool.
+void chunk_add_constant(chunk_t* chunk, cvalue_t value)
 {
 	// Search for the constant
 	int index;
 	struct s_values* pool = &chunk->pool;
 	for (index = 0; index < pool->count; index++)
 	{
-		if (value == pool->values[index])
+		if (value.i64 == pool->values[index].i64)
 			break;
 	}
 
 	// If it doesn't exist, append it to the pool
 	if (index == pool->count)
-		append_element(pool->values, pool->count, pool->size, int64_t, value);
+		append_element(pool->values, pool->count, pool->size, cvalue_t, value);
 
 	// Store the appropriate instruction
 	if (index <= 0xFF)
@@ -82,15 +82,22 @@ void chunk_add_i64(chunk_t* chunk, int64_t value)
 	}
 }
 
+// chunk_add_i64(chunk_t*, int64_t) -> void
+// Adds a 64 bit int to the constant pool.
+void chunk_add_i64(chunk_t* chunk, int64_t value)
+{
+	cvalue_t boxed;
+	boxed.i64 = value;
+	chunk_add_constant(chunk, boxed);
+}
+
 // chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
 void chunk_add_f64(chunk_t* chunk, double value)
 {
-	// This union gets the double's binary representation
-	cnumb_t double_to_int;
-	double_to_int.f64 = value;
-
-	chunk_add_i64(chunk, double_to_int.i64);
+	cvalue_t boxed;
+	boxed.f64 = value;
+	chunk_add_constant(chunk, boxed);
 }
 
 // chunk_global(chunk_t*, char*) -> void

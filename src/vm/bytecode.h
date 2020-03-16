@@ -12,11 +12,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "types.h"
+
 // Represents a list of values referenced by the program.
 struct s_values
 {
 	// The list of values.
-	int64_t* values;
+	cvalue_t* values;
 
 	// The amount of memory allocated for the list.
 	int size;

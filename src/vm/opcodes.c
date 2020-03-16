@@ -68,10 +68,8 @@ int opcode_load_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)			\
 {																				\
 	/* Pop operands from the stack */											\
-	cnumb_t b;																	\
-	b.i64 = vm_pop(vm);															\
-	cnumb_t a;																	\
-	a.i64 = vm_pop(vm);															\
+	cvalue_t b = vm_pop(vm);													\
+	cvalue_t a  = vm_pop(vm);													\
 																				\
 	/* Do all preprocessing stuff */											\
 	preprocessing																\
@@ -86,7 +84,7 @@ int opcode_##opname##_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)			\
 	postprocessing																\
 																				\
 	/* Push the result onto the stack */										\
-	vm_push(vm, a.i64);															\
+	vm_push(vm, a);																\
 	return 1;																	\
 }
 
@@ -111,8 +109,8 @@ infix_op_func(sub, -,,)
 int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
 	// Pop operands from the stack
-	int64_t b = vm_pop(vm);
-	int64_t a = vm_pop(vm);
+	int64_t b = vm_pop(vm).i64;
+	int64_t a = vm_pop(vm).i64;
 
 	// Error on divide by zero
 	if (b == 0)
@@ -123,7 +121,7 @@ int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	}
 
 	// Push result onto the stack
-	vm_push(vm, a % b);
+	vm_push(vm, (cvalue_t) (a % b));
 	return 1;
 }
 
@@ -174,8 +172,7 @@ int opcode_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 // Implements the temporary print opcode.
 int opcode_print_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
-	cnumb_t v;
-	v.i64 = vm_peak(vm, 1);
+	cvalue_t v = vm_peak(vm, 1);
 	if (opcode & 1)
 		printf("%f\n",   v.f64);
 	else

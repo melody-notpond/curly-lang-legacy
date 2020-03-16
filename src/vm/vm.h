@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "bytecode.h"
+#include "types.h"
 
 // Represents a virtual machine for curly.
 typedef struct
@@ -23,16 +24,16 @@ typedef struct
 	uint8_t* pc;
 
 	// The stack.
-	int64_t* stack;
+	cvalue_t* stack;
 
 	// The top of the stack.
-	int64_t* tos;
+	cvalue_t* tos;
 
 	// The size of the stack.
 	size_t stack_size;
 
 	// The list of all globals.
-	int64_t* globals;
+	cvalue_t* globals;
 
 	// The number of globals.
 	size_t globals_count;
@@ -56,17 +57,17 @@ void vm_stepi(CurlyVM* vm);
 // Runs the virtual machine.
 void vm_run(CurlyVM* vm);
 
-// vm_push(CurlyVM*, int64_t) -> void
+// vm_push(CurlyVM*, cvalue_t) -> void
 // Pushes a value onto the stack.
-void vm_push(CurlyVM* vm, int64_t value);
+void vm_push(CurlyVM* vm, cvalue_t value);
 
-// vm_pop(CurlyVM*) -> int64_t
+// vm_pop(CurlyVM*) -> cvalue_t
 // Pops a value from the stack.
-int64_t vm_pop(CurlyVM* vm);
+cvalue_t vm_pop(CurlyVM* vm);
 
-// vm_peak(CurlyVM*, size_t) -> int64_t
+// vm_peak(CurlyVM*, size_t) -> cvalue_t
 // Peaks in the stack.
-int64_t vm_peak(CurlyVM* vm, size_t offset);
+cvalue_t vm_peak(CurlyVM* vm, size_t offset);
 
 // clean_vm(CurlyVM*, bool) -> void
 // Cleans up a vm.

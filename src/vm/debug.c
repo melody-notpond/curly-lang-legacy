@@ -13,9 +13,9 @@
 #include "opcodes.h"
 #include "types.h"
 
-// smart_print_value(cnumb_t) -> void
+// smart_print_value(cvalue_t) -> void
 // Prints out a cnumb_t as an int or double depending on which is more likely
-void smart_print_value(cnumb_t value)
+void smart_print_value(cvalue_t value)
 {
 	// See IEEE standard if this makes no sense
 	int exponent = (value.i64 >> 52 & 0b011111111111) - 1023;
@@ -54,8 +54,7 @@ int load_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 
 	// Print out the value
 	printf("0x%06X (", pool_index);
-	cnumb_t value;
-	value.i64 = chunk->pool.values[pool_index];
+	cvalue_t value = chunk->pool.values[pool_index];
 	smart_print_value(value);
 	puts(")");
 	return long_op ? 4 : 2;
