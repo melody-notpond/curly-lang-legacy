@@ -55,8 +55,10 @@ enum
 	// POP - discards the top value on the stack
 	OPCODE_POP			= 0b00011000,
 
+	// PRINT str - prints a string
 	// PRINT i64 - prints an integer
 	// PRINT f64 - prints a double
+	OPCODE_PRINT_STR	= 0b11111101,
 	OPCODE_PRINT_I64	= 0b11111110,
 	OPCODE_PRINT_F64	= 0b11111111
 };

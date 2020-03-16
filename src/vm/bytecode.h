@@ -12,11 +12,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "types.h"
+
 // Represents a list of values referenced by the program.
 struct s_values
 {
 	// The list of values.
-	int64_t* values;
+	cvalue_t* values;
 
 	// The amount of memory allocated for the list.
 	int size;
@@ -53,6 +55,9 @@ typedef struct
 	// The constant pool.
 	struct s_values pool;
 
+	// The string pool;
+	struct s_values strs;
+
 	// The globals.
 	globals_t globals;
 } chunk_t;
@@ -72,6 +77,10 @@ void chunk_add_i64(chunk_t* chunk, int64_t value);
 // chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
 void chunk_add_f64(chunk_t* chunk, double value);
+
+// chunk_add_string(chunk_t*, char*) -> void
+// Adds a string to the constant pool.
+void chunk_add_string(chunk_t* chunk, char* string);
 
 // chunk_global(chunk_t*, char*) -> void
 // Adds a global to the list of globals.
