@@ -23,6 +23,9 @@ chunk_t init_chunk()
 	chunk.pool.values = NULL;
 	chunk.pool.size = 0;
 	chunk.pool.count = 0;
+	chunk.strs.values = NULL;
+	chunk.strs.size = 0;
+	chunk.strs.count = 0;
 	chunk.globals.names = NULL;
 	chunk.globals.size = 0;
 	chunk.globals.count = 0;
@@ -100,6 +103,32 @@ void chunk_add_f64(chunk_t* chunk, double value)
 	chunk_add_constant(chunk, boxed);
 }
 
+// chunk_add_string(chunk_t*, char*) -> void
+// Adds a string to the constant pool.
+void chunk_add_string(chunk_t* chunk, char* string)
+{
+	// Search for the string
+	cvalue_t boxed;
+	int index;
+	struct s_values* strings = &chunk->strs;
+	for (index = 0; index < strings->count; index++)
+	{
+		boxed = strings->values[index];
+		if (!strcmp(string, boxed.str))
+			break;
+	}
+
+	// If the string isn't stored, add it
+	if (index == strings->count)
+	{
+		boxed.str = strdup(string);
+		append_element(strings->values, strings->count, strings->size, cvalue_t, boxed);
+	}
+
+	// Generate the constant loading stuff
+	chunk_add_constant(chunk, boxed);
+}
+
 // chunk_global(chunk_t*, char*) -> void
 // Adds a global to the list of globals.
 void chunk_global(chunk_t* chunk, char* name)
@@ -150,6 +179,10 @@ void clean_chunk(chunk_t* chunk, bool clear_globals)
 	chunk->pool.values = NULL;
 	chunk->pool.size = 0;
 	chunk->pool.count = 0;
+	free(chunk->strs.values);
+	chunk->strs.values = NULL;
+	chunk->strs.size = 0;
+	chunk->strs.count = 0;
 
 	if (clear_globals)
 	{
