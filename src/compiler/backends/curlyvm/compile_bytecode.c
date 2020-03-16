@@ -15,7 +15,8 @@ typedef enum
 {
 	COMPILE_RESULT_ERROR = 0,
 	COMPILE_RESULT_INT,
-	COMPILE_RESULT_FLOAT
+	COMPILE_RESULT_FLOAT,
+	COMPILE_RESULT_STRING
 } compile_result_t;
 
 compile_result_t infix_chunk(chunk_t* chunk, ast_t* tree);
@@ -32,8 +33,19 @@ compile_result_t infix_chunk(chunk_t* chunk, ast_t* tree)
 		compile_result_t right = tree_chunk(chunk, tree->children + i);
 
 		// Check return type
-		if (!right) return right;
-		
+		if (right != COMPILE_RESULT_INT && right != COMPILE_RESULT_FLOAT)
+		{
+			// Invalid type
+			if (right != COMPILE_RESULT_ERROR)
+			{
+				puts("Invalid type passed into infix expression!");
+				return COMPILE_RESULT_ERROR;
+			}
+
+			// Some other error
+			return right;
+		}
+
 		if (i != 0)
 		{
 			// Get the operator
@@ -87,6 +99,53 @@ compile_result_t tree_chunk(chunk_t* chunk, ast_t* tree)
 		// Add a double load instruction
 		chunk_add_f64(chunk, atof (tree->value));
 		return COMPILE_RESULT_FLOAT;
+	} else if (!strcmp(name, "string"))
+	{
+		// Allocate a copy
+		char* str = tree->value + 1;
+		char* copy = malloc(strlen(str));
+		char* cp_i = copy;
+
+		// Copy the string
+		for (; *(str + 1); str++, cp_i++)
+		{
+			if (*str == '\\')
+			{
+				// Convert escape sequences
+				switch (*(++str))
+				{
+					case 'n':
+						*cp_i = '\n';
+						break;
+					case 't':
+						*cp_i = '\t';
+						break;
+					case '"':
+						*cp_i = '\"';
+						break;
+					case '\'':
+						*cp_i = '\'';
+						break;
+					case '\\':
+						*cp_i = '\\';
+						break;
+					default:
+						// By default, just copy the characters over
+						// This is useful for regexes
+						*cp_i++ = '\\';
+						*cp_i = *str;
+						break;
+				}
+
+			// Copy the character
+			} else *cp_i = *str;
+		}
+
+		// Add the null character and add the string
+		*cp_i = '\0';
+		chunk_add_string(chunk, copy);
+		free(copy);
+		return COMPILE_RESULT_STRING;
 	} else if (!strcmp(name, "infix"))
 		// Compile the infix subtree
 		return infix_chunk(chunk, tree);
@@ -137,6 +196,8 @@ bool compile_tree(chunk_t* chunk, parse_result_t* result, bool terminate)
 			write_chunk(chunk, OPCODE_PRINT_I64);
 		else if (res == COMPILE_RESULT_FLOAT)
 			write_chunk(chunk, OPCODE_PRINT_F64);
+		else if (res == COMPILE_RESULT_STRING)
+			write_chunk(chunk, OPCODE_PRINT_STR);
 
 		// Optionally add a terminating break instruction
 		if (terminate)
