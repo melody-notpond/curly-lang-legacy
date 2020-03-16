@@ -1,13 +1,13 @@
 //
 // Curly
-// check_correct.h: Header file for check_correct.c.
+// scopes.h: Header file for scopes.c.
 //
 // jenra
 // March 15 2020
 //
 
-#ifndef check_correct_h
-#define check_correct_h
+#ifndef scopes_h
+#define scopes_h
 
 #include <stdbool.h>
 
@@ -48,4 +48,4 @@ typedef struct
 	struct s_scope* local;
 } scopes_t;
 
-#endif /* check_correct_h */
+#endif /* scopes_h */
