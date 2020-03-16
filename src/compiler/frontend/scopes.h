@@ -52,6 +52,15 @@ typedef struct
 // Initialises a stack of scopes.
 void init_scopes(scopes_t* scope);
 
+// push_scope(scopes_t*, bool) -> void
+// Pushes a new scope into the stack of scopes.
+void push_scope(scopes_t* scopes, bool from_call);
+
+// pop_scope(scopes_t*) -> bool
+// Pops a scope from a stack of scopes.
+// Returns true if a local scope was popped.
+bool pop_scope(scopes_t* scopes);
+
 // clean_scopes(scopes_t*) -> void
 // Cleans a stack of scopes.
 void clean_scopes(scopes_t* scope);
