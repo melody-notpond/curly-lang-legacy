@@ -14,6 +14,7 @@
 // Represents a type.
 typedef enum
 {
+	SCOPE_CURLY_TYPE_DNE,
 	SCOPE_CURLY_TYPE_INT,
 	SCOPE_CURLY_TYPE_FLOAT,
 	SCOPE_CURLY_TYPE_STRING
@@ -56,9 +57,16 @@ void init_scopes(scopes_t* scope);
 // Pushes a new scope into the stack of scopes.
 void push_scope(scopes_t* scopes, bool from_call);
 
+// search_local(scopes_t*, char*) -> curly_type_t
+// Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+curly_type_t search_local(scopes_t* scopes, char* name);
+
+// search_global(scopes_t*, char*) -> curly_type_t
+// Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+curly_type_t search_global(scopes_t* scopes, char* name);
+
 // pop_scope(scopes_t*) -> bool
-// Pops a scope from a stack of scopes.
-// Returns true if a local scope was popped.
+// Pops a scope from a stack of scopes. Returns true if a local scope was popped.
 bool pop_scope(scopes_t* scopes);
 
 // clean_scopes(scopes_t*) -> void

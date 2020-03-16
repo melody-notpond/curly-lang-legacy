@@ -37,26 +37,69 @@ void push_scope(scopes_t* scopes, bool from_call)
 	scopes->local = local;
 }
 
+// search_local(scopes_t*, char*) -> curly_type_t
+// Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+curly_type_t search_local(scopes_t* scopes, char* name)
+{
+	struct s_scope* local = scopes->local;
+
+	while (true)
+	{
+		// Linear search through the locals
+		for (int i = 0; i < local->count; i++)
+		{
+			if (!strcmp(name, local->names[i]))
+				return local->types[i];
+		}
+
+		// Local does not exist
+		if (local->call || local->last == NULL)
+		return SCOPE_CURLY_TYPE_DNE;
+
+		// Keep searching
+		else local = local->last;
+	}
+}
+
+// search_global(scopes_t*, char*) -> curly_type_t
+// Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+curly_type_t search_global(scopes_t* scopes, char* name)
+{
+	struct s_scope global = scopes->global;
+
+	// Linear search through the globals
+	for (int i = 0; i < global.count; i++)
+	{
+		if (!strcmp(name, global.names[i]))
+			return global.types[i];
+	}
+
+	// Global does not exist
+	return SCOPE_CURLY_TYPE_DNE;
+}
+
 // pop_scope(scopes_t*) -> bool
-// Pops a scope from a stack of scopes.
-// Returns true if a local scope was popped.
+// Pops a scope from a stack of scopes. Returns true if a local scope was popped.
 bool pop_scope(scopes_t* scopes)
 {
+	// Don't pop the global scope.
 	if (scopes->local == &scopes->global)
 		return false;
 
+	// The scope below the local scope is the new local scope
 	struct s_scope* local = scopes->local;
 	scopes->local = local->last;
 
+	// Free names
 	for (int i = 0; i < local->count; i++)
 	{
 		free(local->names[i]);
 	}
 
+	// Other frees
 	free(local->names);
 	free(local->types);
 	free(local);
-
 	return true;
 }
 
