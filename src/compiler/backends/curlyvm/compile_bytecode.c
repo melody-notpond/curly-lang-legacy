@@ -100,7 +100,7 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree)
 curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 {
 	char* name = tree->name;
-	if (!strcmp(name, "symbol"))
+	if (!strcmp(name, "symbol") && tree->children_count == 2)
 	{
 		// Find the variable (only globals for now)
 		char* var = tree->value;
