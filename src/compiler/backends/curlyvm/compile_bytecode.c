@@ -52,7 +52,6 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 				// Modulo only takes in integers
 				if (option)
 				{
-					puts("Cannot modulo doubles!");
 					state->state.cause = op + (left == SCOPE_CURLY_TYPE_FLOAT ? -1 : 1);
 					state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
 					state->state.status = -1;
@@ -67,6 +66,33 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 			left = right;
 	}
 	return left;
+}
+
+// assign_chunk(vm_compiler_t*, ast_t*) -> curly_type_t
+// Compiles an assignment subtree into bytecode.
+curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree)
+{
+	// Search for the global
+	ast_t* symbol = tree->children + 0;
+	int index = search_global(&state->state.scope, symbol->value);
+
+	// If the global exists, error
+	if (index != -1)
+	{
+		state->state.cause = symbol;
+		state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
+		state->state.status = -1;
+		return SCOPE_CURLY_TYPE_DNE;
+	}
+
+	// Find the type
+	curly_type_t type = tree_chunk(state, tree->children + 1);
+	if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+
+	// Create the global
+	chunk_global(state->chunk, symbol->value);
+	add_variable(&state->state.scope, symbol->value, type);
+	return SCOPE_CURLY_TYPE_DNE;
 }
 
 // tree_chunk(vm_compiler_t*, ast_t*) -> curly_type_t
@@ -134,10 +160,15 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 	} else if (!strcmp(name, "infix"))
 		// Compile the infix subtree
 		return infix_chunk(state, tree);
+	else if (!strcmp(name, "assign"))
+		return assign_chunk(state, tree);
 	else
 	{
 		// Invalid form
 		puts("Error: Invalid syntax tree passed");
+		state->state.cause = tree;
+		state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+		state->state.status = -1;
 		return SCOPE_CURLY_TYPE_DNE;
 	}
 }

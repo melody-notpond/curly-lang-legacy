@@ -46,23 +46,29 @@ void repl()
 		res = parse_string(parser, input);
 		print_parse_result(res);
 
-		// Compile the result
-		vm_compiler_t state;
-		init_compiler_state(&state.state);
-		chunk = init_chunk();
-		chunk.globals = globals;
-		state.chunk = &chunk;
-		compile_tree(&state, &res, true);
-
-		if (state.state.cause == NULL)
+		if (res.succ)
 		{
-			// Disassemble
-			disassemble(&chunk, "stdin");
+			// Compile the result
+			vm_compiler_t state;
+			init_compiler_state(&state.state);
+			chunk = init_chunk();
+			chunk.globals = globals;
+			state.chunk = &chunk;
+			compile_tree(&state, &res, true);
 
-			// Run the bytecode
-			init_vm(&vm, &chunk);
-			vm_run(&vm);
-			clean_vm(&vm, false);
+			if (state.state.cause == NULL)
+			{
+				// Disassemble
+				disassemble(&chunk, "stdin");
+
+				// Run the bytecode
+				init_vm(&vm, &chunk);
+				vm_run(&vm);
+				clean_vm(&vm, false);
+			} else
+			{
+				puts("An error occured whilst compiling");
+			}
 		}
 
 		// Clean up
@@ -104,6 +110,9 @@ int main(int argc, char** argv)
 			init_vm(&vm, &chunk);
 			vm_run(&vm);
 			clean_vm(&vm, true);
+		} else
+		{
+			puts("An error occured whilst compiling");
 		}
 
 		// Clean up
