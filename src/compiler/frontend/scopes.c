@@ -20,6 +20,7 @@ void init_scopes(scopes_t* scopes)
 	scopes->global.types = NULL;
 	scopes->global.size = 0;
 	scopes->global.count = 0;
+	scopes->global.metadata = 0;
 	scopes->global.last = NULL;
 	scopes->local = &scopes->global;
 }
@@ -34,6 +35,7 @@ void push_scope(scopes_t* scopes, bool from_call)
 	local->types = NULL;
 	local->size = 0;
 	local->count = 0;
+	local->metadata = 0;
 	local->last = scopes->local;
 	scopes->local = local;
 }
@@ -68,27 +70,29 @@ bool add_variable(scopes_t* scopes, char* name, curly_type_t type)
 	return true;
 }
 
-// search_local(scopes_t*, char*) -> int
+// search_local(scopes_t*, char*) -> struct s_local_search_res
 // Searches for a variable name in the locals. Returns -1 if not found.
-int search_local(scopes_t* scopes, char* name)
+struct s_local_search_res search_local(scopes_t* scopes, char* name)
 {
 	struct s_scope* local = scopes->local;
 
+	int depth = 0;
 	while (true)
 	{
 		// Linear search through the locals
 		for (int i = 0; i < local->count; i++)
 		{
 			if (!strcmp(name, local->names[i]))
-				return i;
+				return (struct s_local_search_res) {depth, i, local->types[i]};
 		}
 
 		// Local does not exist
 		if (local->call || local->last == NULL)
-		return -1;
+		return (struct s_local_search_res) {-1, -1, -1};
 
 		// Keep searching
 		else local = local->last;
+		depth++;
 	}
 }
 

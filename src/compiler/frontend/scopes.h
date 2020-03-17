@@ -38,6 +38,9 @@ struct s_scope
 	// The number of items in the list.
 	int count;
 
+	// Some sort of metadata used by the scope.
+	int metadata;
+
 	// The scope that created this scope.
 	struct s_scope* last;
 };
@@ -61,9 +64,17 @@ void push_scope(scopes_t* scopes, bool from_call);
 // Adds a variable to the current scope. Returns true if the variable did not exist prior.
 bool add_variable(scopes_t* scopes, char* name, curly_type_t type);
 
-// search_local(scopes_t*, char*) -> int
+// Represents the result of searching for a local.
+struct s_local_search_res
+{
+	int depth;
+	int index;
+	curly_type_t type;
+};
+
+// search_local(scopes_t*, char*) -> struct s_local_search_res
 // Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
-int search_local(scopes_t* scopes, char* name);
+struct s_local_search_res search_local(scopes_t* scopes, char* name);
 
 // search_global(scopes_t*, char*) -> int
 // Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
