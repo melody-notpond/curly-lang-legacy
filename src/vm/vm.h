@@ -45,9 +45,13 @@ typedef struct
 	bool running;
 } CurlyVM;
 
-// init_vm(CurlyVM*, chunk_t*) -> void
+// init_vm(CurlyVM*) -> void
 // Initialises a vm.
-void init_vm(CurlyVM* vm, chunk_t* chunk);
+void init_vm(CurlyVM* vm);
+
+// vm_load(CurlyVM*, chunk_t*) -> void
+// Loads a given chunk of bytecode into the vm.
+void vm_load(CurlyVM* vm, chunk_t* chunk);
 
 // vm_stepi(CurlyVM*) -> void
 // Steps the vm one instruction.
@@ -69,8 +73,12 @@ cvalue_t vm_pop(CurlyVM* vm);
 // Peaks in the stack.
 cvalue_t vm_peak(CurlyVM* vm, size_t offset);
 
-// clean_vm(CurlyVM*, bool) -> void
+// vm_reset(CurlyVM*) -> void
+// Resets the vm so it can accept new chunks of bytecode.
+void vm_reset(CurlyVM* vm);
+
+// clean_vm(CurlyVM*) -> void
 // Cleans up a vm.
-void clean_vm(CurlyVM* vm, bool clear_globals);
+void clean_vm(CurlyVM* vm);
 
 #endif /* vm_h */

@@ -191,5 +191,8 @@ void clean_chunk(chunk_t* chunk, bool clear_globals)
 			free(chunk->globals.names[i]);
 		}
 		free(chunk->globals.names);
+		chunk->globals.names = NULL;
+		chunk->globals.size = 0;
+		chunk->globals.count = 0;
 	}
 }

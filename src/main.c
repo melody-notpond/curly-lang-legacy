@@ -23,13 +23,14 @@ void repl()
 	puts("Curly repl (version 0)");
 	parser_t parser = create_lang_parser();
 	parse_result_t res;
-	chunk_t chunk;
-	globals_t globals;
-	CurlyVM vm;
+	chunk_t chunk = init_chunk();
 
-	globals.names = NULL;
-	globals.size = 0;
-	globals.count = 0;
+	vm_compiler_t state;
+	init_compiler_state(&state.state);
+	state.chunk = &chunk;
+
+	CurlyVM vm;
+	init_vm(&vm);
 
 	while (true)
 	{
@@ -49,11 +50,6 @@ void repl()
 		if (res.succ)
 		{
 			// Compile the result
-			vm_compiler_t state;
-			init_compiler_state(&state.state);
-			chunk = init_chunk();
-			chunk.globals = globals;
-			state.chunk = &chunk;
 			compile_tree(&state, &res, true);
 
 			if (state.state.cause == NULL)
@@ -62,12 +58,18 @@ void repl()
 				disassemble(&chunk, "stdin");
 
 				// Run the bytecode
-				init_vm(&vm, &chunk);
+				vm_load(&vm, &chunk);
 				vm_run(&vm);
-				clean_vm(&vm, false);
+				vm_reset(&vm);
+				clean_chunk(&chunk, false);
 			} else
 			{
+				// Some error occured
+				while (pop_scope(&state.state.scope));
 				puts("An error occured whilst compiling");
+				state.state.cause = NULL;
+				state.state.type_cause = SCOPE_CURLY_TYPE_DNE;
+				state.state.status = 0;
 			}
 		}
 
@@ -76,6 +78,8 @@ void repl()
 		free(input);
 	}
 
+	clean_vm(&vm);
+	clean_scopes(&state.state.scope);
 	clean_combinator(parser.comb);
 }
 
@@ -107,9 +111,10 @@ int main(int argc, char** argv)
 
 			// Run the bytecode
 			CurlyVM vm;
-			init_vm(&vm, &chunk);
+			init_vm(&vm);
+			vm_load(&vm, &chunk);
 			vm_run(&vm);
-			clean_vm(&vm, true);
+			clean_vm(&vm);
 		} else
 		{
 			puts("An error occured whilst compiling");
