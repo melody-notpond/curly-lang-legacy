@@ -26,7 +26,7 @@ enum
 	OPCODE_LOAD_LONG	= 0b00000011,
 
 	// OPNAME i64 i64 - multiplies two ints
-	// OPNAME i64 f64 - multiplies an int and a double (returns int)
+	// OPNAME i64 f64 - multiplies an int and a double (returns double)
 	// OPNAME f64 i64 - multiplies a double and an int (returns double)
 	// OPNAME f64 f64 - multiplies two doubles
 #define opcode_infix(opname, opcode)						\
@@ -43,17 +43,25 @@ enum
 #undef opcode_infix
 
 	// MOD i64 i64 - finds the remainder of the integer division
-	OPCODE_MOD			= 0b00010100,
+	OPCODE_MOD				= 0b00010100,
 
 	// GLOBAL SET VALUE - pops the stack and creates a global
-	OPCODE_SET_GLOBAL	= 0b00010101,
+	OPCODE_SET_GLOBAL		= 0b00010101,
 
 	// GLOBAL VALUE - pushes a global onto the stack
-	OPCODE_GLOBAL		= 0b00010110,
-	OPCODE_GLOBAL_LONG	= 0b00010111,
+	OPCODE_GLOBAL			= 0b00010110,
+	OPCODE_GLOBAL_LONG		= 0b00010111,
+
+	// COPY STACK VALUE - copies a value below the stack pointer
+	OPCODE_COPY_STACK		= 0b00011000,
+	OPCODE_COPY_STACK_LONG	= 0b00011001,
+
+	// POP SCOPE VALUE - pops the next few values on the stack without poping the top
+	OPCODE_POP_SCOPE		= 0b00011010,
+	OPCODE_POP_SCOPE_LONG	= 0b00011011,
 
 	// POP - discards the top value on the stack
-	OPCODE_POP			= 0b00011000,
+	OPCODE_POP				= 0b00011100,
 
 	// PRINT str - prints a string
 	// PRINT i64 - prints an integer

@@ -107,6 +107,45 @@ int global_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 	return long_op ? 4 : 2;
 }
 
+// copy_stack_opcode(char*, int, chunk_t*, uint8_t) -> int
+// Disassembles a copy stack opcode.
+int copy_stack_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
+{
+	// Print out the name
+	printf("%s ", name);
+
+	// Get the offset
+	bool long_op = opcode & 1;
+	int offset = chunk->bytes[index + 1];
+	if (long_op)
+	{
+		offset |= chunk->bytes[index + 2] <<  8;
+		offset |= chunk->bytes[index + 3] << 16;
+	}
+
+	// Print out the offset
+	printf("-%06i\n", offset);
+	return long_op ? 4 : 2;
+}
+
+// pop_scope_opcode(char*, int, chunk_t*, uint8_t) -> int
+// Disassembles a pop scope opcode.
+int pop_scope_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
+{
+	// Print out the name
+	printf("%s ", name);
+
+	// Get the offset
+	bool long_op = opcode & 1;
+	short offset = chunk->bytes[index + 1];
+	if (long_op)
+		offset |= chunk->bytes[index + 2] <<  8;
+
+	// Print out the offset
+	printf("%04i\n", offset);
+	return long_op ? 3 : 2;
+}
+
 // dis_opcode(chunk_t*, int, int*) -> int
 // Disassembles a single opcode and returns the index offset.
 int dis_opcode(chunk_t* chunk, int index, int* global_count)
@@ -173,6 +212,12 @@ int dis_opcode(chunk_t* chunk, int index, int* global_count)
 		case OPCODE_GLOBAL:
 		case OPCODE_GLOBAL_LONG:
 			return global_opcode("GLOBAL", index, chunk, opcode);
+		case OPCODE_COPY_STACK:
+		case OPCODE_COPY_STACK_LONG:
+			return copy_stack_opcode("COPY STACK", index, chunk, opcode);
+		case OPCODE_POP_SCOPE:
+		case OPCODE_POP_SCOPE_LONG:
+			return pop_scope_opcode("POP", index, chunk, opcode);
 		case OPCODE_POP:
 			puts("POP");
 			return 1;
