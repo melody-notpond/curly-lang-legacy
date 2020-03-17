@@ -10,10 +10,21 @@
 #define compile_bytecode_h
 
 #include "combinator.h"
+#include "../../frontend/compiler_struct.h"
 #include "../../../vm/bytecode.h"
 
-// compile_tree(chunk_t*, parse_result_t*, bool) -> bool
+// Represents the compiler state.
+typedef struct
+{
+	// The chunk of bytecode being compiled into.
+	chunk_t* chunk;
+
+	// The current scope.
+	compiler_t state;
+} vm_compiler_t;
+
+// compile_tree(vm_compiler_t*, parse_result_t*, bool) -> void
 // Compiles the ast into a chunk of bytecode.
-bool compile_tree(chunk_t* chunk, parse_result_t* result, bool terminate);
+void compile_tree(vm_compiler_t* state, parse_result_t* result, bool terminate);
 
 #endif /* compile_bytecode_h */

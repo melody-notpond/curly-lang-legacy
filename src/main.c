@@ -47,9 +47,14 @@ void repl()
 		print_parse_result(res);
 
 		// Compile the result
+		vm_compiler_t state;
+		init_compiler_state(&state.state);
 		chunk = init_chunk();
 		chunk.globals = globals;
-		if (compile_tree(&chunk, &res, true))
+		state.chunk = &chunk;
+		compile_tree(&state, &res, true);
+
+		if (state.state.cause == NULL)
 		{
 			// Disassemble
 			disassemble(&chunk, "stdin");
@@ -83,8 +88,13 @@ int main(int argc, char** argv)
 		print_parse_result(res);
 
 		// Compile the result
+		vm_compiler_t state;
+		init_compiler_state(&state.state);
 		chunk_t chunk = init_chunk();
-		if (compile_tree(&chunk, &res, true))
+		state.chunk = &chunk;
+		compile_tree(&state, &res, true);
+
+		if (state.state.cause == NULL)
 		{
 			// Disassemble
 			disassemble(&chunk, argv[1]);
