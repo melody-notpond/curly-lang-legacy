@@ -167,6 +167,54 @@ int opcode_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
+// COPY STACK VALUE
+// Implements copying a value under the stack pointer onto the stack.
+int opcode_copy_stack(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	bool long_op = opcode & 1;
+
+	// Get the offset
+	int offset = *(++pc);
+	if (long_op)
+	{
+		offset |= *(++pc) <<  8;
+		offset |= *(++pc) << 16;
+	}
+
+	// Get the address and push if valid
+	cvalue_t* addr = vm->tos - offset;
+	if (addr < vm->stack)
+	{
+		puts("Error: Stack underflow!");
+		vm->running = false;
+	} else vm_push(vm, *addr);
+
+	return 2 << long_op;
+}
+
+// POP SCOPE VALUE
+// Implements popping a number of values below the stack pointer.
+int opcode_pop_scope(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	cvalue_t top = vm_pop(vm);
+	bool long_op = opcode & 1;
+
+	// Get the offset
+	uint16_t offset = *(++pc);
+	if (long_op)
+		offset |= *(++pc) <<  8;
+
+	cvalue_t* addr = vm->tos - offset;
+	if (addr < vm->stack)
+	{
+		puts("Error: Stack underflow!");
+		vm->running = false;
+	} else vm->tos = addr;
+	vm_push(vm, top);
+
+	return 2 | long_op;
+}
+
 // PRINT str
 // PRINT i64
 // PRINT f64
@@ -201,39 +249,45 @@ void init_opcodes()
 		opcode_funcs[i] = opcode_unknown_func;
 	}
 
-	opcode_funcs[OPCODE_NOP			] = opcode_nop_func;
-	opcode_funcs[OPCODE_BREAK		] = opcode_break_func;
-	opcode_funcs[OPCODE_LOAD		] = opcode_load_func;
-	opcode_funcs[OPCODE_LOAD_LONG	] = opcode_load_func;
+	opcode_funcs[OPCODE_NOP				] = opcode_nop_func;
+	opcode_funcs[OPCODE_BREAK			] = opcode_break_func;
+	opcode_funcs[OPCODE_LOAD			] = opcode_load_func;
+	opcode_funcs[OPCODE_LOAD_LONG		] = opcode_load_func;
 
-	opcode_funcs[OPCODE_MUL_I64_I64	] = opcode_mul_func;
-	opcode_funcs[OPCODE_MUL_I64_F64	] = opcode_mul_func;
-	opcode_funcs[OPCODE_MUL_F64_I64	] = opcode_mul_func;
-	opcode_funcs[OPCODE_MUL_F64_F64	] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_I64_I64		] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_I64_F64		] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_F64_I64		] = opcode_mul_func;
+	opcode_funcs[OPCODE_MUL_F64_F64		] = opcode_mul_func;
 
-	opcode_funcs[OPCODE_DIV_I64_I64	] = opcode_div_func;
-	opcode_funcs[OPCODE_DIV_I64_F64	] = opcode_div_func;
-	opcode_funcs[OPCODE_DIV_F64_I64	] = opcode_div_func;
-	opcode_funcs[OPCODE_DIV_F64_F64	] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_I64_I64		] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_I64_F64		] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_F64_I64		] = opcode_div_func;
+	opcode_funcs[OPCODE_DIV_F64_F64		] = opcode_div_func;
 
-	opcode_funcs[OPCODE_ADD_I64_I64	] = opcode_add_func;
-	opcode_funcs[OPCODE_ADD_I64_F64	] = opcode_add_func;
-	opcode_funcs[OPCODE_ADD_F64_I64	] = opcode_add_func;
-	opcode_funcs[OPCODE_ADD_F64_F64	] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_I64_I64		] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_I64_F64		] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_F64_I64		] = opcode_add_func;
+	opcode_funcs[OPCODE_ADD_F64_F64		] = opcode_add_func;
 
-	opcode_funcs[OPCODE_SUB_I64_I64	] = opcode_sub_func;
-	opcode_funcs[OPCODE_SUB_I64_F64	] = opcode_sub_func;
-	opcode_funcs[OPCODE_SUB_F64_I64	] = opcode_sub_func;
-	opcode_funcs[OPCODE_SUB_F64_F64	] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_I64_I64		] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_I64_F64		] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_F64_I64		] = opcode_sub_func;
+	opcode_funcs[OPCODE_SUB_F64_F64		] = opcode_sub_func;
 
-	opcode_funcs[OPCODE_MOD			] = opcode_mod_func;
+	opcode_funcs[OPCODE_MOD				] = opcode_mod_func;
 
-	opcode_funcs[OPCODE_SET_GLOBAL	] = opcode_set_global_func;
-	opcode_funcs[OPCODE_GLOBAL		] = opcode_global_func;
-	opcode_funcs[OPCODE_GLOBAL_LONG	] = opcode_global_func;
-	opcode_funcs[OPCODE_POP			] = opcode_pop_func;
+	opcode_funcs[OPCODE_SET_GLOBAL		] = opcode_set_global_func;
+	opcode_funcs[OPCODE_GLOBAL			] = opcode_global_func;
+	opcode_funcs[OPCODE_GLOBAL_LONG		] = opcode_global_func;
 
-	opcode_funcs[OPCODE_PRINT_STR	] = opcode_print_func;
-	opcode_funcs[OPCODE_PRINT_I64	] = opcode_print_func;
-	opcode_funcs[OPCODE_PRINT_F64	] = opcode_print_func;
+	opcode_funcs[OPCODE_COPY_STACK		] = opcode_copy_stack;
+	opcode_funcs[OPCODE_COPY_STACK_LONG	] = opcode_copy_stack;
+	opcode_funcs[OPCODE_POP_SCOPE		] = opcode_pop_scope;
+	opcode_funcs[OPCODE_POP_SCOPE_LONG	] = opcode_pop_scope;
+
+	opcode_funcs[OPCODE_POP				] = opcode_pop_func;
+
+	opcode_funcs[OPCODE_PRINT_STR		] = opcode_print_func;
+	opcode_funcs[OPCODE_PRINT_I64		] = opcode_print_func;
+	opcode_funcs[OPCODE_PRINT_F64		] = opcode_print_func;
 }
