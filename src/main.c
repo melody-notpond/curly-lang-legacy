@@ -26,9 +26,8 @@ int main(int argc, char** argv)
 	puts("\n");
 
 	CurlyVM vm;
-	init_vm(&vm, &chunk);
-
+	init_vm(&vm);
+	vm_load(&vm, &chunk);
 	vm_run(&vm);
-
-	clean_vm(&vm, true);
+	clean_vm(&vm);
 }

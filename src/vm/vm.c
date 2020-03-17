@@ -11,12 +11,12 @@
 #include "opcodes.h"
 #include "vm.h"
 
-// init_vm(CurlyVM*, chunk_t*) -> void
+// init_vm(CurlyVM*) -> void
 // Initialises a vm.
-void init_vm(CurlyVM* vm, chunk_t* chunk)
+void init_vm(CurlyVM* vm)
 {
-	vm->chunk = chunk;
-	vm->pc = chunk->bytes;
+	vm->chunk = NULL;
+	vm->pc = NULL;
 	vm->stack_size = 256;
 	vm->stack = calloc(vm->stack_size, 8);
 	vm->tos = vm->stack;
@@ -28,6 +28,14 @@ void init_vm(CurlyVM* vm, chunk_t* chunk)
 	// Initialise jump table if not done so already.
 	if (opcode_funcs[0] == NULL)
 		init_opcodes();
+}
+
+// vm_load(CurlyVM*, chunk_t*) -> void
+// Loads a given chunk of bytecode into the vm.
+void vm_load(CurlyVM* vm, chunk_t* chunk)
+{
+	vm->chunk = chunk;
+	vm->pc = chunk->bytes;
 }
 
 #define step_macro(vm, pc) do						\
@@ -105,25 +113,31 @@ cvalue_t vm_peak(CurlyVM* vm, size_t offset)
 	return *(oos);
 }
 
-// clean_vm(CurlyVM*, bool) -> void
+// vm_reset(CurlyVM*) -> void
+// Resets the vm so it can accept new chunks of bytecode.
+void vm_reset(CurlyVM* vm)
+{
+	vm->chunk = NULL;
+	vm->chunk = NULL;
+	vm->pc = NULL;
+}
+
+// clean_vm(CurlyVM*) -> void
 // Cleans up a vm.
-void clean_vm(CurlyVM* vm, bool clear_globals)
+void clean_vm(CurlyVM* vm)
 {
 	if (vm == NULL)
 		return;
 
-	clean_chunk(vm->chunk, clear_globals);
+	clean_chunk(vm->chunk, true);
 	vm->chunk = NULL;
 	vm->pc = NULL;
 	free(vm->stack);
 	vm->stack = NULL;
 	vm->tos = NULL;
 	vm->stack_size = 0;
-
-	if (clear_globals)
-	{	free(vm->globals);
-		vm->globals = NULL;
-		vm->globals_count = 0;
-		vm->globals_size = 0;
-	}
+	free(vm->globals);
+	vm->globals = NULL;
+	vm->globals_count = 0;
+	vm->globals_size = 0;
 }
