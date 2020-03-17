@@ -100,7 +100,26 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree)
 curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 {
 	char* name = tree->name;
-	if (!strcmp(name, "int"))
+	if (!strcmp(name, "symbol"))
+	{
+		// Find the variable (only globals for now)
+		char* var = tree->value;
+		int index = search_global(&state->state.scope, var);
+
+		if (index != -1)
+		{
+			// Success!
+			chunk_global(state->chunk, var);
+			return state->state.scope.global.types[index];
+		} else
+		{
+			// The variable doesn't exist
+			state->state.cause = tree;
+			state->state.status = -1;
+			state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+			return SCOPE_CURLY_TYPE_DNE;
+		}
+	} else if (!strcmp(name, "int"))
 	{
 		// Add an integer load instruction
 		chunk_add_i64(state->chunk, atoll(tree->value));
