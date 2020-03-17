@@ -74,7 +74,13 @@ void vm_push(CurlyVM* vm, cvalue_t value)
 {
 	// Resize if necessary
 	if (vm->stack + vm->stack_size <= vm->tos)
-		vm->stack = realloc(vm->stack, (vm->stack_size <<= 1) << 3);
+	{
+		cvalue_t* new_stack = realloc(vm->stack, (vm->stack_size <<= 1) << 3);
+
+		if (new_stack != vm->stack)
+			vm->tos = new_stack + vm->stack_size;
+		vm->stack = new_stack;
+	}
 
 	// Append to stack
 	*vm->tos++ = value;
@@ -120,6 +126,7 @@ void vm_reset(CurlyVM* vm)
 	vm->chunk = NULL;
 	vm->chunk = NULL;
 	vm->pc = NULL;
+	vm->tos = vm->stack;
 }
 
 // clean_vm(CurlyVM*) -> void
