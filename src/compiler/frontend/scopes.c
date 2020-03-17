@@ -7,6 +7,7 @@
 //
 
 #include <stdlib.h>
+#include <strings.h>
 
 #include "scopes.h"
 
@@ -54,7 +55,7 @@ bool add_variable(scopes_t* scopes, char* name, curly_type_t type)
 	if (local->size == 0)
 	{
 		local->names = calloc((local->size = 8), sizeof(char*));
-		local->types = calloc((local->names), sizeof(curly_type_t));
+		local->types = calloc((local->size), sizeof(curly_type_t));
 	} else if (local->count >= local->size)
 	{
 		local->names = realloc(local->names, (local->size <<= 1) * sizeof(char*));
