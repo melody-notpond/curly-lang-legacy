@@ -61,13 +61,13 @@ void push_scope(scopes_t* scopes, bool from_call);
 // Adds a variable to the current scope. Returns true if the variable did not exist prior.
 bool add_variable(scopes_t* scopes, char* name, curly_type_t type);
 
-// search_local(scopes_t*, char*) -> curly_type_t
+// search_local(scopes_t*, char*) -> int
 // Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
-curly_type_t search_local(scopes_t* scopes, char* name);
+int search_local(scopes_t* scopes, char* name);
 
-// search_global(scopes_t*, char*) -> curly_type_t
+// search_global(scopes_t*, char*) -> int
 // Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
-curly_type_t search_global(scopes_t* scopes, char* name);
+int search_global(scopes_t* scopes, char* name);
 
 // pop_scope(scopes_t*) -> bool
 // Pops a scope from a stack of scopes. Returns true if a local scope was popped.

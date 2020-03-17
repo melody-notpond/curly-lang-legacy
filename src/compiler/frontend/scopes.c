@@ -68,9 +68,9 @@ bool add_variable(scopes_t* scopes, char* name, curly_type_t type)
 	return true;
 }
 
-// search_local(scopes_t*, char*) -> curly_type_t
-// Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
-curly_type_t search_local(scopes_t* scopes, char* name)
+// search_local(scopes_t*, char*) -> int
+// Searches for a variable name in the locals. Returns -1 if not found.
+int search_local(scopes_t* scopes, char* name)
 {
 	struct s_scope* local = scopes->local;
 
@@ -80,21 +80,21 @@ curly_type_t search_local(scopes_t* scopes, char* name)
 		for (int i = 0; i < local->count; i++)
 		{
 			if (!strcmp(name, local->names[i]))
-				return local->types[i];
+				return i;
 		}
 
 		// Local does not exist
 		if (local->call || local->last == NULL)
-		return SCOPE_CURLY_TYPE_DNE;
+		return -1;
 
 		// Keep searching
 		else local = local->last;
 	}
 }
 
-// search_global(scopes_t*, char*) -> curly_type_t
-// Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
-curly_type_t search_global(scopes_t* scopes, char* name)
+// search_global(scopes_t*, char*) -> int
+// Searches for a variable name in the globals. Returns -1 if not found.
+int search_global(scopes_t* scopes, char* name)
 {
 	struct s_scope global = scopes->global;
 
@@ -102,11 +102,11 @@ curly_type_t search_global(scopes_t* scopes, char* name)
 	for (int i = 0; i < global.count; i++)
 	{
 		if (!strcmp(name, global.names[i]))
-			return global.types[i];
+			return i;
 	}
 
 	// Global does not exist
-	return SCOPE_CURLY_TYPE_DNE;
+	return -1;
 }
 
 // pop_scope(scopes_t*) -> bool
