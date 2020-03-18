@@ -55,81 +55,6 @@ void write_chunk(chunk_t* chunk, uint8_t value)
 	append_element(chunk->bytes, chunk->count, chunk->size, uint8_t, value);
 }
 
-// chunk_add_constant(chunk_t*, cvalue_t) -> void
-// Adds a constant value to the constant pool.
-void chunk_add_constant(chunk_t* chunk, cvalue_t value)
-{
-	// Search for the constant
-	int index;
-	struct s_values* pool = &chunk->pool;
-	for (index = 0; index < pool->count; index++)
-	{
-		if (value.i64 == pool->values[index].i64)
-			break;
-	}
-
-	// If it doesn't exist, append it to the pool
-	if (index == pool->count)
-		append_element(pool->values, pool->count, pool->size, cvalue_t, value);
-
-	// Store the appropriate instruction
-	if (index <= 0xFF)
-	{
-		write_chunk(chunk, OPCODE_LOAD);
-		write_chunk(chunk, index);
-	} else
-	{
-		write_chunk(chunk, OPCODE_LOAD_LONG);
-		write_chunk(chunk, (index      ) & 0xFF);
-		write_chunk(chunk, (index >>  8) & 0xFF);
-		write_chunk(chunk, (index >> 16) & 0xFF);
-	}
-}
-
-// chunk_add_i64(chunk_t*, int64_t) -> void
-// Adds a 64 bit int to the constant pool.
-void chunk_add_i64(chunk_t* chunk, int64_t value)
-{
-	cvalue_t boxed;
-	boxed.i64 = value;
-	chunk_add_constant(chunk, boxed);
-}
-
-// chunk_add_f64(chunk_t*, int64_t) -> void
-// Adds a double to the constant pool.
-void chunk_add_f64(chunk_t* chunk, double value)
-{
-	cvalue_t boxed;
-	boxed.f64 = value;
-	chunk_add_constant(chunk, boxed);
-}
-
-// chunk_add_string(chunk_t*, char*) -> void
-// Adds a string to the constant pool.
-void chunk_add_string(chunk_t* chunk, char* string)
-{
-	// Search for the string
-	cvalue_t boxed;
-	int index;
-	struct s_values* strings = &chunk->strs;
-	for (index = 0; index < strings->count; index++)
-	{
-		boxed = strings->values[index];
-		if (!strcmp(string, boxed.str))
-			break;
-	}
-
-	// If the string isn't stored, add it
-	if (index == strings->count)
-	{
-		boxed.str = strdup(string);
-		append_element(strings->values, strings->count, strings->size, cvalue_t, boxed);
-	}
-
-	// Generate the constant loading stuff
-	chunk_add_constant(chunk, boxed);
-}
-
 // chunk_global(chunk_t*, char*) -> void
 // Adds a global to the list of globals.
 void chunk_global(chunk_t* chunk, char* name)
@@ -163,7 +88,82 @@ void chunk_global(chunk_t* chunk, char* name)
 	}
 }
 
+// chunk_add_constant(chunk_t*, cvalue_t) -> void
+// Adds a constant value to the constant pool.
+void chunk_add_constant(chunk_t* chunk, cvalue_t value)
+{
+	// Search for the constant
+	int index;
+	struct s_values* pool = &chunk->pool;
+	for (index = 0; index < pool->count; index++)
+	{
+		if (value.i64 == pool->values[index].i64)
+			break;
+	}
+
+	// If it doesn't exist, append it to the pool
+	if (index == pool->count)
+		append_element(pool->values, pool->count, pool->size, cvalue_t, value);
+
+	// Store the appropriate instruction
+	if (index <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_LOAD);
+		write_chunk(chunk, index);
+	} else
+	{
+		write_chunk(chunk, OPCODE_LOAD_LONG);
+		write_chunk(chunk, (index      ) & 0xFF);
+		write_chunk(chunk, (index >>  8) & 0xFF);
+		write_chunk(chunk, (index >> 16) & 0xFF);
+	}
+}
+
+// chunk_add_string(chunk_t*, char*) -> void
+// Adds a string to the constant pool.
+void chunk_add_string(chunk_t* chunk, char* string)
+{
+	// Search for the string
+	cvalue_t boxed;
+	int index;
+	struct s_values* strings = &chunk->strs;
+	for (index = 0; index < strings->count; index++)
+	{
+		boxed = strings->values[index];
+		if (!strcmp(string, boxed.str))
+			break;
+	}
+
+	// If the string isn't stored, add it
+	if (index == strings->count)
+	{
+		boxed.str = strdup(string);
+		append_element(strings->values, strings->count, strings->size, cvalue_t, boxed);
+	}
+
+	// Generate the constant loading stuff
+	chunk_add_constant(chunk, boxed);
+}
+
 #undef append_element
+
+// chunk_add_i64(chunk_t*, int64_t) -> void
+// Adds a 64 bit int to the constant pool.
+void chunk_add_i64(chunk_t* chunk, int64_t value)
+{
+	cvalue_t boxed;
+	boxed.i64 = value;
+	chunk_add_constant(chunk, boxed);
+}
+
+// chunk_add_f64(chunk_t*, int64_t) -> void
+// Adds a double to the constant pool.
+void chunk_add_f64(chunk_t* chunk, double value)
+{
+	cvalue_t boxed;
+	boxed.f64 = value;
+	chunk_add_constant(chunk, boxed);
+}
 
 // push_scope(chunk_t*) -> void
 // Pushes a new local scope onto the stack of scopes.

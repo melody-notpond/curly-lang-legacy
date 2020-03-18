@@ -84,6 +84,14 @@ chunk_t init_chunk();
 // Writes a single byte to a chunk.
 void write_chunk(chunk_t* chunk, uint8_t value);
 
+// chunk_global(chunk_t*, char*) -> void
+// Adds a global to the list of globals.
+void chunk_global(chunk_t* chunk, char* name);
+
+// chunk_add_string(chunk_t*, char*) -> void
+// Adds a string to the constant pool.
+void chunk_add_string(chunk_t* chunk, char* string);
+
 // chunk_add_i64(chunk_t*, int64_t) -> void
 // Adds a 64 bit int to the constant pool.
 void chunk_add_i64(chunk_t* chunk, int64_t value);
@@ -91,14 +99,6 @@ void chunk_add_i64(chunk_t* chunk, int64_t value);
 // chunk_add_f64(chunk_t*, int64_t) -> void
 // Adds a double to the constant pool.
 void chunk_add_f64(chunk_t* chunk, double value);
-
-// chunk_add_string(chunk_t*, char*) -> void
-// Adds a string to the constant pool.
-void chunk_add_string(chunk_t* chunk, char* string);
-
-// chunk_global(chunk_t*, char*) -> void
-// Adds a global to the list of globals.
-void chunk_global(chunk_t* chunk, char* name);
 
 // push_scope(chunk_t*) -> void
 // Pushes a new local scope onto the stack of scopes.
