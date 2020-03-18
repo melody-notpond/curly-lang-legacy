@@ -40,6 +40,16 @@ typedef struct
 	int count;
 } globals_t;
 
+// Represents a local scope.
+struct s_chunk_scope
+{
+	// The number of items on the stack above the set of locals
+	int stack_count;
+
+	// The last scope called
+	struct s_chunk_scope* last;
+};
+
 // Represents a chunk of bytecode.
 typedef struct
 {
@@ -60,6 +70,10 @@ typedef struct
 
 	// The globals.
 	globals_t globals;
+
+	// The current scope.
+	// This is used during compilation to put the right opcodes for locals.
+	struct s_chunk_scope* scope;
 } chunk_t;
 
 // init_chunk(void) -> chunk_t
@@ -85,6 +99,14 @@ void chunk_add_string(chunk_t* chunk, char* string);
 // chunk_global(chunk_t*, char*) -> void
 // Adds a global to the list of globals.
 void chunk_global(chunk_t* chunk, char* name);
+
+// push_scope(chunk_t*) -> void
+// Pushes a new local scope onto the stack of scopes.
+void push_scope(chunk_t* chunk);
+
+// pop_scope(chunk_t*) -> bool
+// Pops a local scope from the stack of scopes. Returns true if a scope was popped.
+bool pop_scope(chunk_t* chunk);
 
 // clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.

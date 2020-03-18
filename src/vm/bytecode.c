@@ -29,6 +29,7 @@ chunk_t init_chunk()
 	chunk.globals.names = NULL;
 	chunk.globals.size = 0;
 	chunk.globals.count = 0;
+	chunk.scope = NULL;
 	return chunk;
 }
 
@@ -164,6 +165,29 @@ void chunk_global(chunk_t* chunk, char* name)
 
 #undef append_element
 
+// push_scope(chunk_t*) -> void
+// Pushes a new local scope onto the stack of scopes.
+void push_scope(chunk_t* chunk)
+{
+	struct s_chunk_scope* scope = malloc(sizeof(struct s_chunk_scope));
+	scope->stack_count = 0;
+	scope->last = chunk->scope;
+	chunk->scope = scope;
+}
+
+// pop_scope(chunk_t*) -> bool
+// Pops a local scope from the stack of scopes. Returns true if a scope was popped.
+bool pop_scope(chunk_t* chunk)
+{
+	if (chunk->scope == NULL)
+		return false;
+
+	struct s_chunk_scope* scope = chunk->scope;
+	chunk->scope = scope->last;
+	free(scope);
+	return true;
+}
+
 // clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.
 void clean_chunk(chunk_t* chunk, bool clear_globals)
@@ -195,4 +219,6 @@ void clean_chunk(chunk_t* chunk, bool clear_globals)
 		chunk->globals.size = 0;
 		chunk->globals.count = 0;
 	}
+
+	while (pop_scope(chunk));
 }
