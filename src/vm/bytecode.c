@@ -88,6 +88,38 @@ void chunk_global(chunk_t* chunk, char* name)
 	}
 }
 
+// chunk_local(chunk_t*, int, int, int) -> void
+// Writes the appropriate instruction to copy a local to the top of the stack.
+void chunk_local(chunk_t* chunk, int depth, int index, int var_count)
+{
+	int total = index - var_count;
+
+	// Iterate over every scope up to the depth specified and find the stack difference
+	struct s_chunk_scope* s = chunk->scope;
+	while (1 + depth-- && s != NULL)
+	{
+		total += s->stack_count;
+		s = s->last;
+	}
+
+	// Store the appropriate load instruction
+	if (total < 256)
+	{
+		write_chunk(chunk, OPCODE_COPY_STACK);
+		write_chunk(chunk, total);
+	} else
+	{
+		write_chunk(chunk, OPCODE_COPY_STACK_LONG);
+		write_chunk(chunk, (total      ) & 0xFF);
+		write_chunk(chunk, (total >>  8) & 0xFF);
+		write_chunk(chunk, (total >> 16) & 0xFF);
+	}
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
+}
+
 // chunk_add_constant(chunk_t*, cvalue_t) -> void
 // Adds a constant value to the constant pool.
 void chunk_add_constant(chunk_t* chunk, cvalue_t value)
