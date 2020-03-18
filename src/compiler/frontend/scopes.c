@@ -88,7 +88,7 @@ struct s_local_search_res search_local(scopes_t* scopes, char* name)
 
 		// Local does not exist
 		if (local->call || local->last == NULL)
-		return (struct s_local_search_res) {-1, -1, -1};
+		return (struct s_local_search_res) {-1, -1, SCOPE_CURLY_TYPE_DNE};
 
 		// Keep searching
 		else local = local->last;

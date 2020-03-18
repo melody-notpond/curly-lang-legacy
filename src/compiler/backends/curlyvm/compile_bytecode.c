@@ -68,31 +68,83 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 	return left;
 }
 
-// assign_chunk(vm_compiler_t*, ast_t*) -> curly_type_t
+// assign_chunk(vm_compiler_t*, ast_t*, bool) -> curly_type_t
 // Compiles an assignment subtree into bytecode.
-curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree)
+curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 {
-	// Search for the global
-	ast_t* symbol = tree->children + 0;
-	int index = search_global(&state->state.scope, symbol->value);
+	 if (tree->children_count != 2)
+	 {
+		 state->state.cause = tree;
+		 return SCOPE_CURLY_TYPE_DNE;
+	 }
 
-	// If the global exists, error
-	if (index != -1)
+	if (state->state.scope.local->last == NULL)
 	{
-		state->state.cause = symbol;
-		state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
-		state->state.status = -1;
+		// Search for the global
+		ast_t* symbol = tree->children + 0;
+		int index = search_global(&state->state.scope, symbol->value);
+
+		// If the global exists, error
+		if (index != -1)
+		{
+			state->state.cause = symbol;
+			state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
+			state->state.status = -1;
+			return SCOPE_CURLY_TYPE_DNE;
+		}
+
+		// Find the type
+		curly_type_t type = tree_chunk(state, tree->children + 1);
+		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+
+		// Create the global
+		chunk_global(state->chunk, symbol->value);
+		add_variable(&state->state.scope, symbol->value, type);
+		return SCOPE_CURLY_TYPE_DNE;
+	} else if (with)
+	{
+		// Find the type
+		curly_type_t type = tree_chunk(state, tree->children + 1);
+		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+
+		// Add for the local
+		ast_t* symbol = tree->children + 0;
+		if (!add_variable(&state->state.scope, symbol->value, type))
+		{
+			// Assigning a variable twice within the same with expression is an error (for now)
+			state->state.cause = symbol;
+			state->state.status = -1;
+			state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+			return SCOPE_CURLY_TYPE_DNE;
+		}
+		return SCOPE_CURLY_TYPE_DNE;
+	} else
+	{
+		// We're not gonna worry about assigning outside of declarations for now
+		// This will be possible in the future
+		// I just have to implement the opcode that lets you do this
+		state->state.cause = tree;
 		return SCOPE_CURLY_TYPE_DNE;
 	}
+}
 
-	// Find the type
-	curly_type_t type = tree_chunk(state, tree->children + 1);
-	if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+// with_chunk(vm_compiler_t*, ast_t*) -> curly_type_t
+// Compiles a with expression subtree into bytecode.
+curly_type_t with_chunk(vm_compiler_t* state, ast_t* tree)
+{
+	push_scope(&state->state.scope, false);
+	chunk_push_scope(state->chunk);
 
-	// Create the global
-	chunk_global(state->chunk, symbol->value);
-	add_variable(&state->state.scope, symbol->value, type);
-	return SCOPE_CURLY_TYPE_DNE;
+	for (int i = 0; i < tree->children_count - 1; i++)
+	{
+		assign_chunk(state, tree->children + i, true);
+		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+	}
+
+	curly_type_t r = tree_chunk(state, tree->children + tree->children_count - 1);
+	chunk_pop_scope(state->chunk);
+	pop_scope(&state->state.scope);
+	return r;
 }
 
 // tree_chunk(vm_compiler_t*, ast_t*) -> curly_type_t
@@ -100,24 +152,36 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree)
 curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 {
 	char* name = tree->name;
-	if (!strcmp(name, "symbol") && tree->children_count == 2)
+	if (!strcmp(name, "symbol"))
 	{
-		// Find the variable (only globals for now)
 		char* var = tree->value;
-		int index = search_global(&state->state.scope, var);
 
-		if (index != -1)
+		// Find the local
+		struct s_local_search_res res = search_local(&state->state.scope, var);
+
+		if (res.type == SCOPE_CURLY_TYPE_DNE)
 		{
-			// Success!
-			chunk_global(state->chunk, var);
-			return state->state.scope.global.types[index];
+			// Find the global since the local doesn't exist
+			int index = search_global(&state->state.scope, var);
+
+			if (index != -1)
+			{
+				// Success!
+				chunk_global(state->chunk, var);
+				return state->state.scope.global.types[index];
+			} else
+			{
+				// The variable doesn't exist
+				state->state.cause = tree;
+				state->state.status = -1;
+				state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+				return SCOPE_CURLY_TYPE_DNE;
+			}
 		} else
 		{
-			// The variable doesn't exist
-			state->state.cause = tree;
-			state->state.status = -1;
-			state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
-			return SCOPE_CURLY_TYPE_DNE;
+			// We found a local!
+			chunk_local(state->chunk, res.depth, res.index);
+			return res.type;
 		}
 	} else if (!strcmp(name, "int"))
 	{
@@ -180,7 +244,9 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		// Compile the infix subtree
 		return infix_chunk(state, tree);
 	else if (!strcmp(name, "assign"))
-		return assign_chunk(state, tree);
+		return assign_chunk(state, tree, false);
+	else if (!strcmp(name, "with"))
+		return with_chunk(state, tree);
 	else
 	{
 		// Invalid form
