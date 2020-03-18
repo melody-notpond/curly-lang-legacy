@@ -80,10 +80,6 @@ typedef struct
 // Initialises an empty chunk of bytecode.
 chunk_t init_chunk();
 
-// write_chunk(chunk_t*, uint8_t) -> void
-// Writes a single byte to a chunk.
-void write_chunk(chunk_t* chunk, uint8_t value);
-
 // chunk_global(chunk_t*, char*) -> void
 // Adds a global to the list of globals.
 void chunk_global(chunk_t* chunk, char* name);
@@ -111,6 +107,10 @@ void chunk_push_scope(chunk_t* chunk);
 // chunk_pop_scope(chunk_t*) -> bool
 // Pops a local scope from the stack of scopes. Returns true if a scope was popped.
 bool chunk_pop_scope(chunk_t* chunk);
+
+// chunk_opcode(chunk_t*, uint8_t) -> void
+// Writes an opcode to a chunk of bytecode.
+void chunk_opcode(chunk_t* chunk, uint8_t opcode);
 
 // clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.

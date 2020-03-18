@@ -74,22 +74,28 @@ void chunk_global(chunk_t* chunk, char* name)
 		append_element(globals->names, globals->count, globals->size, char*, strdup(name));
 		write_chunk(chunk, OPCODE_SET_GLOBAL);
 
-	// Store the appropriate load instruction
-	} else if (index <= 0xFF)
-	{
-		write_chunk(chunk, OPCODE_GLOBAL);
-		write_chunk(chunk, index);
+		// Update the number of items on the stack
+		if (chunk->scope != NULL)
+			chunk->scope->stack_count--;
 	} else
 	{
-		write_chunk(chunk, OPCODE_GLOBAL_LONG);
-		write_chunk(chunk, (index      ) & 0xFF);
-		write_chunk(chunk, (index >>  8) & 0xFF);
-		write_chunk(chunk, (index >> 16) & 0xFF);
-	}
+		// Store the appropriate load instruction
+		if (index <= 0xFF)
+		{
+			write_chunk(chunk, OPCODE_GLOBAL);
+			write_chunk(chunk, index);
+		} else
+		{
+			write_chunk(chunk, OPCODE_GLOBAL_LONG);
+			write_chunk(chunk, (index      ) & 0xFF);
+			write_chunk(chunk, (index >>  8) & 0xFF);
+			write_chunk(chunk, (index >> 16) & 0xFF);
+		}
 
-	// Update the number of items on the stack
-	if (chunk->scope != NULL)
-		chunk->scope->stack_count++;
+		// Update the number of items on the stack
+		if (chunk->scope != NULL)
+			chunk->scope->stack_count++;
+	}
 }
 
 // chunk_local(chunk_t*, int, int, int) -> void
@@ -240,6 +246,25 @@ bool chunk_pop_scope(chunk_t* chunk)
 	chunk->scope = scope->last;
 	free(scope);
 	return true;
+}
+
+// chunk_opcode(chunk_t*, uint8_t) -> void
+// Writes an opcode to a chunk of bytecode.
+void chunk_opcode(chunk_t* chunk, uint8_t opcode)
+{
+	if (chunk->scope != NULL)
+	{
+		// These instructions add 1 to the stack
+		if (OPCODE_MUL_I64_I64 <= opcode && opcode <= OPCODE_MOD)
+			chunk->scope->stack_count++;
+		
+		// These instructions remove 1 from the stack
+		else if (opcode == OPCODE_POP)
+			chunk->scope->stack_count--;
+	}
+
+	// Write the opcode
+	write_chunk(chunk, opcode);
 }
 
 // clean_chunk(chunk_t*, bool) -> void
