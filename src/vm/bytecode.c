@@ -97,18 +97,20 @@ void chunk_global(chunk_t* chunk, char* name)
 			chunk->scope->stack_count++;
 	}
 }
+#include <stdio.h>
 
-// chunk_local(chunk_t*, int, int, int) -> void
+// chunk_local(chunk_t*, int, int) -> void
 // Writes the appropriate instruction to copy a local to the top of the stack.
-void chunk_local(chunk_t* chunk, int depth, int index, int var_count)
+void chunk_local(chunk_t* chunk, int depth, int index)
 {
-	int total = index - var_count;
+	int total = -index;
 
 	// Iterate over every scope up to the depth specified and find the stack difference
 	struct s_chunk_scope* s = chunk->scope;
 	while (1 + depth-- && s != NULL)
 	{
 		total += s->stack_count;
+		printf("the number is %d\n", s->stack_count);
 		s = s->last;
 	}
 
@@ -231,20 +233,25 @@ bool chunk_pop_scope(chunk_t* chunk)
 
 	// Store the appropriate instruction
 	struct s_chunk_scope* scope = chunk->scope;
+	int offset = scope->stack_count - 1;
 	if (scope->stack_count <= 0xFF)
 	{
 		write_chunk(chunk, OPCODE_POP_SCOPE);
-		write_chunk(chunk, scope->stack_count);
+		write_chunk(chunk, offset);
 	} else
 	{
 		write_chunk(chunk, OPCODE_POP_SCOPE_LONG);
-		write_chunk(chunk, (scope->stack_count      ) & 0xFF);
-		write_chunk(chunk, (scope->stack_count >>  8) & 0xFF);
+		write_chunk(chunk, (offset      ) & 0xFF);
+		write_chunk(chunk, (offset >>  8) & 0xFF);
 	}
 
 	// Free the scope
 	chunk->scope = scope->last;
 	free(scope);
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
 	return true;
 }
 
@@ -254,12 +261,9 @@ void chunk_opcode(chunk_t* chunk, uint8_t opcode)
 {
 	if (chunk->scope != NULL)
 	{
-		// These instructions add 1 to the stack
-		if (OPCODE_MUL_I64_I64 <= opcode && opcode <= OPCODE_MOD)
-			chunk->scope->stack_count++;
-		
 		// These instructions remove 1 from the stack
-		else if (opcode == OPCODE_POP)
+		if ((OPCODE_MUL_I64_I64 <= opcode && opcode <= OPCODE_MOD)
+		 || opcode == OPCODE_POP)
 			chunk->scope->stack_count--;
 	}
 
@@ -299,5 +303,5 @@ void clean_chunk(chunk_t* chunk, bool clear_globals)
 		chunk->globals.count = 0;
 	}
 
-	while (pop_scope(chunk));
+	while (chunk_pop_scope(chunk));
 }

@@ -84,9 +84,9 @@ chunk_t init_chunk();
 // Adds a global to the list of globals.
 void chunk_global(chunk_t* chunk, char* name);
 
-// chunk_local(chunk_t*, int, int, int) -> void
+// chunk_local(chunk_t*, int, int) -> void
 // Writes the appropriate instruction to copy a local to the top of the stack.
-void chunk_local(chunk_t* chunk, int depth, int index, int var_count);
+void chunk_local(chunk_t* chunk, int depth, int index);
 
 // chunk_add_string(chunk_t*, char*) -> void
 // Adds a string to the constant pool.

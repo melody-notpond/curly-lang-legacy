@@ -19,20 +19,45 @@ int main(int argc, char** argv)
 	chunk_t chunk = init_chunk();
 	chunk_add_i64(&chunk, -5); // something not in the scope
 
+	chunk_push_scope(&chunk);
 	chunk_add_i64(&chunk, 1); // local variables
 	chunk_add_i64(&chunk, 2);
 	chunk_add_i64(&chunk, 3);
 	chunk_add_i64(&chunk, 4); // end of local variables
 
 	chunk_add_i64(&chunk, 10);
-	write_chunk(&chunk, OPCODE_COPY_STACK);
-	write_chunk(&chunk, 3);
-	write_chunk(&chunk, OPCODE_ADD_I64_I64); // some operation in the local scope
+	chunk_local(&chunk, 0, 2); // get the 3
+	chunk_local(&chunk, 0, 2); // get the 3 again
+	chunk_local(&chunk, 0, 0); // get the 1
+	chunk_opcode(&chunk, OPCODE_ADD_I64_I64); // some operation in the local scope
+	chunk_opcode(&chunk, OPCODE_ADD_I64_I64);
+	chunk_opcode(&chunk, OPCODE_ADD_I64_I64);
 
-	write_chunk(&chunk, OPCODE_POP_SCOPE); // now we pop the values
-	write_chunk(&chunk, 4);
+	chunk_push_scope(&chunk); // scope inside a scope :0
+	chunk_add_string(&chunk, "hello!");
+	chunk_add_string(&chunk, "from inside a scope!");
+	chunk_add_i64(&chunk, 42); // end of local variables
 
-	write_chunk(&chunk, OPCODE_BREAK);
+	chunk_local(&chunk, 0, 1); // print our strings
+	chunk_local(&chunk, 0, 0);
+	chunk_opcode(&chunk, OPCODE_PRINT_STR);
+	chunk_opcode(&chunk, OPCODE_POP);
+	chunk_opcode(&chunk, OPCODE_PRINT_STR);
+	chunk_opcode(&chunk, OPCODE_POP);
+
+	chunk_local(&chunk, 0, 2); // innie scope
+	chunk_local(&chunk, 1, 3); // outie scope
+	chunk_opcode(&chunk, OPCODE_MUL_I64_I64);
+
+	chunk_pop_scope(&chunk); // pop innie scope
+	chunk_opcode(&chunk, OPCODE_MOD);
+	chunk_pop_scope(&chunk); // now we pop the outie scope (like belly buttons!)
+
+	chunk_opcode(&chunk, OPCODE_ADD_I64_I64); // some operations in the global scope
+	chunk_opcode(&chunk, OPCODE_PRINT_I64);
+	chunk_opcode(&chunk, OPCODE_POP);
+
+	chunk_opcode(&chunk, OPCODE_BREAK);
 
 	disassemble(&chunk, "test.o");
 	puts("\n");
@@ -45,17 +70,21 @@ int main(int argc, char** argv)
 	while (vm.running)
 	{
 		vm_stepi(&vm);
-		printf("Stack: %lli %lli %lli %lli %lli %lli %lli %lli %lli %lli, sp = %i\n",
-			vm.stack[0].i64,
-			vm.stack[1].i64,
-			vm.stack[2].i64,
-			vm.stack[3].i64,
-			vm.stack[4].i64,
-			vm.stack[5].i64,
-			vm.stack[6].i64,
-			vm.stack[7].i64,
-			vm.stack[8].i64,
-			vm.stack[9].i64,
+		printf("Stack: %i %i %i %i %i %i %i %i %i %i %i %i %i %i, sp = %i\n",
+			(char) vm.stack[ 0].i64,
+			(char) vm.stack[ 1].i64,
+			(char) vm.stack[ 2].i64,
+			(char) vm.stack[ 3].i64,
+			(char) vm.stack[ 4].i64,
+			(char) vm.stack[ 5].i64,
+			(char) vm.stack[ 6].i64,
+			(char) vm.stack[ 7].i64,
+			(char) vm.stack[ 8].i64,
+			(char) vm.stack[ 9].i64,
+			(char) vm.stack[10].i64,
+			(char) vm.stack[11].i64,
+			(char) vm.stack[12].i64,
+			(char) vm.stack[13].i64,
 			(int) (vm.tos - vm.stack)
 		);
 	}
