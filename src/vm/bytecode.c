@@ -86,6 +86,10 @@ void chunk_global(chunk_t* chunk, char* name)
 		write_chunk(chunk, (index >>  8) & 0xFF);
 		write_chunk(chunk, (index >> 16) & 0xFF);
 	}
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
 }
 
 // chunk_local(chunk_t*, int, int, int) -> void
@@ -149,6 +153,10 @@ void chunk_add_constant(chunk_t* chunk, cvalue_t value)
 		write_chunk(chunk, (index >>  8) & 0xFF);
 		write_chunk(chunk, (index >> 16) & 0xFF);
 	}
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
 }
 
 // chunk_add_string(chunk_t*, char*) -> void
@@ -211,10 +219,24 @@ void push_scope(chunk_t* chunk)
 // Pops a local scope from the stack of scopes. Returns true if a scope was popped.
 bool pop_scope(chunk_t* chunk)
 {
+	// Don't do anything if it's empty
 	if (chunk->scope == NULL)
 		return false;
 
+	// Store the appropriate instruction
 	struct s_chunk_scope* scope = chunk->scope;
+	if (scope->stack_count <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_POP_SCOPE);
+		write_chunk(chunk, scope->stack_count);
+	} else
+	{
+		write_chunk(chunk, OPCODE_POP_SCOPE_LONG);
+		write_chunk(chunk, (scope->stack_count      ) & 0xFF);
+		write_chunk(chunk, (scope->stack_count >>  8) & 0xFF);
+	}
+
+	// Free the scope
 	chunk->scope = scope->last;
 	free(scope);
 	return true;
