@@ -29,6 +29,7 @@ chunk_t init_chunk()
 	chunk.globals.names = NULL;
 	chunk.globals.size = 0;
 	chunk.globals.count = 0;
+	chunk.scope = NULL;
 	return chunk;
 }
 
@@ -52,6 +53,83 @@ void write_chunk(chunk_t* chunk, uint8_t value)
 {
 	// Append the byte to the chunk
 	append_element(chunk->bytes, chunk->count, chunk->size, uint8_t, value);
+}
+
+// chunk_global(chunk_t*, char*) -> void
+// Adds a global to the list of globals.
+void chunk_global(chunk_t* chunk, char* name)
+{
+	// Search for the global
+	int index;
+	globals_t* globals = &chunk->globals;
+	for (index = 0; index < globals->count; index++)
+	{
+		if (!strcmp(name, globals->names[index]))
+			break;
+	}
+
+	if (index == globals->count)
+	{
+		// If it doesn't exist, append it to the list of globals and create the global
+		append_element(globals->names, globals->count, globals->size, char*, strdup(name));
+		write_chunk(chunk, OPCODE_SET_GLOBAL);
+
+		// Update the number of items on the stack
+		if (chunk->scope != NULL)
+			chunk->scope->stack_count--;
+	} else
+	{
+		// Store the appropriate load instruction
+		if (index <= 0xFF)
+		{
+			write_chunk(chunk, OPCODE_GLOBAL);
+			write_chunk(chunk, index);
+		} else
+		{
+			write_chunk(chunk, OPCODE_GLOBAL_LONG);
+			write_chunk(chunk, (index      ) & 0xFF);
+			write_chunk(chunk, (index >>  8) & 0xFF);
+			write_chunk(chunk, (index >> 16) & 0xFF);
+		}
+
+		// Update the number of items on the stack
+		if (chunk->scope != NULL)
+			chunk->scope->stack_count++;
+	}
+}
+#include <stdio.h>
+
+// chunk_local(chunk_t*, int, int) -> void
+// Writes the appropriate instruction to copy a local to the top of the stack.
+void chunk_local(chunk_t* chunk, int depth, int index)
+{
+	int total = -index;
+
+	// Iterate over every scope up to the depth specified and find the stack difference
+	struct s_chunk_scope* s = chunk->scope;
+	while (1 + depth-- && s != NULL)
+	{
+		total += s->stack_count;
+		printf("the number is %d\n", s->stack_count);
+		s = s->last;
+	}
+
+	// Store the appropriate load instruction
+	if (total < 256)
+	{
+		write_chunk(chunk, OPCODE_COPY_STACK);
+		write_chunk(chunk, total);
+	} else
+	{
+		write_chunk(chunk, OPCODE_COPY_STACK_LONG);
+		write_chunk(chunk, (total      ) & 0xFF);
+		write_chunk(chunk, (total >>  8) & 0xFF);
+		write_chunk(chunk, (total >> 16) & 0xFF);
+	}
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
 }
 
 // chunk_add_constant(chunk_t*, cvalue_t) -> void
@@ -83,24 +161,10 @@ void chunk_add_constant(chunk_t* chunk, cvalue_t value)
 		write_chunk(chunk, (index >>  8) & 0xFF);
 		write_chunk(chunk, (index >> 16) & 0xFF);
 	}
-}
 
-// chunk_add_i64(chunk_t*, int64_t) -> void
-// Adds a 64 bit int to the constant pool.
-void chunk_add_i64(chunk_t* chunk, int64_t value)
-{
-	cvalue_t boxed;
-	boxed.i64 = value;
-	chunk_add_constant(chunk, boxed);
-}
-
-// chunk_add_f64(chunk_t*, int64_t) -> void
-// Adds a double to the constant pool.
-void chunk_add_f64(chunk_t* chunk, double value)
-{
-	cvalue_t boxed;
-	boxed.f64 = value;
-	chunk_add_constant(chunk, boxed);
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
 }
 
 // chunk_add_string(chunk_t*, char*) -> void
@@ -129,40 +193,83 @@ void chunk_add_string(chunk_t* chunk, char* string)
 	chunk_add_constant(chunk, boxed);
 }
 
-// chunk_global(chunk_t*, char*) -> void
-// Adds a global to the list of globals.
-void chunk_global(chunk_t* chunk, char* name)
+#undef append_element
+
+// chunk_add_i64(chunk_t*, int64_t) -> void
+// Adds a 64 bit int to the constant pool.
+void chunk_add_i64(chunk_t* chunk, int64_t value)
 {
-	// Search for the global
-	int index;
-	globals_t* globals = &chunk->globals;
-	for (index = 0; index < globals->count; index++)
-	{
-		if (!strcmp(name, globals->names[index]))
-			break;
-	}
-
-	if (index == globals->count)
-	{
-		// If it doesn't exist, append it to the list of globals and create the global
-		append_element(globals->names, globals->count, globals->size, char*, strdup(name));
-		write_chunk(chunk, OPCODE_SET_GLOBAL);
-
-	// Store the appropriate load instruction
-	} else if (index <= 0xFF)
-	{
-		write_chunk(chunk, OPCODE_GLOBAL);
-		write_chunk(chunk, index);
-	} else
-	{
-		write_chunk(chunk, OPCODE_GLOBAL_LONG);
-		write_chunk(chunk, (index      ) & 0xFF);
-		write_chunk(chunk, (index >>  8) & 0xFF);
-		write_chunk(chunk, (index >> 16) & 0xFF);
-	}
+	cvalue_t boxed;
+	boxed.i64 = value;
+	chunk_add_constant(chunk, boxed);
 }
 
-#undef append_element
+// chunk_add_f64(chunk_t*, int64_t) -> void
+// Adds a double to the constant pool.
+void chunk_add_f64(chunk_t* chunk, double value)
+{
+	cvalue_t boxed;
+	boxed.f64 = value;
+	chunk_add_constant(chunk, boxed);
+}
+
+// chunk_push_scope(chunk_t*) -> void
+// Pushes a new local scope onto the stack of scopes.
+void chunk_push_scope(chunk_t* chunk)
+{
+	struct s_chunk_scope* scope = malloc(sizeof(struct s_chunk_scope));
+	scope->stack_count = 0;
+	scope->last = chunk->scope;
+	chunk->scope = scope;
+}
+
+// chunk_pop_scope(chunk_t*) -> bool
+// Pops a local scope from the stack of scopes. Returns true if a scope was popped.
+bool chunk_pop_scope(chunk_t* chunk)
+{
+	// Don't do anything if it's empty
+	if (chunk->scope == NULL)
+		return false;
+
+	// Store the appropriate instruction
+	struct s_chunk_scope* scope = chunk->scope;
+	int offset = scope->stack_count - 1;
+	if (scope->stack_count <= 0xFF)
+	{
+		write_chunk(chunk, OPCODE_POP_SCOPE);
+		write_chunk(chunk, offset);
+	} else
+	{
+		write_chunk(chunk, OPCODE_POP_SCOPE_LONG);
+		write_chunk(chunk, (offset      ) & 0xFF);
+		write_chunk(chunk, (offset >>  8) & 0xFF);
+	}
+
+	// Free the scope
+	chunk->scope = scope->last;
+	free(scope);
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
+	return true;
+}
+
+// chunk_opcode(chunk_t*, uint8_t) -> void
+// Writes an opcode to a chunk of bytecode.
+void chunk_opcode(chunk_t* chunk, uint8_t opcode)
+{
+	if (chunk->scope != NULL)
+	{
+		// These instructions remove 1 from the stack
+		if ((OPCODE_MUL_I64_I64 <= opcode && opcode <= OPCODE_MOD)
+		 || opcode == OPCODE_POP)
+			chunk->scope->stack_count--;
+	}
+
+	// Write the opcode
+	write_chunk(chunk, opcode);
+}
 
 // clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.
@@ -195,4 +302,6 @@ void clean_chunk(chunk_t* chunk, bool clear_globals)
 		chunk->globals.size = 0;
 		chunk->globals.count = 0;
 	}
+
+	while (chunk_pop_scope(chunk));
 }

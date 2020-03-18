@@ -40,13 +40,13 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 			// Write the appropriate opcode
 			uint8_t option = (left == SCOPE_CURLY_TYPE_FLOAT) << 1 | (right == SCOPE_CURLY_TYPE_FLOAT);
 			if (!strcmp(op->value, "*"))
-				write_chunk(state->chunk, OPCODE_MUL_I64_I64 | option);
+				chunk_opcode(state->chunk, OPCODE_MUL_I64_I64 | option);
 			else if (!strcmp(op->value, "/"))
-				write_chunk(state->chunk, OPCODE_DIV_I64_I64 | option);
+				chunk_opcode(state->chunk, OPCODE_DIV_I64_I64 | option);
 			else if (!strcmp(op->value, "+"))
-				write_chunk(state->chunk, OPCODE_ADD_I64_I64 | option);
+				chunk_opcode(state->chunk, OPCODE_ADD_I64_I64 | option);
 			else if (!strcmp(op->value, "-"))
-				write_chunk(state->chunk, OPCODE_SUB_I64_I64 | option);
+				chunk_opcode(state->chunk, OPCODE_SUB_I64_I64 | option);
 			else if (!strcmp(op->value, "%"))
 			{
 				// Modulo only takes in integers
@@ -57,7 +57,7 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 					state->state.status = -1;
 					return SCOPE_CURLY_TYPE_DNE;
 				}
-				write_chunk(state->chunk, OPCODE_MOD);
+				chunk_opcode(state->chunk, OPCODE_MOD);
 			}
 		}
 
@@ -211,16 +211,16 @@ void compile_tree(vm_compiler_t* state, parse_result_t* result, bool terminate)
 
 			// Determine type for printing
 			if (res == SCOPE_CURLY_TYPE_INT)
-				write_chunk(state->chunk, OPCODE_PRINT_I64);
+				chunk_opcode(state->chunk, OPCODE_PRINT_I64);
 			else if (res == SCOPE_CURLY_TYPE_FLOAT)
-				write_chunk(state->chunk, OPCODE_PRINT_F64);
+				chunk_opcode(state->chunk, OPCODE_PRINT_F64);
 			else if (res == SCOPE_CURLY_TYPE_STRING)
-				write_chunk(state->chunk, OPCODE_PRINT_STR);
+				chunk_opcode(state->chunk, OPCODE_PRINT_STR);
 		}
 
 		// Optionally add a terminating break instruction
 		if (terminate)
-			write_chunk(state->chunk, OPCODE_BREAK);
+			chunk_opcode(state->chunk, OPCODE_BREAK);
 	} else
 	{
 		// Compile the root node
@@ -229,14 +229,14 @@ void compile_tree(vm_compiler_t* state, parse_result_t* result, bool terminate)
 
 		// Determine the type for printing
 		if (res == SCOPE_CURLY_TYPE_INT)
-			write_chunk(state->chunk, OPCODE_PRINT_I64);
+			chunk_opcode(state->chunk, OPCODE_PRINT_I64);
 		else if (res == SCOPE_CURLY_TYPE_FLOAT)
-			write_chunk(state->chunk, OPCODE_PRINT_F64);
+			chunk_opcode(state->chunk, OPCODE_PRINT_F64);
 		else if (res == SCOPE_CURLY_TYPE_STRING)
-			write_chunk(state->chunk, OPCODE_PRINT_STR);
+			chunk_opcode(state->chunk, OPCODE_PRINT_STR);
 
 		// Optionally add a terminating break instruction
 		if (terminate)
-			write_chunk(state->chunk, OPCODE_BREAK);
+			chunk_opcode(state->chunk, OPCODE_BREAK);
 	}
 }
