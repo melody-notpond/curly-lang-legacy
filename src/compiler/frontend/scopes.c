@@ -75,7 +75,7 @@ struct s_local_search_res search_local(scopes_t* scopes, char* name)
 	struct s_scope* local = scopes->local;
 
 	int depth = 0;
-	while (true)
+	while (local != &scopes->global)
 	{
 		// Linear search through the locals
 		for (int i = 0; i < local->count; i++)
@@ -92,6 +92,9 @@ struct s_local_search_res search_local(scopes_t* scopes, char* name)
 		else local = local->last;
 		depth++;
 	}
+
+	// At this point, we're in the global scope
+	return (struct s_local_search_res) {-1, -1, SCOPE_CURLY_TYPE_DNE};
 }
 
 // search_global(scopes_t*, char*) -> int
