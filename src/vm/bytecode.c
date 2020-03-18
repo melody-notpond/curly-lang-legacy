@@ -205,9 +205,9 @@ void chunk_add_f64(chunk_t* chunk, double value)
 	chunk_add_constant(chunk, boxed);
 }
 
-// push_scope(chunk_t*) -> void
+// chunk_push_scope(chunk_t*) -> void
 // Pushes a new local scope onto the stack of scopes.
-void push_scope(chunk_t* chunk)
+void chunk_push_scope(chunk_t* chunk)
 {
 	struct s_chunk_scope* scope = malloc(sizeof(struct s_chunk_scope));
 	scope->stack_count = 0;
@@ -215,9 +215,9 @@ void push_scope(chunk_t* chunk)
 	chunk->scope = scope;
 }
 
-// pop_scope(chunk_t*) -> bool
+// chunk_pop_scope(chunk_t*) -> bool
 // Pops a local scope from the stack of scopes. Returns true if a scope was popped.
-bool pop_scope(chunk_t* chunk)
+bool chunk_pop_scope(chunk_t* chunk)
 {
 	// Don't do anything if it's empty
 	if (chunk->scope == NULL)

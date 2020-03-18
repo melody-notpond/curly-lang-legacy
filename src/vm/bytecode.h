@@ -104,13 +104,13 @@ void chunk_add_i64(chunk_t* chunk, int64_t value);
 // Adds a double to the constant pool.
 void chunk_add_f64(chunk_t* chunk, double value);
 
-// push_scope(chunk_t*) -> void
+// chunk_push_scope(chunk_t*) -> void
 // Pushes a new local scope onto the stack of scopes.
-void push_scope(chunk_t* chunk);
+void chunk_push_scope(chunk_t* chunk);
 
-// pop_scope(chunk_t*) -> bool
+// chunk_pop_scope(chunk_t*) -> bool
 // Pops a local scope from the stack of scopes. Returns true if a scope was popped.
-bool pop_scope(chunk_t* chunk);
+bool chunk_pop_scope(chunk_t* chunk);
 
 // clean_chunk(chunk_t*, bool) -> void
 // Cleans up a chunk of bytecode.
