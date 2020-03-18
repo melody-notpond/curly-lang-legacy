@@ -20,7 +20,6 @@ void init_scopes(scopes_t* scopes)
 	scopes->global.types = NULL;
 	scopes->global.size = 0;
 	scopes->global.count = 0;
-	scopes->global.metadata = 0;
 	scopes->global.last = NULL;
 	scopes->local = &scopes->global;
 }
@@ -35,7 +34,6 @@ void push_scope(scopes_t* scopes, bool from_call)
 	local->types = NULL;
 	local->size = 0;
 	local->count = 0;
-	local->metadata = 0;
 	local->last = scopes->local;
 	scopes->local = local;
 }

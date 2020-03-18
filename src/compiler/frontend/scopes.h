@@ -38,9 +38,6 @@ struct s_scope
 	// The number of items in the list.
 	int count;
 
-	// Some sort of metadata used by the scope.
-	int metadata;
-
 	// The scope that created this scope.
 	struct s_scope* last;
 };
