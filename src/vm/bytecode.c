@@ -110,7 +110,6 @@ void chunk_local(chunk_t* chunk, int depth, int index)
 	while (1 + depth-- && s != NULL)
 	{
 		total += s->stack_count;
-		printf("the number is %d\n", s->stack_count);
 		s = s->last;
 	}
 
