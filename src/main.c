@@ -26,35 +26,14 @@ int main(int argc, char** argv)
 	chunk_add_i64(&chunk, 4); // end of local variables
 
 	chunk_add_i64(&chunk, 10);
-	chunk_local(&chunk, 0, 2); // get the 3
-	chunk_local(&chunk, 0, 2); // get the 3 again
-	chunk_local(&chunk, 0, 0); // get the 1
+	chunk_get_local(&chunk, 0, 2); // get the 3
+	chunk_get_local(&chunk, 0, 2); // get the 3 again
+	chunk_get_local(&chunk, 0, 0); // get the 1
 	chunk_opcode(&chunk, OPCODE_ADD_I64_I64); // some operation in the local scope
 	chunk_opcode(&chunk, OPCODE_ADD_I64_I64);
 	chunk_opcode(&chunk, OPCODE_ADD_I64_I64);
 
-	chunk_push_scope(&chunk); // scope inside a scope :0
-	chunk_add_string(&chunk, "hello!");
-	chunk_add_string(&chunk, "from inside a scope!");
-	chunk_add_i64(&chunk, 42); // end of local variables
-
-	chunk_local(&chunk, 0, 1); // print our strings
-	chunk_local(&chunk, 0, 0);
-	chunk_opcode(&chunk, OPCODE_PRINT_STR);
-	chunk_opcode(&chunk, OPCODE_POP);
-	chunk_opcode(&chunk, OPCODE_PRINT_STR);
-	chunk_opcode(&chunk, OPCODE_POP);
-
-	chunk_local(&chunk, 0, 2); // innie scope
-	chunk_local(&chunk, 1, 3); // outie scope
-	chunk_opcode(&chunk, OPCODE_MUL_I64_I64);
-
-	chunk_pop_scope(&chunk); // pop innie scope
-	chunk_opcode(&chunk, OPCODE_MOD);
-	chunk_pop_scope(&chunk); // now we pop the outie scope (like belly buttons!)
-
-	chunk_opcode(&chunk, OPCODE_ADD_I64_I64); // some operations in the global scope
-	chunk_opcode(&chunk, OPCODE_PRINT_I64);
+	chunk_set_local(&chunk, 0, 1); // change the 1 into whatever the above value is
 	chunk_opcode(&chunk, OPCODE_POP);
 
 	chunk_opcode(&chunk, OPCODE_BREAK);
