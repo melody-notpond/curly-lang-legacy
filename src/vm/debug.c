@@ -107,9 +107,9 @@ int global_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 	return long_op ? 4 : 2;
 }
 
-// copy_stack_opcode(char*, int, chunk_t*, uint8_t) -> int
-// Disassembles a copy stack opcode.
-int copy_stack_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
+// local_opcode(char*, int, chunk_t*, uint8_t) -> int
+// Disassembles a set local opcode.
+int local_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 {
 	// Print out the name
 	printf("%s ", name);
@@ -208,13 +208,13 @@ int dis_opcode(chunk_t* chunk, int index, int* global_count)
 			// MOD i64 i64
 			return infix_opcode("MOD", opcode);
 		case OPCODE_SET_GLOBAL:
-			return set_global_opcode("GLOBAL SET", chunk, global_count);
+			return set_global_opcode("SET GLOBAL", chunk, global_count);
 		case OPCODE_GLOBAL:
 		case OPCODE_GLOBAL_LONG:
-			return global_opcode("GLOBAL", index, chunk, opcode);
-		case OPCODE_COPY_STACK:
-		case OPCODE_COPY_STACK_LONG:
-			return copy_stack_opcode("COPY STACK", index, chunk, opcode);
+			return global_opcode("GET GLOBAL", index, chunk, opcode);
+		case OPCODE_LOCAL:
+		case OPCODE_LOCAL_LONG:
+			return local_opcode("GET LOCAL", index, chunk, opcode);
 		case OPCODE_POP_SCOPE:
 		case OPCODE_POP_SCOPE_LONG:
 			return pop_scope_opcode("POP", index, chunk, opcode);

@@ -116,11 +116,11 @@ void chunk_local(chunk_t* chunk, int depth, int index)
 	// Store the appropriate load instruction
 	if (total < 256)
 	{
-		write_chunk(chunk, OPCODE_COPY_STACK);
+		write_chunk(chunk, OPCODE_LOCAL);
 		write_chunk(chunk, total);
 	} else
 	{
-		write_chunk(chunk, OPCODE_COPY_STACK_LONG);
+		write_chunk(chunk, OPCODE_LOCAL_LONG);
 		write_chunk(chunk, (total      ) & 0xFF);
 		write_chunk(chunk, (total >>  8) & 0xFF);
 		write_chunk(chunk, (total >> 16) & 0xFF);

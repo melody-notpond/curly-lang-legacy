@@ -45,16 +45,16 @@ enum
 	// MOD i64 i64 - finds the remainder of the integer division
 	OPCODE_MOD				= 0b00010100,
 
-	// GLOBAL SET VALUE - pops the stack and creates a global
+	// SET GLOBAL VALUE - pops the stack and creates a global
 	OPCODE_SET_GLOBAL		= 0b00010101,
 
 	// GLOBAL VALUE - pushes a global onto the stack
 	OPCODE_GLOBAL			= 0b00010110,
 	OPCODE_GLOBAL_LONG		= 0b00010111,
 
-	// COPY STACK VALUE - copies a value below the stack pointer
-	OPCODE_COPY_STACK		= 0b00011000,
-	OPCODE_COPY_STACK_LONG	= 0b00011001,
+	// LOCAL VALUE - pushes a local variable onto the stack
+	OPCODE_LOCAL			= 0b00011000,
+	OPCODE_LOCAL_LONG		= 0b00011001,
 
 	// POP SCOPE VALUE - pops the next few values on the stack without poping the top
 	OPCODE_POP_SCOPE		= 0b00011010,
