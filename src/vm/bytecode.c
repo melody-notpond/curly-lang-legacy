@@ -99,19 +99,27 @@ void chunk_global(chunk_t* chunk, char* name)
 }
 #include <stdio.h>
 
-// chunk_local(chunk_t*, int, int) -> void
-// Writes the appropriate instruction to copy a local to the top of the stack.
-void chunk_local(chunk_t* chunk, int depth, int index)
+// get_stack_offset(struct s_chunk_scope*, int, int) -> int
+// Calculates the offset between the top of stack and the local desired.
+int get_stack_offset(struct s_chunk_scope* scope, int depth, int index)
 {
 	int total = -index;
 
 	// Iterate over every scope up to the depth specified and find the stack difference
-	struct s_chunk_scope* s = chunk->scope;
-	while (1 + depth-- && s != NULL)
+	while (1 + depth-- && scope != NULL)
 	{
-		total += s->stack_count;
-		s = s->last;
+		total += scope->stack_count;
+		scope = scope->last;
 	}
+
+	return total;
+}
+
+// chunk_get_local(chunk_t*, int, int) -> void
+// Writes the appropriate instruction to copy a local to the top of the stack.
+void chunk_get_local(chunk_t* chunk, int depth, int index)
+{
+	int total = get_stack_offset(chunk->scope, depth, index);
 
 	// Store the appropriate load instruction
 	if (total < 256)
@@ -121,6 +129,30 @@ void chunk_local(chunk_t* chunk, int depth, int index)
 	} else
 	{
 		write_chunk(chunk, OPCODE_LOCAL_LONG);
+		write_chunk(chunk, (total      ) & 0xFF);
+		write_chunk(chunk, (total >>  8) & 0xFF);
+		write_chunk(chunk, (total >> 16) & 0xFF);
+	}
+
+	// Update the number of items on the stack
+	if (chunk->scope != NULL)
+		chunk->scope->stack_count++;
+}
+
+// chunk_set_local(chunk_t*, int, int) -> void
+// Writes the appropriate instruction to set a local's value.
+void chunk_set_local(chunk_t* chunk, int depth, int index)
+{
+	int total = get_stack_offset(chunk->scope, depth, index);
+
+	// Store the appropriate load instruction
+	if (total < 256)
+	{
+		write_chunk(chunk, OPCODE_SET_LOCAL);
+		write_chunk(chunk, total);
+	} else
+	{
+		write_chunk(chunk, OPCODE_SET_LOCAL_LONG);
 		write_chunk(chunk, (total      ) & 0xFF);
 		write_chunk(chunk, (total >>  8) & 0xFF);
 		write_chunk(chunk, (total >> 16) & 0xFF);

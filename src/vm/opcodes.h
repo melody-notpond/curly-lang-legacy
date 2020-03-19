@@ -56,12 +56,16 @@ enum
 	OPCODE_LOCAL			= 0b00011000,
 	OPCODE_LOCAL_LONG		= 0b00011001,
 
+	// SET LOCAL VALUE - sets the value of a local variable
+	OPCODE_SET_LOCAL		= 0b00011010,
+	OPCODE_SET_LOCAL_LONG	= 0b00011011,
+
 	// POP SCOPE VALUE - pops the next few values on the stack without poping the top
-	OPCODE_POP_SCOPE		= 0b00011010,
-	OPCODE_POP_SCOPE_LONG	= 0b00011011,
+	OPCODE_POP_SCOPE		= 0b00011100,
+	OPCODE_POP_SCOPE_LONG	= 0b00011101,
 
 	// POP - discards the top value on the stack
-	OPCODE_POP				= 0b00011100,
+	OPCODE_POP				= 0b00011110,
 
 	// PRINT str - prints a string
 	// PRINT i64 - prints an integer

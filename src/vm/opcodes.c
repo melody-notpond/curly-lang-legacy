@@ -184,6 +184,31 @@ int opcode_local_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
+// SET LOCAL VALUE
+// Implements setting a local variable.
+int opcode_set_local_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	bool long_op = opcode & 1;
+
+	// Get the offset
+	int offset = *(++pc);
+	if (long_op)
+	{
+		offset |= *(++pc) <<  8;
+		offset |= *(++pc) << 16;
+	}
+
+	// Get the address and set the local if valid
+	cvalue_t* addr = vm->tos - offset;
+	if (addr < vm->stack)
+	{
+		puts("Error: Stack underflow!");
+		vm->running = false;
+	} else *addr = vm_peak(vm, 1);
+
+	return 2 << long_op;
+}
+
 // POP SCOPE VALUE
 // Implements popping a number of values below the stack pointer.
 int opcode_pop_scope_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
@@ -282,6 +307,8 @@ void init_opcodes()
 
 	opcode_funcs[OPCODE_LOCAL			] = opcode_local_func;
 	opcode_funcs[OPCODE_LOCAL_LONG		] = opcode_local_func;
+	opcode_funcs[OPCODE_SET_LOCAL		] = opcode_set_local_func;
+	opcode_funcs[OPCODE_SET_LOCAL_LONG	] = opcode_set_local_func;
 	opcode_funcs[OPCODE_POP_SCOPE		] = opcode_pop_scope_func;
 	opcode_funcs[OPCODE_POP_SCOPE_LONG	] = opcode_pop_scope_func;
 
