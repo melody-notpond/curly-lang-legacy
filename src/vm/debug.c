@@ -108,7 +108,7 @@ int global_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 }
 
 // local_opcode(char*, int, chunk_t*, uint8_t) -> int
-// Disassembles a set local opcode.
+// Disassembles a set/get local opcode.
 int local_opcode(char* name, int index, chunk_t* chunk, uint8_t opcode)
 {
 	// Print out the name
@@ -215,6 +215,9 @@ int dis_opcode(chunk_t* chunk, int index, int* global_count)
 		case OPCODE_LOCAL:
 		case OPCODE_LOCAL_LONG:
 			return local_opcode("GET LOCAL", index, chunk, opcode);
+		case OPCODE_SET_LOCAL:
+		case OPCODE_SET_LOCAL_LONG:
+			return local_opcode("SET LOCAL", index, chunk, opcode);
 		case OPCODE_POP_SCOPE:
 		case OPCODE_POP_SCOPE_LONG:
 			return pop_scope_opcode("POP", index, chunk, opcode);
