@@ -125,14 +125,6 @@ int opcode_mod_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 1;
 }
 
-// POP
-// Implements discarding values on the stack.
-int opcode_pop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
-{
-	vm_pop(vm);
-	return 1;
-}
-
 // GLOBAL SET VALUE
 // Implements creating global variables.
 int opcode_set_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
@@ -167,9 +159,9 @@ int opcode_global_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
-// COPY STACK VALUE
-// Implements copying a value under the stack pointer onto the stack.
-int opcode_copy_stack(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+// LOCAL VALUE
+// Implements getting a local variable.
+int opcode_local_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
 	bool long_op = opcode & 1;
 
@@ -192,9 +184,34 @@ int opcode_copy_stack(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	return 2 << long_op;
 }
 
+// SET LOCAL VALUE
+// Implements setting a local variable.
+int opcode_set_local_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	bool long_op = opcode & 1;
+
+	// Get the offset
+	int offset = *(++pc);
+	if (long_op)
+	{
+		offset |= *(++pc) <<  8;
+		offset |= *(++pc) << 16;
+	}
+
+	// Get the address and set the local if valid
+	cvalue_t* addr = vm->tos - offset;
+	if (addr < vm->stack)
+	{
+		puts("Error: Stack underflow!");
+		vm->running = false;
+	} else *addr = vm_peak(vm, 1);
+
+	return 2 << long_op;
+}
+
 // POP SCOPE VALUE
 // Implements popping a number of values below the stack pointer.
-int opcode_pop_scope(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+int opcode_pop_scope_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 {
 	cvalue_t top = vm_pop(vm);
 	bool long_op = opcode & 1;
@@ -213,6 +230,14 @@ int opcode_pop_scope(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
 	vm_push(vm, top);
 
 	return 2 | long_op;
+}
+
+// POP
+// Implements discarding values on the stack.
+int opcode_pop_func(CurlyVM* vm, uint8_t opcode, uint8_t* pc)
+{
+	vm_pop(vm);
+	return 1;
 }
 
 // PRINT str
@@ -280,10 +305,12 @@ void init_opcodes()
 	opcode_funcs[OPCODE_GLOBAL			] = opcode_global_func;
 	opcode_funcs[OPCODE_GLOBAL_LONG		] = opcode_global_func;
 
-	opcode_funcs[OPCODE_COPY_STACK		] = opcode_copy_stack;
-	opcode_funcs[OPCODE_COPY_STACK_LONG	] = opcode_copy_stack;
-	opcode_funcs[OPCODE_POP_SCOPE		] = opcode_pop_scope;
-	opcode_funcs[OPCODE_POP_SCOPE_LONG	] = opcode_pop_scope;
+	opcode_funcs[OPCODE_LOCAL			] = opcode_local_func;
+	opcode_funcs[OPCODE_LOCAL_LONG		] = opcode_local_func;
+	opcode_funcs[OPCODE_SET_LOCAL		] = opcode_set_local_func;
+	opcode_funcs[OPCODE_SET_LOCAL_LONG	] = opcode_set_local_func;
+	opcode_funcs[OPCODE_POP_SCOPE		] = opcode_pop_scope_func;
+	opcode_funcs[OPCODE_POP_SCOPE_LONG	] = opcode_pop_scope_func;
 
 	opcode_funcs[OPCODE_POP				] = opcode_pop_func;
 
