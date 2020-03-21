@@ -151,16 +151,21 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 // Compiles a with expression subtree into bytecode.
 curly_type_t with_chunk(vm_compiler_t* state, ast_t* tree)
 {
+	// Create the scope
 	push_scope(&state->state.scope, false);
 	chunk_push_scope(state->chunk);
 
 	for (int i = 0; i < tree->children_count - 1; i++)
 	{
+		// Figure out the assignments
 		assign_chunk(state, tree->children + i, true);
 		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
 	}
 
+	// Evaluate the expression
 	curly_type_t r = tree_chunk(state, tree->children + tree->children_count - 1);
+
+	// Pop the scope
 	chunk_pop_scope(state->chunk);
 	pop_scope(&state->state.scope);
 	return r;
@@ -212,7 +217,7 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		// Add a double load instruction
 		chunk_add_f64(state->chunk, atof (tree->value));
 		return SCOPE_CURLY_TYPE_FLOAT;
-	} else if (!strcmp(name, "string"))
+	} /* else if (!strcmp(name, "string"))
 	{
 		// Allocate a copy
 		char* str = tree->value + 1;
@@ -259,7 +264,7 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		chunk_add_string(state->chunk, copy);
 		free(copy);
 		return SCOPE_CURLY_TYPE_STRING;
-	} else if (!strcmp(name, "infix"))
+	} */ else if (!strcmp(name, "infix"))
 		// Compile the infix subtree
 		return infix_chunk(state, tree);
 	else if (!strcmp(name, "assign"))
