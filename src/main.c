@@ -61,7 +61,6 @@ void repl()
 				vm_load(&vm, &chunk);
 				vm_run(&vm);
 				vm_reset(&vm);
-				clean_chunk(&chunk, false);
 			} else
 			{
 				// Some error occured
@@ -71,6 +70,8 @@ void repl()
 				state.state.type_cause = SCOPE_CURLY_TYPE_DNE;
 				state.state.status = 0;
 			}
+
+			clean_chunk(&chunk, false);
 		}
 
 		// Clean up

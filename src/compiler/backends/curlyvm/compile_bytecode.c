@@ -72,16 +72,23 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 // Compiles an assignment subtree into bytecode.
 curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 {
-	 if (tree->children_count != 2)
-	 {
-		 state->state.cause = tree;
-		 return SCOPE_CURLY_TYPE_DNE;
-	 }
+	// For now, functions are errors
+	if (tree->children_count != 2)
+	{
+		state->state.cause = tree;
+		return SCOPE_CURLY_TYPE_DNE;
+	}
+
+	// Find the variable name
+	ast_t* symbol = tree->children + 0;
+
+	// Find the type
+	curly_type_t type = tree_chunk(state, tree->children + 1);
+	if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
 
 	if (state->state.scope.local->last == NULL)
 	{
 		// Search for the global
-		ast_t* symbol = tree->children + 0;
 		int index = search_global(&state->state.scope, symbol->value);
 
 		// If the global exists, error
@@ -93,38 +100,50 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 			return SCOPE_CURLY_TYPE_DNE;
 		}
 
-		// Find the type
-		curly_type_t type = tree_chunk(state, tree->children + 1);
-		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
-
 		// Create the global
 		chunk_global(state->chunk, symbol->value);
 		add_variable(&state->state.scope, symbol->value, type);
 		return SCOPE_CURLY_TYPE_DNE;
 	} else if (with)
 	{
-		// Find the type
-		curly_type_t type = tree_chunk(state, tree->children + 1);
-		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
-
-		// Add for the local
-		ast_t* symbol = tree->children + 0;
+		// Add the variable
 		if (!add_variable(&state->state.scope, symbol->value, type))
 		{
-			// Assigning a variable twice within the same with expression is an error (for now)
+			// If the variable wasn't added, check that the types are the same
+			struct s_local_search_res res = search_local(&state->state.scope, symbol->value);
+
+			if (res.type != type)
+			{
+				// Assigning a variable to a different type is illegal
+				state->state.cause = symbol;
+				state->state.status = -1;
+				state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+				return SCOPE_CURLY_TYPE_DNE;
+			}
+
+			// Assign the variable
+			chunk_set_local(state->chunk, res.depth, res.index);
+			chunk_opcode(state->chunk, OPCODE_POP);
+		}
+		return SCOPE_CURLY_TYPE_DNE;
+	} else
+	{
+		// Search for the local
+		struct s_local_search_res res = search_local(&state->state.scope, symbol->value);
+
+		if (res.type == SCOPE_CURLY_TYPE_DNE || res.type != type)
+		{
+			// Assigning a variable to a different type is illegal
+			// Also, since this isn't a with statement, we can't declare variables
 			state->state.cause = symbol;
 			state->state.status = -1;
 			state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
 			return SCOPE_CURLY_TYPE_DNE;
 		}
-		return SCOPE_CURLY_TYPE_DNE;
-	} else
-	{
-		// We're not gonna worry about assigning outside of declarations for now
-		// This will be possible in the future
-		// I just have to implement the opcode that lets you do this
-		state->state.cause = tree;
-		return SCOPE_CURLY_TYPE_DNE;
+
+		// Assign the variable
+		chunk_set_local(state->chunk, res.depth, res.index);
+		return type;
 	}
 }
 
@@ -180,7 +199,7 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		} else
 		{
 			// We found a local!
-			chunk_local(state->chunk, res.depth, res.index);
+			chunk_get_local(state->chunk, res.depth, res.index);
 			return res.type;
 		}
 	} else if (!strcmp(name, "int"))
