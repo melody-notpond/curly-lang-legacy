@@ -157,10 +157,6 @@ void chunk_set_local(chunk_t* chunk, int depth, int index)
 		write_chunk(chunk, (total >>  8) & 0xFF);
 		write_chunk(chunk, (total >> 16) & 0xFF);
 	}
-
-	// Update the number of items on the stack
-	if (chunk->scope != NULL)
-		chunk->scope->stack_count++;
 }
 
 // chunk_add_constant(chunk_t*, cvalue_t) -> void
