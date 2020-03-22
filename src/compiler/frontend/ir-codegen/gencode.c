@@ -6,7 +6,6 @@
 // March 21 2020
 //
 
-#include "../correctness/compiler_struct.h"
 #include "gencode.h"
 
 // tree_ir(compiler_t*, ast_t*) -> void
@@ -46,22 +45,36 @@ void tree_ir(compiler_t* state, ast_t* tree)
 void convert_tree_ir(compiler_t* state, parse_result_t* result)
 {
 	// Only compile successfully parsed trees
+	init_compiler_state(state);
 	if (!result->succ)
-		return;
+		return NULL;
 
 	ast_t root = result->ast;
+
 	if (!strcmp(root.name, "root"))
 	{
 		for (int i = 0; i < root.children_count; i++)
 		{
 			// Compile every subtree of the root node
 			tree_ir(state, root.children + i);
-			if (state->cause) return;
+
+			// Error result
+			if (state->cause)
+			{
+				clean_ir(&state->ir);
+				return;
+			}
 		}
 	} else
 	{
 		// Compile the root node
 		tree_ir(state, &root);
-		if (state->cause) return;
+
+		// Error result
+		if (state->cause)
+		{
+			clean_ir(&state->ir);
+			return;
+		}
 	}
 }

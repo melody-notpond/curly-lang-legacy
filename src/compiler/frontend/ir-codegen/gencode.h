@@ -9,8 +9,11 @@
 #ifndef gencode_h
 #define gencode_h
 
+#include "../correctness/compiler_struct.h"
 #include "combinator.h"
-#include "ir.h"
 
+// convert_tree_ir(compiler_t*, parse_result_t*) -> void
+// Converts the ast into ir.
+void convert_tree_ir(compiler_t* state, parse_result_t* result);
 
 #endif /* gencode_h */
