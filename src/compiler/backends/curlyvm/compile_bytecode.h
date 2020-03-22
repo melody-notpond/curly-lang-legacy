@@ -10,7 +10,7 @@
 #define compile_bytecode_h
 
 #include "combinator.h"
-#include "../../frontend/compiler_struct.h"
+#include "../../frontend/correctness/compiler_struct.h"
 #include "../../../vm/bytecode.h"
 
 // Represents the compiler state.

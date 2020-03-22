@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "compiler/backends/curlyvm/compile_bytecode.h"
-#include "compiler/frontend/parser.h"
+#include "compiler/frontend/parse/parser.h"
 #include "vm/debug.h"
 #include "vm/vm.h"
 

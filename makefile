@@ -32,7 +32,12 @@ main: $(CODE)*.c
 
 compile: frontend backends
 
-frontend: $(CODE)compiler/frontend/*.c
+frontend: correctness parse
+
+correctness: $(CODE)compiler/frontend/correctness/*.c
+	$(CC) $(CFLAGS) -c $?
+
+parse: $(CODE)compiler/frontend/parse/*.c
 	$(CC) $(CFLAGS) -c $?
 
 backends: curlyvm
