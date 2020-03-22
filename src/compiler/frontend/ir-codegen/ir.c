@@ -6,6 +6,7 @@
 // March 21 2020
 //
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "ir.h"
@@ -51,8 +52,8 @@ curly_ir_t init_ir()
 	curly_ir_t ir;
 	ir.blocks = malloc(sizeof(ir_block_t));
 	*ir.blocks = init_ir_block();
-	ir.count = 0;
-	ir.size = 0;
+	ir.count = 1;
+	ir.size = 1;
 	return ir;
 }
 
@@ -79,6 +80,29 @@ void add_line(curly_ir_t* ir, ir_line_t* line)
 }
 
 #undef append_element
+
+// print_ir(curly_ir_t*) -> void
+// Prints ir code to stdout.
+void print_ir(curly_ir_t* ir)
+{
+	for (int i = 0; i < ir->count; i++)
+	{
+		ir_block_t* block = ir->blocks + i;
+		for (int j = 0; j < block->count; j++)
+		{
+			// Print out the line
+			ir_line_t* line = block->lines + j;
+			printf("%s", line->op);
+
+			// Print out any arguments
+			if (line->args[0].value != NULL)
+				printf(" %s", line->args[0].value);
+			if (line->args[1].value != NULL)
+				printf(" %s", line->args[1].value);
+			puts("");
+		}
+	}
+}
 
 // clean_ir(curly_ir_t*) -> void
 // Cleans an ir.

@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 
 		// Print out the result
 		if (state.cause == NULL)
-			puts("yay!");
+			print_ir(&state.ir);
 
 		// Clean up
 		clean_ir(&state.ir);

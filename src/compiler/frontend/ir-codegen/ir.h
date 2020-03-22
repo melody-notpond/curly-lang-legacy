@@ -85,6 +85,10 @@ curly_ir_t init_ir();
 // Adds a new line to the current block.
 void add_line(curly_ir_t* ir, ir_line_t* line);
 
+// print_ir(curly_ir_t*) -> void
+// Prints ir code to stdout.
+void print_ir(curly_ir_t* ir);
+
 // clean_ir(curly_ir_t*) -> void
 // Cleans an ir.
 void clean_ir(curly_ir_t* ir);
