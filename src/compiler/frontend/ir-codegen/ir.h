@@ -9,14 +9,14 @@
 #ifndef curly_ir_h
 #define curly_ir_h
 
-#include <inttypes.h>
+#include "../correctness/scopes.h"
 #include <stdbool.h>
 
 // Represents an argument to a line of ir code.
 typedef struct
 {
 	// The type of the argument.
-	int8_t type;
+	curly_type_t type;
 
 	// The value of the argument.
 	char* value;
@@ -30,7 +30,17 @@ typedef struct
 
 	// The arguments of the line.
 	ir_arg_t args[2];
+
+	// The output type of the instruction.
+	curly_type_t type;
 } ir_line_t;
+
+typedef enum
+{
+	BLOCK_JUMP_TYPE_ALWAYS,
+	BLOCK_JUMP_TYPE_TRUE,
+	BLOCK_JUMP_TYPE_FALSE
+} block_jump_type_t;
 
 // Represents a basic block of ir code.
 // A basic block is a block of code in which there are no jumps.
@@ -46,7 +56,7 @@ typedef struct s_ir_block
 	int size;
 
 	// The type of the jump.
-	int8_t jump_type;
+	block_jump_type_t jump_type;
 
 	// The block that this block jumps to.
 	struct s_ir_block* cond_jump;

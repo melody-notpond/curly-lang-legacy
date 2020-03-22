@@ -14,10 +14,10 @@
 // Represents a type.
 typedef enum
 {
-	SCOPE_CURLY_TYPE_DNE,
-	SCOPE_CURLY_TYPE_INT,
-	SCOPE_CURLY_TYPE_FLOAT,
-	SCOPE_CURLY_TYPE_STRING
+	CURLY_TYPE_DNE,
+	CURLY_TYPE_INT,
+	CURLY_TYPE_FLOAT,
+	CURLY_TYPE_STRING
 } curly_type_t;
 
 // Represents a single scope.
@@ -70,16 +70,20 @@ struct s_local_search_res
 };
 
 // search_local(scopes_t*, char*) -> struct s_local_search_res
-// Searches for a variable name in the locals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+// Searches for a variable name in the locals. Returns CURLY_TYPE_DNE if not found.
 struct s_local_search_res search_local(scopes_t* scopes, char* name);
 
 // search_global(scopes_t*, char*) -> int
-// Searches for a variable name in the globals. Returns SCOPE_CURLY_TYPE_DNE if not found.
+// Searches for a variable name in the globals. Returns CURLY_TYPE_DNE if not found.
 int search_global(scopes_t* scopes, char* name);
 
 // pop_scope(scopes_t*) -> bool
 // Pops a scope from a stack of scopes. Returns true if a local scope was popped.
 bool pop_scope(scopes_t* scopes);
+
+// curly_type_as_string(curly_type_t) -> char*
+// Returns a curly type as a string for printing.
+char* curly_type_as_string(curly_type_t type);
 
 // clean_scopes(scopes_t*) -> void
 // Cleans a stack of scopes.

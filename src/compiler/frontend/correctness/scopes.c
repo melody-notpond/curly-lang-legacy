@@ -86,7 +86,7 @@ struct s_local_search_res search_local(scopes_t* scopes, char* name)
 
 		// Local does not exist
 		if (local->call || local->last == NULL)
-		return (struct s_local_search_res) {-1, -1, SCOPE_CURLY_TYPE_DNE};
+		return (struct s_local_search_res) {-1, -1, CURLY_TYPE_DNE};
 
 		// Keep searching
 		else local = local->last;
@@ -94,7 +94,7 @@ struct s_local_search_res search_local(scopes_t* scopes, char* name)
 	}
 
 	// At this point, we're in the global scope
-	return (struct s_local_search_res) {-1, -1, SCOPE_CURLY_TYPE_DNE};
+	return (struct s_local_search_res) {-1, -1, CURLY_TYPE_DNE};
 }
 
 // search_global(scopes_t*, char*) -> int
@@ -137,6 +137,23 @@ bool pop_scope(scopes_t* scopes)
 	free(local->types);
 	free(local);
 	return true;
+}
+
+// curly_type_as_string(curly_type_t) -> char*
+// Returns a curly type as a string for printing.
+char* curly_type_as_string(curly_type_t type)
+{
+	switch (type)
+	{
+		case CURLY_TYPE_INT:
+			return "i64";
+		case CURLY_TYPE_FLOAT:
+			return "f64";
+		case CURLY_TYPE_STRING:
+			return "str";
+		default:
+			return "";
+	}
 }
 
 // clean_scopes(scopes_t*) -> void

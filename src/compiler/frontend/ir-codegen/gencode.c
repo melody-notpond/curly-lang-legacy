@@ -18,21 +18,21 @@ void tree_ir(compiler_t* state, ast_t* tree)
 	if (!strcmp(name, "int"))
 	{
 		// Integer constant
-		line.op = strdup("i64");
-		line.args[0].type = SCOPE_CURLY_TYPE_INT;
+		line.op = strdup("load");
 		line.args[0].value = strdup(tree->value);
+		line.type = CURLY_TYPE_INT;
 	} else if (!strcmp(name, "float"))
 	{
 		// Floating point constant
-		line.op = strdup("f64");
-		line.args[0].type = SCOPE_CURLY_TYPE_INT;
+		line.op = strdup("load");
 		line.args[0].value = strdup(tree->value);
+		line.type = CURLY_TYPE_FLOAT;
 	} else
 	{
 		// Invalid form
 		puts("Error: Invalid syntax tree passed");
 		state->cause = tree;
-		state->type_cause = SCOPE_CURLY_TYPE_DNE;
+		state->type_cause = CURLY_TYPE_DNE;
 		state->status = -1;
 		return;
 	}

@@ -16,7 +16,7 @@
 ir_arg_t init_ir_arg()
 {
 	ir_arg_t arg;
-	arg.type = 0;
+	arg.type = CURLY_TYPE_DNE;
 	arg.value = NULL;
 	return arg;
 }
@@ -29,6 +29,7 @@ ir_line_t init_ir_line()
 	line.op = NULL;
 	line.args[0] = init_ir_arg();
 	line.args[1] = init_ir_arg();
+	line.type = CURLY_TYPE_DNE;
 	return line;
 }
 
@@ -40,7 +41,7 @@ ir_block_t init_ir_block()
 	block.lines = NULL;
 	block.count = 0;
 	block.size = 0;
-	block.jump_type = 0;
+	block.jump_type = BLOCK_JUMP_TYPE_ALWAYS;
 	block.cond_jump = NULL;
 	return block;
 }
@@ -90,15 +91,26 @@ void print_ir(curly_ir_t* ir)
 		ir_block_t* block = ir->blocks + i;
 		for (int j = 0; j < block->count; j++)
 		{
-			// Print out the line
+			// Print out the operation
 			ir_line_t* line = block->lines + j;
 			printf("%s", line->op);
+			if (line->type != CURLY_TYPE_DNE)
+				printf(":%s", curly_type_as_string(line->type));
 
-			// Print out any arguments
-			if (line->args[0].value != NULL)
-				printf(" %s", line->args[0].value);
-			if (line->args[1].value != NULL)
-				printf(" %s", line->args[1].value);
+			// Print the arguments
+			for (int i = 0; i < 2; i++)
+			{
+				ir_arg_t arg = line->args[i];
+				bool has_type = arg.type != CURLY_TYPE_DNE;
+
+				// The value of the argument
+				if (arg.value != NULL)
+					printf(" %s%s", arg.value, (has_type ? ":" : ""));
+
+				// The type of the argument
+				if (arg.type != CURLY_TYPE_DNE)
+					printf(" %s", curly_type_as_string(arg.type));
+			}
 			puts("");
 		}
 	}

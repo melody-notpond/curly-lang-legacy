@@ -16,20 +16,20 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree);
 // Compiles an infix subtree into bytecode.
 curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 {
-	curly_type_t left = SCOPE_CURLY_TYPE_INT;
+	curly_type_t left = CURLY_TYPE_INT;
 	for (int i = 0; i < tree->children_count; i += 2)
 	{
 		// Add operands to the chunk
 		curly_type_t right = tree_chunk(state, tree->children + i);
-		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+		if (state->state.cause) return CURLY_TYPE_DNE;
 
 		// Check return type
-		if (right != SCOPE_CURLY_TYPE_INT && right != SCOPE_CURLY_TYPE_FLOAT)
+		if (right != CURLY_TYPE_INT && right != CURLY_TYPE_FLOAT)
 		{
 			state->state.cause = tree->children + i;
 			state->state.type_cause = right;
 			state->state.status = -1;
-			return SCOPE_CURLY_TYPE_DNE;
+			return CURLY_TYPE_DNE;
 		}
 
 		if (i != 0)
@@ -38,7 +38,7 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 			ast_t* op = tree->children + i - 1;
 
 			// Write the appropriate opcode
-			uint8_t option = (left == SCOPE_CURLY_TYPE_FLOAT) << 1 | (right == SCOPE_CURLY_TYPE_FLOAT);
+			uint8_t option = (left == CURLY_TYPE_FLOAT) << 1 | (right == CURLY_TYPE_FLOAT);
 			if (!strcmp(op->value, "*"))
 				chunk_opcode(state->chunk, OPCODE_MUL_I64_I64 | option);
 			else if (!strcmp(op->value, "/"))
@@ -52,17 +52,17 @@ curly_type_t infix_chunk(vm_compiler_t* state, ast_t* tree)
 				// Modulo only takes in integers
 				if (option)
 				{
-					state->state.cause = op + (left == SCOPE_CURLY_TYPE_FLOAT ? -1 : 1);
-					state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
+					state->state.cause = op + (left == CURLY_TYPE_FLOAT ? -1 : 1);
+					state->state.type_cause = CURLY_TYPE_FLOAT;
 					state->state.status = -1;
-					return SCOPE_CURLY_TYPE_DNE;
+					return CURLY_TYPE_DNE;
 				}
 				chunk_opcode(state->chunk, OPCODE_MOD);
 			}
 		}
 
 		// Update the left side
-		if (right == SCOPE_CURLY_TYPE_FLOAT)
+		if (right == CURLY_TYPE_FLOAT)
 			left = right;
 	}
 	return left;
@@ -76,7 +76,7 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 	if (tree->children_count != 2)
 	{
 		state->state.cause = tree;
-		return SCOPE_CURLY_TYPE_DNE;
+		return CURLY_TYPE_DNE;
 	}
 
 	// Find the variable name
@@ -84,7 +84,7 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 
 	// Find the type
 	curly_type_t type = tree_chunk(state, tree->children + 1);
-	if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+	if (state->state.cause) return CURLY_TYPE_DNE;
 
 	if (state->state.scope.local->last == NULL)
 	{
@@ -95,15 +95,15 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 		if (index != -1)
 		{
 			state->state.cause = symbol;
-			state->state.type_cause = SCOPE_CURLY_TYPE_FLOAT;
+			state->state.type_cause = CURLY_TYPE_FLOAT;
 			state->state.status = -1;
-			return SCOPE_CURLY_TYPE_DNE;
+			return CURLY_TYPE_DNE;
 		}
 
 		// Create the global
 		chunk_global(state->chunk, symbol->value);
 		add_variable(&state->state.scope, symbol->value, type);
-		return SCOPE_CURLY_TYPE_DNE;
+		return CURLY_TYPE_DNE;
 	} else if (with)
 	{
 		// Add the variable
@@ -117,28 +117,28 @@ curly_type_t assign_chunk(vm_compiler_t* state, ast_t* tree, bool with)
 				// Assigning a variable to a different type is illegal
 				state->state.cause = symbol;
 				state->state.status = -1;
-				state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
-				return SCOPE_CURLY_TYPE_DNE;
+				state->state.type_cause = CURLY_TYPE_DNE;
+				return CURLY_TYPE_DNE;
 			}
 
 			// Assign the variable
 			chunk_set_local(state->chunk, res.depth, res.index);
 			chunk_opcode(state->chunk, OPCODE_POP);
 		}
-		return SCOPE_CURLY_TYPE_DNE;
+		return CURLY_TYPE_DNE;
 	} else
 	{
 		// Search for the local
 		struct s_local_search_res res = search_local(&state->state.scope, symbol->value);
 
-		if (res.type == SCOPE_CURLY_TYPE_DNE || res.type != type)
+		if (res.type == CURLY_TYPE_DNE || res.type != type)
 		{
 			// Assigning a variable to a different type is illegal
 			// Also, since this isn't a with statement, we can't declare variables
 			state->state.cause = symbol;
 			state->state.status = -1;
-			state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
-			return SCOPE_CURLY_TYPE_DNE;
+			state->state.type_cause = CURLY_TYPE_DNE;
+			return CURLY_TYPE_DNE;
 		}
 
 		// Assign the variable
@@ -159,7 +159,7 @@ curly_type_t with_chunk(vm_compiler_t* state, ast_t* tree)
 	{
 		// Figure out the assignments
 		assign_chunk(state, tree->children + i, true);
-		if (state->state.cause) return SCOPE_CURLY_TYPE_DNE;
+		if (state->state.cause) return CURLY_TYPE_DNE;
 	}
 
 	// Evaluate the expression
@@ -183,7 +183,7 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		// Find the local
 		struct s_local_search_res res = search_local(&state->state.scope, var);
 
-		if (res.type == SCOPE_CURLY_TYPE_DNE)
+		if (res.type == CURLY_TYPE_DNE)
 		{
 			// Find the global since the local doesn't exist
 			int index = search_global(&state->state.scope, var);
@@ -198,8 +198,8 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 				// The variable doesn't exist
 				state->state.cause = tree;
 				state->state.status = -1;
-				state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
-				return SCOPE_CURLY_TYPE_DNE;
+				state->state.type_cause = CURLY_TYPE_DNE;
+				return CURLY_TYPE_DNE;
 			}
 		} else
 		{
@@ -211,12 +211,12 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 	{
 		// Add an integer load instruction
 		chunk_add_i64(state->chunk, atoll(tree->value));
-		return SCOPE_CURLY_TYPE_INT;
+		return CURLY_TYPE_INT;
 	} else if (!strcmp(name, "float"))
 	{
 		// Add a double load instruction
 		chunk_add_f64(state->chunk, atof (tree->value));
-		return SCOPE_CURLY_TYPE_FLOAT;
+		return CURLY_TYPE_FLOAT;
 	} /* else if (!strcmp(name, "string"))
 	{
 		// Allocate a copy
@@ -263,7 +263,7 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		*cp_i = '\0';
 		chunk_add_string(state->chunk, copy);
 		free(copy);
-		return SCOPE_CURLY_TYPE_STRING;
+		return CURLY_TYPE_STRING;
 	} */ else if (!strcmp(name, "infix"))
 		// Compile the infix subtree
 		return infix_chunk(state, tree);
@@ -276,9 +276,9 @@ curly_type_t tree_chunk(vm_compiler_t* state, ast_t* tree)
 		// Invalid form
 		puts("Error: Invalid syntax tree passed");
 		state->state.cause = tree;
-		state->state.type_cause = SCOPE_CURLY_TYPE_DNE;
+		state->state.type_cause = CURLY_TYPE_DNE;
 		state->state.status = -1;
-		return SCOPE_CURLY_TYPE_DNE;
+		return CURLY_TYPE_DNE;
 	}
 }
 
@@ -300,11 +300,11 @@ void compile_tree(vm_compiler_t* state, parse_result_t* result, bool terminate)
 			if (state->state.cause) return;
 
 			// Determine type for printing
-			if (res == SCOPE_CURLY_TYPE_INT)
+			if (res == CURLY_TYPE_INT)
 				chunk_opcode(state->chunk, OPCODE_PRINT_I64);
-			else if (res == SCOPE_CURLY_TYPE_FLOAT)
+			else if (res == CURLY_TYPE_FLOAT)
 				chunk_opcode(state->chunk, OPCODE_PRINT_F64);
-			else if (res == SCOPE_CURLY_TYPE_STRING)
+			else if (res == CURLY_TYPE_STRING)
 				chunk_opcode(state->chunk, OPCODE_PRINT_STR);
 		}
 
@@ -318,11 +318,11 @@ void compile_tree(vm_compiler_t* state, parse_result_t* result, bool terminate)
 		if (state->state.cause) return;
 
 		// Determine the type for printing
-		if (res == SCOPE_CURLY_TYPE_INT)
+		if (res == CURLY_TYPE_INT)
 			chunk_opcode(state->chunk, OPCODE_PRINT_I64);
-		else if (res == SCOPE_CURLY_TYPE_FLOAT)
+		else if (res == CURLY_TYPE_FLOAT)
 			chunk_opcode(state->chunk, OPCODE_PRINT_F64);
-		else if (res == SCOPE_CURLY_TYPE_STRING)
+		else if (res == CURLY_TYPE_STRING)
 			chunk_opcode(state->chunk, OPCODE_PRINT_STR);
 
 		// Optionally add a terminating break instruction
