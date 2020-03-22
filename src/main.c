@@ -37,10 +37,11 @@ int main(int argc, char** argv)
 
 		// Print out the result
 		if (state.cause == NULL)
+		{
 			print_ir(&state.ir);
-
-		// Clean up
-		clean_ir(&state.ir);
+			clean_ir(&state.ir);
+		} else
+			puts("An error occured whilst converting to ir.");
 	}
 
 	// Clean up
