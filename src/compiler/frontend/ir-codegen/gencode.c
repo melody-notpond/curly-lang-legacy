@@ -47,7 +47,7 @@ void convert_tree_ir(compiler_t* state, parse_result_t* result)
 	// Only compile successfully parsed trees
 	init_compiler_state(state);
 	if (!result->succ)
-		return NULL;
+		return;
 
 	ast_t root = result->ast;
 
