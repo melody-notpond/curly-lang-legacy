@@ -16,6 +16,8 @@
 typedef enum
 {
 	COMPILE_STATUS_SUCC,
+	COMPILE_STATUS_INFIX_NOT_NUMBER,
+	COMPILE_STATUS_MOD_WITH_FLOATS
 } compile_status_t;
 
 // Represents the compiler state.
@@ -40,5 +42,9 @@ typedef struct
 // init_compiler_state(compiler_t*) -> void
 // Initialises a compiler state.
 void init_compiler_state(compiler_t* state);
+
+// print_compile_error(compiler_t*, char*, char*) -> void
+// Prints out a message for the compiler.
+void print_compile_error(compiler_t* state, char* file, char* string);
 
 #endif /* compiler_struct_h */

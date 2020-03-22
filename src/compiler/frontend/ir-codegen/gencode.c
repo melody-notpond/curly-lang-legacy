@@ -27,7 +27,7 @@ curly_type_t infix_ir(compiler_t* state, ast_t* tree)
 		{
 			state->cause = tree->children + i;
 			state->type_cause = right;
-			state->status = -1;
+			state->status = COMPILE_STATUS_INFIX_NOT_NUMBER;
 			return CURLY_TYPE_DNE;
 		}
 
@@ -58,7 +58,7 @@ curly_type_t infix_ir(compiler_t* state, ast_t* tree)
 				{
 					state->cause = op + (left == CURLY_TYPE_FLOAT ? -1 : 1);
 					state->type_cause = CURLY_TYPE_FLOAT;
-					state->status = -1;
+					state->status = COMPILE_STATUS_MOD_WITH_FLOATS;
 					return CURLY_TYPE_DNE;
 				} else line.op = strdup("mod");
 			}

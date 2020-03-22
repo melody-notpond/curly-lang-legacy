@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 			print_ir(&state.ir);
 			clean_ir(&state.ir);
 		} else
-			puts("An error occured whilst converting to ir.");
+			print_compile_error(&state, "stdin", argv[1]);
 	}
 
 	// Clean up
