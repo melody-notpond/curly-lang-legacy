@@ -81,6 +81,10 @@ ir_block_t init_ir_block();
 // Initialises an empty ir.
 curly_ir_t init_ir();
 
+// add_line(curly_ir_t*, ir_line_t*) -> void
+// Adds a new line to the current block.
+void add_line(curly_ir_t* ir, ir_line_t* line);
+
 // clean_ir(curly_ir_t*) -> void
 // Cleans an ir.
 void clean_ir(curly_ir_t* ir);

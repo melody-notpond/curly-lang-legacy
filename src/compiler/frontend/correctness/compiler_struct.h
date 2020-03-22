@@ -9,6 +9,7 @@
 #ifndef compiler_struct_h
 #define compiler_struct_h
 
+#include "../ir-codegen/ir.h"
 #include "combinator.h"
 #include "scopes.h"
 
@@ -20,6 +21,9 @@ typedef enum
 // Represents the compiler state.
 typedef struct
 {
+	// The ir being generated.
+	curly_ir_t ir;
+
 	// The current scope.
 	scopes_t scope;
 

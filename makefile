@@ -30,7 +30,7 @@ libcomb.a:
 main: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
 
-compiler: frontend backends
+compiler: frontend # backends
 
 frontend: $(CODE)compiler/frontend/*/*.c
 	$(CC) $(CFLAGS) -c $?

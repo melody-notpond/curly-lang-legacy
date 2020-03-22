@@ -56,13 +56,37 @@ curly_ir_t init_ir()
 	return ir;
 }
 
+// append_element(void*, size_t&, size_t&, type, type_t) -> void
+// Appends an element to a list.
+#define append_element(values, count, size, type, value) do				\
+{																		\
+	/* Resize the list if necessary */									\
+	if (size == 0)														\
+		values = calloc((size = 8), sizeof(type));						\
+	else if (count >= size)												\
+		values = realloc(values, (size <<= 1) * sizeof(type));			\
+																		\
+	/* Append the value */												\
+	values[count++] = value;											\
+} while (0)
+
+// add_line(curly_ir_t*, ir_line_t*) -> void
+// Adds a new line to the current block.
+void add_line(curly_ir_t* ir, ir_line_t* line)
+{
+	ir_block_t* block = ir->blocks + ir->count - 1;
+	append_element(block->lines, block->count, block->size, ir_line_t, *line);
+}
+
+#undef append_element
+
 // clean_ir(curly_ir_t*) -> void
 // Cleans an ir.
 void clean_ir(curly_ir_t* ir)
 {
 	for (int i = 0; i < ir->count; i++)
 	{
-		clean_ir_line(ir->blocks + i);
+		clean_ir_block(ir->blocks + i);
 	}
 }
 
