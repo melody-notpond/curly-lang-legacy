@@ -19,7 +19,7 @@ all: *.o libcomb.a
 debug: *.o debug_libcomb.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
 
-*.o: main compile vm
+*.o: main compiler vm
 
 debug_libcomb.a:
 	cd dep/curly-comb && make -f makefile debug
@@ -30,19 +30,12 @@ libcomb.a:
 main: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
 
-compile: frontend backends
+compiler: frontend backends
 
-frontend: correctness parse
-
-correctness: $(CODE)compiler/frontend/correctness/*.c
+frontend: $(CODE)compiler/frontend/*/*.c
 	$(CC) $(CFLAGS) -c $?
 
-parse: $(CODE)compiler/frontend/parse/*.c
-	$(CC) $(CFLAGS) -c $?
-
-backends: curlyvm
-
-curlyvm: $(CODE)compiler/backends/curlyvm/*.c
+backends: $(CODE)compiler/backends/*/*.c
 	$(CC) $(CFLAGS) -c $?
 
 vm: $(CODE)vm/*.c
