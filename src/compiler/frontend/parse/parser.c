@@ -157,104 +157,47 @@ parse_result_t value(lexer_t* lex)
 	return expr;
 }
 
-// muldiv: value (('*'|'/') value)*
-parse_result_t muldiv(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Get left operand
-	call(left, true, value, lex);
-
-	while (true)
-	{
-		// Push the lexer
-		push_lexer(lex);
-
-		// Get operator and right operand
-		consume(op, false, type, lex, LEX_TYPE_MULDIV);
-		if (!op.succ) break;
-		call(right, true, value, lex);
-
-		// Add left and right operands to the operator ast node
-		op.ast->children_size = 2;
-		op.ast->children = calloc(2, sizeof(ast_t*));
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, left.ast);
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, right.ast);
-
-		// Set left to the current operator
-		left = op;
-	}
-
-	// Return the parsed expression
-	return left;
+#define infix_parser(name, subparser, operator)																						\
+parse_result_t name(lexer_t* lex)																				\
+{																												\
+	/* Push the lexer */																						\
+	push_lexer(lex);																							\
+																												\
+	/* Get left operand */																						\
+	call(left, true, subparser, lex);																			\
+																												\
+	while (true)																								\
+	{																											\
+		/* Push the lexer */																					\
+		push_lexer(lex);																						\
+																												\
+		/* Get operator and right operand */																	\
+		consume(op, false, type, lex, operator);																\
+		if (!op.succ) break;																					\
+		call(right, true, subparser, lex);																		\
+																												\
+		/* Add left and right operands to the operator ast node */												\
+		op.ast->children_size = 2;																				\
+		op.ast->children = calloc(2, sizeof(ast_t*));															\
+		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, left.ast);	\
+		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, right.ast);	\
+																												\
+		/* Set left to the current operator */																	\
+		left = op;																								\
+	}																											\
+																												\
+	/* Return the parsed expression */																			\
+	return left;																								\
 }
+
+// muldiv: value (('*'|'/') value)*
+infix_parser(muldiv, value, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
-parse_result_t addsub(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Get left operand
-	call(left, true, muldiv, lex);
-
-	while (true)
-	{
-		// Push the lexer
-		push_lexer(lex);
-
-		// Get operator and right operand
-		consume(op, false, type, lex, LEX_TYPE_ADDSUB);
-		if (!op.succ) break;
-		call(right, true, muldiv, lex);
-
-		// Add left and right operands to the operator ast node
-		op.ast->children_size = 2;
-		op.ast->children = calloc(2, sizeof(ast_t*));
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, left.ast);
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, right.ast);
-
-		// Set left to the current operator
-		left = op;
-	}
-
-	// Return the parsed expression
-	return left;
-}
+infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 
 // bitshift: addsub (('<<'|'>>') addsub)*
-parse_result_t bitshift(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Get left operand
-	call(left, true, addsub, lex);
-
-	while (true)
-	{
-		// Push the lexer
-		push_lexer(lex);
-
-		// Get operator and right operand
-		consume(op, false, type, lex, LEX_TYPE_BITSHIFT);
-		if (!op.succ) break;
-		call(right, true, addsub, lex);
-
-		// Add left and right operands to the operator ast node
-		op.ast->children_size = 2;
-		op.ast->children = calloc(2, sizeof(ast_t*));
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, left.ast);
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, right.ast);
-
-		// Set left to the current operator
-		left = op;
-	}
-
-	// Return the parsed expression
-	return left;
-}
+infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
 // expression: bitshift
 parse_result_t expression(lexer_t* lex) { return bitshift(lex); }
