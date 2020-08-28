@@ -113,26 +113,26 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 
 // consume(parse_result_t, bool, string|type|tag, lexer_t*, ?, parse_result_t) -> void
 // Consumes a token from the lexer.
-#define consume(res, crash, type, lex, arg, built)	\
-	parse_result_t res = consume_##type(lex, arg);	\
-	if (!res.succ)									\
-	{												\
-		lex->token_pos = prev_token_pos;			\
-		if (res.error->fatal || crash)				\
-		{											\
-			clean_parse_result(built);				\
-			return res;								\
-		}											\
+#define consume(res, required, type, lex, arg, built)	\
+	parse_result_t res = consume_##type(lex, arg);		\
+	if (!res.succ)										\
+	{													\
+		(lex)->token_pos = prev_token_pos;				\
+		if (res.error->fatal || (required))				\
+		{												\
+			clean_parse_result(built);					\
+			return res;									\
+		}												\
 	}
 
 // call(parse_result_t, bool, func, lexer_t*, parse_result_t) -> void
 // Calls a function and crashes if a fatal error occurs.
-#define call(res, crash, func, lex, built)			\
+#define call(res, required, func, lex, built)		\
 	parse_result_t res = func(lex);					\
 	if (!res.succ)									\
 	{												\
-		lex->token_pos = prev_token_pos;			\
-		if (res.error->fatal || crash)				\
+		(lex)->token_pos = prev_token_pos;			\
+		if (res.error->fatal || (required))			\
 		{											\
 			clean_parse_result(built);				\
 			return res;								\
@@ -328,6 +328,37 @@ parse_result_t for_loop(lexer_t* lex)
 	call(body, true, expression, lex, fory);
 	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, body.ast);
 	return fory;
+}
+
+// where_expr: symbol 'in' expression 'where' expression
+parse_result_t where_expr(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume a symbol
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false});
+
+	// Consume the in operator and form the tree
+	consume(in, true, string, lex, "in", symbol);
+	in.ast->children_size = 2;
+	in.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume the iterator
+	call(iter, true, expression, lex, in);
+	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, iter.ast);
+
+	// Consume the where operator and form the tree
+	consume(where, true, string, lex, "where", in);
+	where.ast->children_size = 2;
+	where.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, in.ast);
+
+	// Consume the predicate
+	call(pred, true, expression, lex, in);
+	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, pred.ast);
+	return where;
 }
 
 // assignment: symbol '..' symbol '=' expression
