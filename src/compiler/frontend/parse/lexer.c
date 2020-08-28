@@ -181,16 +181,16 @@ token_t* lex_next(lexer_t* lex)
 				break;
 			case LEX_TYPE_ASSIGN:
 				// If there's another equal sign, then it's == (equal to)
-				if (lex->string[i + 1] == '=')
+				if (c == '=')
 					token.type = LEX_TYPE_COMPARE;
 				else iter = false;
 				break;
 			case LEX_TYPE_COMPARE:
 				// << and >> are operators
-				if ((c == '<' || c == '>') && lex->string[i + 1] == c)
+				if ((c == '<' || c == '>') && lex->string[i - 1] == c)
 					token.type = LEX_TYPE_BITSHIFT;
 				// <= and >= are comparison operators
-				else if ((c != '<' && c != '>') || lex->string[i + 1] != '=')
+				else if ((lex->string[i - 1] != '<' && lex->string[i - 1] != '>') || c != '=')
 					iter = false;
 				break;
 			case LEX_TYPE_DOT:

@@ -199,8 +199,11 @@ infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
-// expression: bitshift
-parse_result_t expression(lexer_t* lex) { return bitshift(lex); }
+// compare: bitshift (/==|[><]=?/ bitshift)*
+infix_parser(compare, bitshift, LEX_TYPE_COMPARE)
+
+// expression: compare
+parse_result_t expression(lexer_t* lex) { return compare(lex); }
 
 #undef call
 #undef consume
