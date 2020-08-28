@@ -6,6 +6,9 @@
 // Created on August 27 2020.
 // 
 
+#ifndef ast_h
+#define ast_h
+
 #include <stdbool.h>
 
 #include "lexer.h"
@@ -64,3 +67,5 @@ void clean_ast(ast_t* ast);
 // clean_parse_result(parse_result_t) -> void
 // Deletes a parse result's data.
 void clean_parse_result(parse_result_t result);
+
+#endif /* ast_h */
