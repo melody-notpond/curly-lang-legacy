@@ -12,10 +12,6 @@ with var1 = expression, # create a scope in which var[123] are used
 function arg1: type1 arg2: type2 = expression # function
 # a function can only have one signature (type1 & type2) >> return_type
 
-[type] # list of values of type
-[[type]] # list of list of values of type
-<type> # generator of values of type
-
 function arg1 (function arg2 arg3) # function application
 function arg1 # lazy evaluation
 function *list # currying
@@ -72,3 +68,5 @@ instance: ex_type = {
 #  - subscripting
 #  - pattern matching
 #  - anonymous functions
+#  - currying
+#  - ranges
