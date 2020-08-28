@@ -142,6 +142,144 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 // expression: bitshift
 parse_result_t expression(lexer_t* lex);
 
+// for_loop: 'for' symbol 'in' expression expression
+parse_result_t for_loop(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume for
+	consume(fory, true, string, lex, "for", (parse_result_t) {false});
+
+	{
+		// Push the lexer
+		push_lexer(lex);
+
+		// Check for a quantifier
+		consume(all, false, string, lex, "all", fory);
+		if (all.succ)
+			list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, all.ast);
+		else
+		{
+			clean_parse_result(all);
+			consume(some, false, string, lex, "some", fory);
+			if (some.succ)
+				list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, some.ast);
+		}
+	}
+
+	// Consume the variable name
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, fory);
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume the iterator
+	consume(in, true, string, lex, "in", fory);
+	clean_parse_result(in);
+	call(iter, true, expression, lex, fory);
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, iter.ast);
+
+	// Consume the body
+	call(body, true, expression, lex, fory);
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, body.ast);
+	return fory;
+}
+
+// where_expr: symbol 'in' expression 'where' expression
+parse_result_t where_expr(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume a symbol
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false});
+
+	// Consume the in operator and form the tree
+	consume(in, true, string, lex, "in", symbol);
+	in.ast->children_size = 2;
+	in.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume the iterator
+	call(iter, true, expression, lex, in);
+	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, iter.ast);
+
+	// Consume the where operator and form the tree
+	consume(where, true, string, lex, "where", in);
+	where.ast->children_size = 2;
+	where.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, in.ast);
+
+	// Consume the predicate
+	call(pred, true, expression, lex, in);
+	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, pred.ast);
+	return where;
+}
+#include <stdio.h>
+// list_expr: '[' (for_loop | where_expr | (expression (',' expression?)*)?) ']'
+parse_result_t list_expr(lexer_t* lex)
+{
+	// Push lexer
+	push_lexer(lex);
+
+	// Consume left bracket
+	consume(lbrack, true, string, lex, "[", (parse_result_t) {false});
+	lbrack.ast->children_size = 1;
+	lbrack.ast->children = calloc(1, sizeof(ast_t*));
+	repush_lexer(lex);
+
+	// Try to consume a list comprehension
+	call(fory, false, for_loop, lex, lbrack);
+	if (fory.succ)
+	{
+		// Add for loop to the tree and get right bracket
+		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, fory.ast);
+		consume(rbrack, true, string, lex, "]", lbrack);
+		clean_parse_result(rbrack);
+		return lbrack;
+	} else clean_parse_result(fory);
+
+	// Try to consume a list filter
+	call(where, false, where_expr, lex, lbrack);
+	if (where.succ)
+	{
+		// Add where expression to the tree and get right bracket
+		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, where.ast);
+		consume(rbrack, true, string, lex, "]", lbrack);
+		clean_parse_result(rbrack);
+		return lbrack;
+	} else clean_parse_result(where);
+
+	// Try to collect items for the list
+	call(expr, false, expression, lex, lbrack);
+	if (expr.succ)
+	{
+		// Collect items
+		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, expr.ast);
+		while (true)
+		{
+			// Push lexer
+			push_lexer(lex);
+
+			// Consume comma
+			consume(comma, false, type, lex, LEX_TYPE_COMMA, lbrack);
+			clean_parse_result(comma);
+			if (!comma.succ) break;
+			repush_lexer(lex);
+
+			// Consume item
+			call(expr, false, expression, lex, lbrack);
+			if (expr.succ)
+				list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, expr.ast);
+			else clean_parse_result(expr);
+		}
+	}
+
+	// Consume right bracket
+	consume(rbrack, true, string, lex, "]", lbrack);
+	clean_parse_result(rbrack);
+	return lbrack;
+}
+
 // value: int | float | symbol | string | '(' expression ')'
 parse_result_t value(lexer_t* lex)
 {
@@ -155,6 +293,12 @@ parse_result_t value(lexer_t* lex)
 	if (res.succ)
 		return res;
 	else clean_parse_result(res);
+
+	// Try to consume a list
+	call(list, false, list_expr, lex, (parse_result_t) {false});
+	if (list.succ)
+		return list;
+	else clean_parse_result(list);
 
 	// Consume a parenthesised expression
 	consume(lparen, true, string, lex, "(", (parse_result_t) {false});
@@ -301,79 +445,6 @@ parse_result_t if_expr(lexer_t* lex)
 	}
 
 	return iffy;
-}
-
-// for_loop: 'for' symbol 'in' expression expression
-parse_result_t for_loop(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Consume for
-	consume(fory, true, string, lex, "for", (parse_result_t) {false});
-
-	{
-		// Push the lexer
-		push_lexer(lex);
-
-		// Check for a quantifier
-		consume(all, false, string, lex, "all", fory);
-		if (all.succ)
-			list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, all.ast);
-		else
-		{
-			clean_parse_result(all);
-			consume(some, false, string, lex, "some", fory);
-			if (some.succ)
-				list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, some.ast);
-		}
-	}
-
-	// Consume the variable name
-	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, fory);
-	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, symbol.ast);
-
-	// Consume the iterator
-	consume(in, true, string, lex, "in", fory);
-	clean_parse_result(in);
-	call(iter, true, expression, lex, fory);
-	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, iter.ast);
-
-	// Consume the body
-	call(body, true, expression, lex, fory);
-	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, body.ast);
-	return fory;
-}
-
-// where_expr: symbol 'in' expression 'where' expression
-parse_result_t where_expr(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Consume a symbol
-	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false});
-
-	// Consume the in operator and form the tree
-	consume(in, true, string, lex, "in", symbol);
-	in.ast->children_size = 2;
-	in.ast->children = calloc(2, sizeof(ast_t*));
-	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, symbol.ast);
-
-	// Consume the iterator
-	call(iter, true, expression, lex, in);
-	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, iter.ast);
-
-	// Consume the where operator and form the tree
-	consume(where, true, string, lex, "where", in);
-	where.ast->children_size = 2;
-	where.ast->children = calloc(2, sizeof(ast_t*));
-	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, in.ast);
-
-	// Consume the predicate
-	call(pred, true, expression, lex, in);
-	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, pred.ast);
-	return where;
 }
 
 // assignment: symbol '..' symbol '=' expression
