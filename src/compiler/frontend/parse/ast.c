@@ -76,6 +76,7 @@ void clean_parse_result(parse_result_t result)
 		// Free error fields
 		free(result.error->message);
 		free(result.error->value.value);
+		free(result.error);
 	}
 }
 
