@@ -46,12 +46,15 @@ for some i in iter f i # checks that some element of the iterable follows some p
 "string owo" # a string
 "" expression # expression as a string /concatenation
 
-# type names: char, byte, short, int, long, float, double, string, obj, list, set, dict, gen, type, func
+# type names: int, float, string, obj, list, set, dict, gen, type, func
 
 # example: fibonacci
 fib 0 = 1
 fib 1 = 1
 fib n: int = (fib n - 1) + (fib n - 2)
+
+# anonymous function
+lambda arg0: type0 arg1: type1 arg0 + arg1
 
 ex_type: type = isFloat: bool & (
 	num: int | num: float
@@ -67,6 +70,5 @@ instance: ex_type = {
 #  - structures
 #  - subscripting
 #  - pattern matching
-#  - anonymous functions
-#  - currying
+#  - currying and negative signs
 #  - ranges
