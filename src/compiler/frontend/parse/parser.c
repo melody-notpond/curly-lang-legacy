@@ -109,6 +109,7 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 }
 
 #define push_lexer(lex) size_t prev_token_pos = lex->token_pos
+#define repush_lexer(lex) prev_token_pos = lex->token_pos
 
 // consume(parse_result_t, bool, string|type|tag, lexer_t*, ?, parse_result_t) -> void
 // Consumes a token from the lexer.
@@ -231,7 +232,7 @@ infix_parser(xor, or, LEX_TYPE_XOR)
 
 // expression: compare
 parse_result_t expression(lexer_t* lex) { return xor(lex); }
-
+#include <stdio.h>
 // assignment: symbol .. symbol = expr
 parse_result_t assignment(lexer_t* lex)
 {
@@ -240,6 +241,7 @@ parse_result_t assignment(lexer_t* lex)
 
 	// Consume a symbol (there must be at least one for an assignment)
 	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false});
+	repush_lexer(lex);
 
 	// Try to consume a range operator
 	consume(range, false, type, lex, LEX_TYPE_RANGE, symbol);
@@ -268,7 +270,35 @@ parse_result_t assignment(lexer_t* lex)
 		return assign;
 	}
 
+	// Try to consume a colon
 	clean_parse_result(range);
+	consume(colon, false, type, lex, LEX_TYPE_COLON, symbol);
+	if (colon.succ)
+	{
+		// Add the variable name to the type operator ast node
+		colon.ast->children_size = 2;
+		colon.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast);
+
+		// Consume another symbol and add it as the tail to the range operator ast node
+		consume(type, true, type, lex, LEX_TYPE_SYMBOL, colon);
+		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+
+		// Consume equal sign
+		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, colon);
+		assign.ast->children_size = 2;
+		assign.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, colon.ast);
+
+		// Get expression
+		call(expr, true, expression, lex, assign);
+
+		// Add the expression to the assignment operator ast node
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
+		return assign;
+	}
+
+	clean_parse_result(colon);
 
 	// TODO: other types of assignment
 	return symbol;

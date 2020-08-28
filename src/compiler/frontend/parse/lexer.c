@@ -212,7 +212,7 @@ token_t* lex_next(lexer_t* lex)
 				else iter = false;
 				break;
 			case LEX_TYPE_STRING:
-				// Strings end at an unescaped backslash
+				// Strings end at an unescaped quotation mark
 				if (lex->string[i - 1] != '\\' && c == '"')
 				{
 					iter = false;
