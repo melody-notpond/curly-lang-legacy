@@ -418,9 +418,14 @@ parse_result_t name(lexer_t* lex)																				\
 	return left;																								\
 }
 
-infix_parser(typing, value, LEX_TYPE_COLON)
+// attribute: value ('.' value)*
+infix_parser(attribute, value, LEX_TYPE_DOT)
 
-// muldiv: value (('*'|'/') value)*
+// typing: attribute (':' attribute)*
+// Note that the code correctness checker will assert only one colon pair is present per series
+infix_parser(typing, attribute, LEX_TYPE_COLON)
+
+// muldiv: typing (('*'|'/') typing)*
 infix_parser(muldiv, typing, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
@@ -429,25 +434,25 @@ infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
-// bitand: bitshift (('&') addsub)*
+// bitand: bitshift (('&') bitshift)*
 infix_parser(bitand, bitshift, LEX_TYPE_AMP)
 
-// bitor: bitand (('|') addsub)*
+// bitor: bitand (('|') bitand)*
 infix_parser(bitor, bitand, LEX_TYPE_BAR)
 
-// bitxor: bitor (('^') addsub)*
+// bitxor: bitor (('^') bitor)*
 infix_parser(bitxor, bitor, LEX_TYPE_CARET)
 
-// compare: bitxor (/==|[><]=?/ bitshift)*
+// compare: bitxor (/==|[><]=?|in/ bitxor)*
 infix_parser(compare, bitxor, LEX_TYPE_COMPARE)
 
-// and: compare (('and') addsub)*
+// and: compare (('and') compare)*
 infix_parser(and, compare, LEX_TYPE_AND)
 
-// or: and (('or') addsub)*
+// or: and (('or') and)*
 infix_parser(or, and, LEX_TYPE_OR)
 
-// xor: or (('xor') addsub)*
+// xor: or (('xor') or)*
 infix_parser(xor, or, LEX_TYPE_XOR)
 
 #undef infix_parser

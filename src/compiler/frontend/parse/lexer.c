@@ -262,7 +262,6 @@ token_t* lex_next(lexer_t* lex)
 		 || !strcmp(token.value, "for")
 		 || !strcmp(token.value, "some")
 		 || !strcmp(token.value, "all")
-		 || !strcmp(token.value, "in")
 		 || !strcmp(token.value, "if")
 		 || !strcmp(token.value, "then")
 		 || !strcmp(token.value, "else")
@@ -271,6 +270,11 @@ token_t* lex_next(lexer_t* lex)
 		 || !strcmp(token.value, "stop"))
 		{
 			token.type = LEX_TYPE_KEYWORD;
+			token.tag = LEX_TAG_OPERATOR;
+		} else if (!strcmp(token.value, "in"))
+		{
+			// in is treated as an infix operator on the same level as comparing operators
+			token.type = LEX_TYPE_COMPARE;
 			token.tag = LEX_TAG_OPERATOR;
 		} else if (!strcmp(token.value, "and"))
 		{
