@@ -596,8 +596,48 @@ parse_result_t assignment(lexer_t* lex)
 		return assign;
 	}
 
-	// Try to consume arguments
+	// Try to consume a dot
 	clean_parse_result(colon);
+	consume(dot, false, type, lex, LEX_TYPE_DOT, symbol, false);
+	if (dot.succ)
+	{
+		// Add the parent name to the type operator ast node
+		list_append_element(dot.ast->children, dot.ast->children_size, dot.ast->children_count, ast_t*, symbol.ast);
+
+		// Consume a value
+		call(val, true, value, lex, dot, true);
+		list_append_element(dot.ast->children, dot.ast->children_size, dot.ast->children_count, ast_t*, val.ast);
+
+		while (true)
+		{
+			// Push the lexer
+			push_lexer(lex);
+
+			// Consume a dot
+			consume(dot2, false, type, lex, LEX_TYPE_DOT, dot, false);
+			if (!dot2.succ) break;
+
+			// Consume a value
+			call(val, true, value, lex, dot, true);
+			list_append_element(dot.ast->children, dot.ast->children_size, dot.ast->children_count, ast_t*, val.ast);
+		}
+
+		// Consume equal sign
+		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, dot, true);
+		assign.ast->children_size = 2;
+		assign.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, dot.ast);
+
+		// Get application
+		call(app, true, application, lex, assign, true);
+
+		// Add the application to the assignment operator ast node
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+		return assign;
+	}
+
+	// Try to consume arguments
+	clean_parse_result(dot);
 	while (true)
 	{
 		// Push the lexer
@@ -615,8 +655,8 @@ parse_result_t assignment(lexer_t* lex)
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast->children[symbol.ast->children_count - 1]);
 		symbol.ast->children[symbol.ast->children_count - 1] = colon.ast;
 
-		// Consume a symbol and add it to the colon ast node
-		consume(type, true, type, lex, LEX_TYPE_SYMBOL, symbol, false);
+		// Consume an expression and add it to the colon ast node
+		call(type, true, expression, lex, symbol, false);
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 	}
 

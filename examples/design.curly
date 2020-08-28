@@ -10,7 +10,7 @@ with var1 = expression, # create a scope in which var[123] are used
 	 f var1 var2 var3
 
 function arg1: type1 arg2: type2 = expression # function
-# a function can only have one signature (type1 & type2) >> return_type
+# a function can only have one signature (type1 * type2) >> return_type
 
 function arg1 (function arg2 arg3) # function application
 function arg1 # lazy evaluation
@@ -56,7 +56,7 @@ fib n: int = (fib n - 1) + (fib n - 2)
 # anonymous function
 lambda arg0: type0 arg1: type1 arg0 + arg1
 
-ex_type: type = isFloat: bool & (
+ex_type: type = isFloat: bool * (
 	num: int | num: float
 )
 
@@ -64,6 +64,11 @@ instance: ex_type = {
     isFloat = false,
     num = 42
 }
+
+instance.isFloat # false
+instance.0 # false
+instance.num # 42
+instance.1 # 42
 
 # things the parser still doesn't have:
 #  - pattern matching
