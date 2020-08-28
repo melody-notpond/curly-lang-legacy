@@ -14,7 +14,7 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "x=with a=2,b=3,c=4, a+b+c");
+	init_lexer(&lex, "x=if true then 1 else if false then 0 else 3");
 
 	// token_t* token;
 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)

@@ -200,8 +200,10 @@ parse_result_t name(lexer_t* lex)																				\
 	return left;																								\
 }
 
+infix_parser(typing, value, LEX_TYPE_COLON)
+
 // muldiv: value (('*'|'/') value)*
-infix_parser(muldiv, value, LEX_TYPE_MULDIV)
+infix_parser(muldiv, typing, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
 infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
@@ -269,6 +271,36 @@ parse_result_t with_expr(lexer_t* lex)
 	call(expr, true, expression, lex, with);
 	list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, expr.ast);
 	return with;
+}
+
+// if_expr: 'if' expression 'then' expression ('else' expression)?
+parse_result_t if_expr(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume an if condition and form the tree
+	consume(iffy, true, string, lex, "if", (parse_result_t) {false});
+	call(cond, true, expression, lex, iffy);
+	iffy.ast->children_size = 3;
+	iffy.ast->children = calloc(3, sizeof(ast_t*));
+	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, cond.ast);
+
+	// Consume the body
+	consume(then, true, string, lex, "then", iffy);
+	clean_parse_result(then);
+	call(body, true, expression, lex, iffy);
+	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, body.ast);
+
+	// Consume the else statement if applicable
+	consume(elsy, false, string, lex, "else", iffy);
+	if (elsy.succ)
+	{
+		call(else_body, true, expression, lex, iffy);
+		list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, else_body.ast);
+	}
+
+	return iffy;
 }
 
 // assignment: symbol '..' symbol '=' expression
@@ -376,7 +408,7 @@ parse_result_t assignment(lexer_t* lex)
 	return assign;
 }
 
-// expression: with_expr | xor
+// expression: with_expr | if_expr | xor
 parse_result_t expression(lexer_t* lex)
 {
 	push_lexer(lex);
@@ -386,8 +418,14 @@ parse_result_t expression(lexer_t* lex)
 	if (with.succ)
 		return with;
 
-	// Call xor if with expression is not applicable
+	// Call if expression if with expression is not applicable
 	clean_parse_result(with);
+	call(iffy, false, if_expr, lex, (parse_result_t) {false});
+	if (iffy.succ)
+		return iffy;
+
+	// Call xor if if expression is not applicable
+	clean_parse_result(iffy);
 	return xor(lex);
 }
 
