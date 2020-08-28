@@ -303,6 +303,33 @@ parse_result_t if_expr(lexer_t* lex)
 	return iffy;
 }
 
+// for_loop: 'for' symbol 'in' expression expression
+parse_result_t for_loop(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume for
+	consume(fory, true, string, lex, "for", (parse_result_t) {false});
+
+	// Consume the variable name and form the tree
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, fory);
+	fory.ast->children_size = 3;
+	fory.ast->children = calloc(3, sizeof(ast_t*));
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume the iterator
+	consume(in, true, string, lex, "in", fory);
+	clean_parse_result(in);
+	call(iter, true, expression, lex, fory);
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, iter.ast);
+
+	// Consume the body
+	call(body, true, expression, lex, fory);
+	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, body.ast);
+	return fory;
+}
+
 // assignment: symbol '..' symbol '=' expression
 //           | symbol ':' symbol = expression
 //           | symbol (symbol ':' symbol)* '=' expression
@@ -424,8 +451,14 @@ parse_result_t expression(lexer_t* lex)
 	if (iffy.succ)
 		return iffy;
 
-	// Call xor if if expression is not applicable
+	// Call for loop if if expression is not applicable
 	clean_parse_result(iffy);
+	call(fory, false, for_loop, lex, (parse_result_t) {false});
+	if (fory.succ)
+		return fory;
+
+	// Call xor if for loop is not applicable
+	clean_parse_result(fory);
 	return xor(lex);
 }
 
