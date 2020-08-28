@@ -230,6 +230,8 @@ infix_parser(or, and, LEX_TYPE_OR)
 // xor: or (('xor') addsub)*
 infix_parser(xor, or, LEX_TYPE_XOR)
 
+#undef infix_parser
+
 // expression: compare
 parse_result_t expression(lexer_t* lex) { return xor(lex); }
 #include <stdio.h>
@@ -321,5 +323,7 @@ parse_result_t statement(lexer_t* lex)
 	return expr;
 }
 
+#undef repush_lexer
+#undef push_lexer
 #undef call
 #undef consume
