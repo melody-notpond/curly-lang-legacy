@@ -223,6 +223,7 @@ token_t* lex_next(lexer_t* lex)
 			case LEX_TYPE_RANGE:
 			case LEX_TYPE_MULDIV:
 			case LEX_TYPE_ADDSUB:
+			case LEX_TYPE_BITSHIFT:
 			default:
 				iter = false;
 				break;
@@ -240,7 +241,7 @@ token_t* lex_next(lexer_t* lex)
 	size_t length = i - lex->pos;
 	token.value = malloc(length + 1);
 	strncpy(token.value, lex->string + lex->pos, length);
-	lex->pos = i + 1;
+	lex->pos = i;
 
 	// If the token is a symbol, check if the symbol is actually a keyword
 	if (token.type == LEX_TYPE_SYMBOL && (

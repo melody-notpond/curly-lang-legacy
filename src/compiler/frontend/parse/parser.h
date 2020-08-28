@@ -12,4 +12,7 @@
 #include "ast.h"
 #include "lexer.h"
 
+// expression: bitshift
+parse_result_t expression(lexer_t* lex);
+
 #endif /* parser_h */

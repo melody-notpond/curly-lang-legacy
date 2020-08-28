@@ -9,17 +9,22 @@
 #include <editline/readline.h>
 
 #include "compiler/frontend/parse/lexer.h"
+#include "compiler/frontend/parse/parser.h"
 
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "2+3-4==5=6/symbol+keyword*x-y for all n in (x in iter where a == 2) debug n # this is a comment by the way \n other + stuff \"this is \\\" a test string!\n\n\\ uwu\"   \"this string is an error");
+	init_lexer(&lex, "4*(4-5)/symbol*3");
 
-	token_t* token;
+	parse_result_t res = expression(&lex);
 
-	while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
+	if (res.succ)
+		print_ast(res.ast);
+	else
 	{
-		printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
+		puts("an error occured");
+		printf(res.error->message, res.error->value.value);
+		printf(" (%i:%i)\n", res.error->value.lino, res.error->value.charpos);
 	}
 
 	cleanup_lexer(&lex);
