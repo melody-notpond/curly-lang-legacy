@@ -14,9 +14,11 @@
 #define list_append_element(list, size, count, type, element)	\
 do																\
 {																\
-	if ((size) < (count))										\
+	if ((size) == 0)											\
+		(list) = calloc(((size) = 8), sizeof(type));			\
+	else if ((size) <= (count))									\
 		(list) = realloc(list, ((size) <<= 1) * sizeof(type));	\
-	(list)[(count)++] = (element);									\
+	(list)[(count)++] = (element);								\
 } while (0)
 
 #endif /* utils_list_h */
