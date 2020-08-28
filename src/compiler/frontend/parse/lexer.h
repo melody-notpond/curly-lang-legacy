@@ -38,6 +38,7 @@ typedef enum
 	LEX_TYPE_MULDIV,
 	LEX_TYPE_ADDSUB,
 	LEX_TYPE_BITSHIFT,
+	LEX_TYPE_STRING
 } lex_type_t;
 
 // Represents a token.

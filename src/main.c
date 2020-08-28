@@ -13,7 +13,7 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "2+3-4==5=6/symbol+keyword*x-y for all n in (x in iter where a == 2) debug n # this is a comment by the way \n other + stuff");
+	init_lexer(&lex, "2+3-4==5=6/symbol+keyword*x-y for all n in (x in iter where a == 2) debug n # this is a comment by the way \n other + stuff \"this is \\\" a test string!\n\n\\ uwu\"   \"this string is an error");
 
 	token_t* token;
 

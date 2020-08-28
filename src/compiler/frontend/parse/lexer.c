@@ -147,6 +147,10 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_ADDSUB;
 					token.tag = LEX_TAG_OPERATOR;
+				} else if (c == '"')
+				{
+					token.type = LEX_TYPE_STRING;
+					token.tag = LEX_TAG_OPERAND;
 				}
 				break;
 			case LEX_TYPE_INT:
@@ -172,7 +176,7 @@ token_t* lex_next(lexer_t* lex)
 				break;
 			case LEX_TYPE_SYMBOL:
 				// Assert only valid characters are in the symbol
-				if (!(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_'))
+				if (!(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_' || c == '\''))
 					iter = false;
 				break;
 			case LEX_TYPE_ASSIGN:
@@ -194,6 +198,20 @@ token_t* lex_next(lexer_t* lex)
 				if (lex->string[i + 1] == '.')
 					token.type = LEX_TYPE_RANGE;
 				else iter = false;
+				break;
+			case LEX_TYPE_STRING:
+				// Strings end at an unescaped backslash
+				if (lex->string[i - 1] != '\\' && c == '"')
+				{
+					iter = false;
+					i++;
+				// Strings that never end are an error
+				} else if (c == '\0')
+				{
+					token.type = LEX_TYPE_NONE;
+					token.tag = LEX_TAG_NONE;
+					iter = false;
+				}
 				break;
 
 			// These token types are only one character long

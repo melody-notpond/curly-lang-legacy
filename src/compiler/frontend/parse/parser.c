@@ -121,10 +121,9 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 	if (!res.succ && res.error->fatal)	\
 		return res;						\
 
-// value: int | float | symbol | string | char
+// value: int | float | symbol | string
 parse_result_t value(lexer_t* lex)
 {
-	parse_result_t res;
 	consume(res, tag, lex, LEX_TAG_OPERAND);
 	return res;
 }
