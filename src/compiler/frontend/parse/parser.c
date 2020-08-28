@@ -286,6 +286,68 @@ parse_result_t list_expr(lexer_t* lex)
 	return lbrack;
 }
 
+// dict_item: symbol '=' application
+parse_result_t dict_item(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume a symbol
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false}, false);
+
+	// Consume an equal sign and create the tree
+	consume(assign, true, type, lex, LEX_TYPE_ASSIGN, symbol, true);
+	assign.ast->children_size = 2;
+	assign.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume an application
+	call(app, true, application, lex, assign, true);
+	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+	return assign;
+}
+
+// dict_expr: '{' (dict_item (',' dict_item?)*)? '}'
+parse_result_t dict_expr(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume curly brace
+	consume(lcurly, true, string, lex, "{", (parse_result_t) {false}, false);
+	repush_lexer(lex);
+
+	// Try to collect items for the dictionary
+	call(item, false, dict_item, lex, lcurly, false);
+	if (item.succ)
+	{
+		// Collect items
+		list_append_element(lcurly.ast->children, lcurly.ast->children_size, lcurly.ast->children_count, ast_t*, item.ast);
+		while (true)
+		{
+			// Push lexer
+			push_lexer(lex);
+
+			// Consume comma
+			consume(comma, false, type, lex, LEX_TYPE_COMMA, lcurly, false);
+			clean_parse_result(comma);
+			if (!comma.succ) break;
+			repush_lexer(lex);
+
+			// Consume item
+			call(item, false, dict_item, lex, lcurly, false);
+			if (item.succ)
+				list_append_element(lcurly.ast->children, lcurly.ast->children_size, lcurly.ast->children_count, ast_t*, item.ast);
+			else clean_parse_result(item);
+		}
+	}
+
+	// Consume right curly brace
+	consume(rcurly, true, string, lex, "}", lcurly, true);
+	clean_parse_result(rcurly);
+	return lcurly;
+}
+
 // value: int | float | symbol | string | '(' application ')' | list_expr
 parse_result_t value(lexer_t* lex)
 {
@@ -305,6 +367,12 @@ parse_result_t value(lexer_t* lex)
 	if (list.succ)
 		return list;
 	else clean_parse_result(list);
+
+	// Try to consume a dictionary
+	call(dict, false, dict_expr, lex, (parse_result_t) {false}, false);
+	if (dict.succ)
+		return dict;
+	else clean_parse_result(dict);
 
 	// Consume a parenthesised application
 	consume(lparen, true, string, lex, "(", (parse_result_t) {false}, false);
@@ -564,6 +632,7 @@ parse_result_t assignment(lexer_t* lex)
 // expression: 'pass' | 'stop' | with_expr | if_expr | for_loop | xor
 parse_result_t expression(lexer_t* lex)
 {
+	// Push the lexer
 	push_lexer(lex);
 
 	// Consume pass

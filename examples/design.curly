@@ -67,7 +67,6 @@ instance: ex_type = {
 
 # things the parser still doesn't have:
 #  - getting attributes from structures
-#  - structures
 #  - subscripting
 #  - pattern matching
 #  - currying and negative signs
