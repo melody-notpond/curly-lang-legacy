@@ -3,49 +3,25 @@
 // main.c: Runs the command line interface.
 //
 // jenra
-// March 3 2020
+// July 27 2020
 //
 
 #include <editline/readline.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "compiler/frontend/ir-codegen/gencode.h"
-#include "compiler/frontend/parse/parser.h"
+#include "compiler/frontend/parse/lexer.h"
 
 int main(int argc, char** argv)
 {
-	if (argc <= 1)
+	lexer_t lex;
+	init_lexer(&lex, "2+3-4==5=6/symbol+keyword*x-y for all n in (x in iter where a == 2) debug n # this is a comment by the way \n other + stuff");
+
+	token_t* token;
+
+	while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
 	{
-		puts("Must have a string argument");
-		return -1;
+		printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
 	}
 
-	// Initialise the parser
-	parser_t parser = create_lang_parser();
-
-	// Parse the file
-	parse_result_t res = parse_string(parser, argv[1]);
-	print_parse_result(res);
-
-	if (res.succ)
-	{
-		// Convert the result into ir
-		compiler_t state;
-		convert_tree_ir(&state, &res);
-
-		// Print out the result
-		if (state.cause == NULL)
-		{
-			print_ir(&state.ir);
-			clean_ir(&state.ir);
-		} else
-			print_compile_error(&state, "stdin", argv[1]);
-	}
-
-	// Clean up
-	clean_parse_result(&res);
-	clean_combinator(parser.comb);
+	cleanup_lexer(&lex);
 	return 0;
 }

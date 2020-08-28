@@ -47,14 +47,14 @@ for all i in iter f i # checks that all elements of the iterable follow some pre
 for some i in iter f i # checks that some element of the iterable follow some predicate
 
 # filtering
-[x in iter such that f x] # list
-(x in iter such that f x) # generator
-{x in list such that f x} # generator that exits on the first failure
+[x in iter where f x] # list
+(x in iter where f x) # generator
+{x in list where f x} # generator that exits on the first failure
 # you can run the above multiple times to get the next one
 
 "string owo" # a string
 'a' # a character
-"%(format expression)" # expression as a string
+"" expression # expression as a string /concatenation
 
 # type names: char, byte, short, int, long, float, double, string, obj, list, set, dict, gen, type, func
 
