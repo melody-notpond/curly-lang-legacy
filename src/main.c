@@ -14,7 +14,7 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "4*(4-5)/symbol*3 <= 4/5 == 3");
+	init_lexer(&lex, "4*(4-5)/symbol*3 <= 4/5 == 3 & 2 | 1 ^ 5 and true");
 
 	parse_result_t res = expression(&lex);
 

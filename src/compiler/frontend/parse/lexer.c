@@ -151,6 +151,18 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_STRING;
 					token.tag = LEX_TAG_OPERAND;
+				} else if (c == '&')
+				{
+					token.type = LEX_TYPE_AMP;
+					token.tag = LEX_TAG_OPERATOR;
+				} else if (c == '|')
+				{
+					token.type = LEX_TYPE_BAR;
+					token.tag = LEX_TAG_OPERATOR;
+				} else if (c == '^')
+				{
+					token.type = LEX_TYPE_CARET;
+					token.tag = LEX_TAG_OPERATOR;
 				}
 				break;
 			case LEX_TYPE_INT:
@@ -244,23 +256,34 @@ token_t* lex_next(lexer_t* lex)
 	lex->pos = i;
 
 	// If the token is a symbol, check if the symbol is actually a keyword
-	if (token.type == LEX_TYPE_SYMBOL && (
-		!strcmp(token.value, "with")
-	 || !strcmp(token.value, "for")
-	 || !strcmp(token.value, "some")
-	 || !strcmp(token.value, "all")
-	 || !strcmp(token.value, "in")
-	 || !strcmp(token.value, "if")
-	 || !strcmp(token.value, "else")
-	 || !strcmp(token.value, "where")
-	 || !strcmp(token.value, "and")
-	 || !strcmp(token.value, "or")
-	 || !strcmp(token.value, "xor")
-	 || !strcmp(token.value, "pass")
-	 || !strcmp(token.value, "stop")))
+	if (token.type == LEX_TYPE_SYMBOL)
 	{
-		token.type = LEX_TYPE_KEYWORD;
-		token.tag = LEX_TAG_OPERATOR;
+		if (!strcmp(token.value, "with")
+		 || !strcmp(token.value, "for")
+		 || !strcmp(token.value, "some")
+		 || !strcmp(token.value, "all")
+		 || !strcmp(token.value, "in")
+		 || !strcmp(token.value, "if")
+		 || !strcmp(token.value, "else")
+		 || !strcmp(token.value, "where")
+		 || !strcmp(token.value, "pass")
+		 || !strcmp(token.value, "stop"))
+		{
+			token.type = LEX_TYPE_KEYWORD;
+			token.tag = LEX_TAG_OPERATOR;
+		} else if (!strcmp(token.value, "and"))
+		{
+			token.type = LEX_TYPE_AND;
+			token.tag = LEX_TAG_OPERATOR;
+		} else if (!strcmp(token.value, "or"))
+		{
+			token.type = LEX_TYPE_OR;
+			token.tag = LEX_TAG_OPERATOR;
+		} else if (!strcmp(token.value, "xor"))
+		{
+			token.type = LEX_TYPE_XOR;
+			token.tag = LEX_TAG_OPERATOR;
+		}
 	}
 
 	// Append the token to the list of tokens

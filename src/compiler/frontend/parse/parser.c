@@ -199,11 +199,29 @@ infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
-// compare: bitshift (/==|[><]=?/ bitshift)*
-infix_parser(compare, bitshift, LEX_TYPE_COMPARE)
+// bitand: bitshift (('&') addsub)*
+infix_parser(bitand, bitshift, LEX_TYPE_AMP)
+
+// bitor: bitand (('|') addsub)*
+infix_parser(bitor, bitand, LEX_TYPE_BAR)
+
+// bitxor: bitor (('^') addsub)*
+infix_parser(bitxor, bitor, LEX_TYPE_CARET)
+
+// compare: bitxor (/==|[><]=?/ bitshift)*
+infix_parser(compare, bitxor, LEX_TYPE_COMPARE)
+
+// and: compare (('and') addsub)*
+infix_parser(and, compare, LEX_TYPE_AND)
+
+// or: and (('or') addsub)*
+infix_parser(or, and, LEX_TYPE_OR)
+
+// xor: or (('xor') addsub)*
+infix_parser(xor, or, LEX_TYPE_XOR)
 
 // expression: compare
-parse_result_t expression(lexer_t* lex) { return compare(lex); }
+parse_result_t expression(lexer_t* lex) { return xor(lex); }
 
 #undef call
 #undef consume
