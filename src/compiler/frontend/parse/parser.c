@@ -557,7 +557,19 @@ parse_result_t expression(lexer_t* lex)
 {
 	push_lexer(lex);
 
+	// Consume pass
+	consume(pass, false, string, lex, "pass", (parse_result_t) {false});
+	if (pass.succ)
+		return pass;
+
+	// Consume stop
+	clean_parse_result(pass);
+	consume(stop, false, string, lex, "stop", (parse_result_t) {false});
+	if (stop.succ)
+		return stop;
+
 	// Call with expression
+	clean_parse_result(stop);
 	call(with, false, with_expr, lex, (parse_result_t) {false});
 	if (with.succ)
 		return with;
