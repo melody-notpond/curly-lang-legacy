@@ -52,6 +52,10 @@ void print_ast(ast_t* ast) { print_ast_helper(ast, 0); }
 // Deletes an ast.
 void clean_ast(ast_t* ast)
 {
+	// Don't do anything if the ast node is null
+	if (ast == NULL)
+		return;
+
 	// Delete the children
 	for (size_t i = 0; i < ast->children_count; i++)
 	{
@@ -71,7 +75,7 @@ void clean_parse_result(parse_result_t result)
 	if (result.succ)
 		// Delete ast node
 		clean_ast(result.ast);
-	else
+	else if (result.error != NULL)
 	{
 		// Free error fields
 		free(result.error->message);
