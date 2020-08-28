@@ -14,7 +14,8 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "var: type = 2-3+4");
+	// init_lexer(&lex, "func arg0: type0 arg1: type1 arg2: type2 = 2-3+4");
+	init_lexer(&lex, "var = 2-3+4");
 
 	// token_t* token;
 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)

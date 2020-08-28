@@ -9,8 +9,7 @@ with var1 = expression, # create a scope in which var[123] are used
 	 var3 = expression,
 	 f var1 var2 var3
 
-function: \type1 type2. type3 # function declaration
-function arg1 arg2 = expression # implementation
+function arg1:type1 arg2:type2 = expression # function
 # a function can only have one signature (type1 type2): return_type
 
 [type] # list of values of type
