@@ -14,7 +14,7 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "x=for i in list i");
+	init_lexer(&lex, "x=for all i in list i");
 
 	// token_t* token;
 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)

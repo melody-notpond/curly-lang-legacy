@@ -312,10 +312,25 @@ parse_result_t for_loop(lexer_t* lex)
 	// Consume for
 	consume(fory, true, string, lex, "for", (parse_result_t) {false});
 
-	// Consume the variable name and form the tree
+	{
+		// Push the lexer
+		push_lexer(lex);
+
+		// Check for a quantifier
+		consume(all, false, string, lex, "all", fory);
+		if (all.succ)
+			list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, all.ast);
+		else
+		{
+			clean_parse_result(all);
+			consume(some, false, string, lex, "some", fory);
+			if (some.succ)
+				list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, some.ast);
+		}
+	}
+
+	// Consume the variable name
 	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, fory);
-	fory.ast->children_size = 3;
-	fory.ast->children = calloc(3, sizeof(ast_t*));
 	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, symbol.ast);
 
 	// Consume the iterator
