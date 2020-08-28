@@ -232,10 +232,48 @@ infix_parser(xor, or, LEX_TYPE_XOR)
 
 #undef infix_parser
 
-// expression: compare
-parse_result_t expression(lexer_t* lex) { return xor(lex); }
-
 // assignment: symbol .. symbol = expr
+parse_result_t assignment(lexer_t* lex);
+
+// with_expr: 'with' (assignment ',')+ expression
+parse_result_t with_expr(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume with keyword
+	consume(with, true, string, lex, "with", (parse_result_t) {false});
+
+	// Consume one assignment and add it to the with keyword ast node
+	call(assign, true, assignment, lex, with);
+	list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, assign.ast);
+	// Consume a comma
+	consume(comma, true, type, lex, LEX_TYPE_COMMA, with);
+	clean_parse_result(comma);
+
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume an assignment and add it to the with keyword ast node if found
+		call(assign, false, assignment, lex, with);
+		if (!assign.succ) break;
+		list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, assign.ast);
+
+		// Consume a comma
+		consume(comma, true, type, lex, LEX_TYPE_COMMA, with);
+		clean_parse_result(comma);
+	}
+
+	// Get an expression
+	call(expr, true, expression, lex, with);
+	list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, expr.ast);
+	return with;
+}
+
+// assignment: symbol '..' symbol '=' expression
+//           | symbol ':' symbol = expression
+//           | symbol (symbol ':' symbol)* '=' expression
 parse_result_t assignment(lexer_t* lex)
 {
 	// Push the lexer
@@ -336,6 +374,21 @@ parse_result_t assignment(lexer_t* lex)
 	// Add the expression to the assignment operator ast node
 	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 	return assign;
+}
+
+// expression: with_expr | xor
+parse_result_t expression(lexer_t* lex)
+{
+	push_lexer(lex);
+
+	// Call with expression
+	call(with, false, with_expr, lex, (parse_result_t) {false});
+	if (with.succ)
+		return with;
+
+	// Call xor if with expression is not applicable
+	clean_parse_result(with);
+	return xor(lex);
 }
 
 // statement: assignment | expression
