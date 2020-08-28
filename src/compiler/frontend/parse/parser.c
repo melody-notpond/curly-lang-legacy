@@ -111,15 +111,23 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 // Consumes a token from the lexer.
 #define consume(res, type, lex, arg)				\
 	parse_result_t res = consume_##type(lex, arg);	\
-	if (!res.succ && res.err.fatal)					\
+	if (!res.succ && res.error->fatal)				\
 		return res;									\
 
 // call(parse_result_t&, func, ...) -> void
 // Calls a function and crashes if a fatal error occurs.
-#define call(res, func, ...)				\
-	parse_result res = func(__VA_ARGS__)	\
-	if (!res.succ && res.err.fatal)			\
-		return res;							\
+#define call(res, func, lex)			\
+	parse_result res = func(lex)		\
+	if (!res.succ && res.error->fatal)	\
+		return res;						\
+
+// value: int | float | symbol | string | char
+parse_result_t value(lexer_t* lex)
+{
+	parse_result_t res;
+	consume(res, tag, lex, LEX_TAG_OPERAND);
+	return res;
+}
 
 
 
