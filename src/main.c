@@ -14,9 +14,16 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "4*(4-5)/symbol*3 <= 4/5 == 3 & 2 | 1 ^ 5 and true");
+	init_lexer(&lex, "head..tail = 2-3+4");
 
-	parse_result_t res = expression(&lex);
+	// token_t* token;
+	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
+	// {
+	// 	printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
+	// }
+	// lex.token_pos = 0;
+
+	parse_result_t res = statement(&lex);
 
 	if (res.succ)
 		print_ast(res.ast);

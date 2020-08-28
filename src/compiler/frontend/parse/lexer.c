@@ -207,7 +207,7 @@ token_t* lex_next(lexer_t* lex)
 				break;
 			case LEX_TYPE_DOT:
 				// .. is the range operator
-				if (lex->string[i + 1] == '.')
+				if (c == '.')
 					token.type = LEX_TYPE_RANGE;
 				else iter = false;
 				break;

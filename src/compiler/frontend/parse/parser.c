@@ -110,7 +110,7 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 
 #define push_lexer(lex) size_t prev_token_pos = lex->token_pos
 
-// consume(parse_result_t&, string|type|tag, lexer_t*, *) -> void
+// consume(parse_result_t&, bool, string|type|tag, lexer_t*, *) -> void
 // Consumes a token from the lexer.
 #define consume(res, crash, type, lex, arg)			\
 	parse_result_t res = consume_##type(lex, arg);	\
@@ -121,7 +121,7 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag)
 			return res;								\
 	}
 
-// call(parse_result_t&, func, ...) -> void
+// call(parse_result_t&, bool, func, ...) -> void
 // Calls a function and crashes if a fatal error occurs.
 #define call(res, crash, func, lex)					\
 	parse_result_t res = func(lex);					\
@@ -222,6 +222,62 @@ infix_parser(xor, or, LEX_TYPE_XOR)
 
 // expression: compare
 parse_result_t expression(lexer_t* lex) { return xor(lex); }
+
+// assignment: symbol .. symbol = expr
+parse_result_t assignment(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume a symbol (there must be at least one for an assignment)
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL);
+
+	// Try to consume a range operator
+	consume(range, false, type, lex, LEX_TYPE_RANGE);
+	if (range.succ)
+	{
+		// Consume another symbol
+		consume(tail, true, type, lex, LEX_TYPE_SYMBOL);
+
+		// Add the head and tail to the range operator ast node
+		range.ast->children_size = 2;
+		range.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(range.ast->children, range.ast->children_size, range.ast->children_count, ast_t*, symbol.ast);
+		list_append_element(range.ast->children, range.ast->children_size, range.ast->children_count, ast_t*, tail.ast);
+
+		// Consume equal sign
+		consume(assign, true, type, lex, LEX_TYPE_ASSIGN);
+
+		// Get expression
+		call(expr, true, expression, lex);
+
+		// Add everything to the assignment operator ast node
+		assign.ast->children_size = 2;
+		assign.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, range.ast);
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
+		return assign;
+	}
+
+	// TODO: other types of assignment
+	return symbol;
+}
+
+// statement: assignment | expression
+parse_result_t statement(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Call assignment
+	call(assign, false, assignment, lex);
+	if (assign.succ)
+		return assign;
+
+	// Call expression if assignment is not applicable
+	call(expr, false, expression, lex);
+	return expr;
+}
 
 #undef call
 #undef consume

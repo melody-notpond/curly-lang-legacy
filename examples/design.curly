@@ -2,6 +2,7 @@
 # a variable must remain the same type through its lifetime
 
 variable = expression # assignment
+head..tail = expression # getting the head and tail of an iterable
 
 with var1 = expression, # create a scope in which var[123] are used
      var2 = expression, # these are the only way to define variables in functions, loops, and conditions
