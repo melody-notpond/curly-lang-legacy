@@ -13,8 +13,6 @@
 
 type_t* type_linked_list_head = NULL;
 
-hashmap_t* types_map = NULL;
-
 // create_primatives(void) -> void
 // Creates the builtin primative types.
 void create_primatives()
@@ -23,16 +21,13 @@ void create_primatives()
 	if (type_linked_list_head != NULL)
 		return;
 
-	// Create hashmap
-	if (types_map == NULL)
-		types_map = init_hashmap();
-
 	// Create primatives
 	init_type(IR_TYPES_PRIMITIVE, "int", 0);
 	init_type(IR_TYPES_PRIMITIVE, "float", 0);
 	init_type(IR_TYPES_PRIMITIVE, "string", 0);
 	init_type(IR_TYPES_PRIMITIVE, "bool", 0);
 	init_type(IR_TYPES_PRIMITIVE, "dict", 0);
+	init_type(IR_TYPES_PRIMITIVE, "obj", 0);
 	init_type(IR_TYPES_PRIMITIVE, "type", 0);
 }
 
@@ -50,9 +45,6 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	// Add to linked list
 	type->next = type_linked_list_head;
 	type_linked_list_head = type;
-
-	// Add to hashmap
-	map_add(types_map, name, type);
 	return type;
 }
 
@@ -101,6 +93,13 @@ void print_type_helper(type_t* type, char* name, int level)
 		putc('\t', stdout);
 	}
 	if (level > 0) printf("| ");
+
+	// Stop after 3 levels (recursive data structures aren't nice to print out...)
+	if (level > 3)
+	{
+		puts("...");
+		return;
+	}
 
 	// Print out the field name if applicable
 	if (name != NULL)

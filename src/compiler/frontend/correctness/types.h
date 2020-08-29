@@ -44,8 +44,6 @@ typedef struct s_type
 	struct s_type* next;
 } type_t;
 
-extern hashmap_t* types_map;
-
 // create_primatives(void) -> void
 // Creates the builtin primative types.
 void create_primatives();
