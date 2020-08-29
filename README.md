@@ -12,8 +12,8 @@ primes = [
 
 ## Build
 Just type in the following:
-```
-git clone --recursive https://github.com/jenra-uwu/curly-lang && cd curly-lang && make
+```bash
+git clone https://github.com/jenra-uwu/curly-lang && cd curly-lang && make
 ```
 Note: This repo has only been tested on macOS, so it may not build on other \*nix operating systems, and it most *definitely* won't build on Windows.
 
@@ -21,9 +21,10 @@ Note: This repo has only been tested on macOS, so it may not build on other \*ni
 The parser is virtually done for the sake of creating a backend to test with. Everything is highly experimental. Be cautious: code may be explosive.
 
 ### Branch info
-There are three branches currently in use:
+There are four branches:
  1. `master`: This is the main branch.
- 2. `vm-initial`: This is where new features of the vm are created and tested.
- 3. `vm-compiler`: This is where new features of the compiler are created and tested.
- 
-Development of a new feature starts in `vm-initial`. Once the appropriate opcodes are sufficiently implemented, it is merged into `vm-compiler` and the appropriate compilation steps are implemented.
+ 2. `vm-initial`: This is where new features of the vm were created and tested.
+ 3. `vm-compiler`: This is where new features of the compiler were created and tested.
+ 4. `redo`: This is where the language is being reimplemented.
+
+The language is currently being reimplemented due to a lack of maintanance in the past few months. Additionally, it allows the language to remove its only dependancy (curly-comb).
