@@ -12,6 +12,8 @@
 
 type_t* type_linked_list_head = NULL;
 
+hashmap_t* types_map = NULL;
+
 // create_primatives(void) -> void
 // Creates the builtin primative types.
 void create_primatives()
@@ -20,14 +22,17 @@ void create_primatives()
 	if (type_linked_list_head != NULL)
 		return;
 
+	// Create hashmap
+	if (types_map == NULL)
+		types_map = init_hashmap();
+
 	// Create primatives
 	init_type(IR_TYPES_PRIMITIVE, "int", 0);
 	init_type(IR_TYPES_PRIMITIVE, "float", 0);
 	init_type(IR_TYPES_PRIMITIVE, "string", 0);
-	init_type(IR_TYPES_PRIMITIVE, "list", 0);
+	init_type(IR_TYPES_PRIMITIVE, "bool", 0);
 	init_type(IR_TYPES_PRIMITIVE, "dict", 0);
 	init_type(IR_TYPES_PRIMITIVE, "type", 0);
-	init_type(IR_TYPES_PRIMITIVE, "func", 0);
 }
 
 // init_type(ir_type_types_t, char*, size_t, type_t) -> type_t*
@@ -44,6 +49,9 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	// Add to linked list
 	type->next = type_linked_list_head;
 	type_linked_list_head = type;
+
+	// Add to hashmap
+	map_add(types_map, name, type);
 	return type;
 }
 
@@ -62,12 +70,14 @@ bool types_equal(type_t* t1, type_t* t2)
 	// Check the contents of the type
 	switch (t1->type_type)
 	{
-		IR_TYPES_PRIMITIVE:
+		case IR_TYPES_PRIMITIVE:
 			// Primatives are equal if they have the same name
 			return !strcmp(t1->type_name, t2->type_name);
-		IR_TYPES_PRODUCT:
-		IR_TYPES_INTERSECT:
-		IR_TYPES_UNION:
+		case IR_TYPES_PRODUCT:
+		case IR_TYPES_INTERSECT:
+		case IR_TYPES_UNION:
+		case IR_TYPES_LIST:
+		case IR_TYPES_FUNC:
 			// Compound types are equal if their field types are the same
 			for (int i = 0; i < t1->field_count; i++)
 			{

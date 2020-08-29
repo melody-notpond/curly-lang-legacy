@@ -102,6 +102,9 @@ void map_add(hashmap_t* map, char* key, void* value)
 // Adds an element to a hashmap.
 void map_addn(hashmap_t* map, char* key, size_t key_length, void* value)
 {
+	if (key == NULL)
+		return;
+
 	if (!map->resizing && map->collision_count > HASHMAP_MAX_COLLISIONS)
 		map_resize(map, true);
 	size_t index = map->function(key, key_length) % map->buckets_size;
@@ -144,6 +147,9 @@ bool map_contains(hashmap_t* map, char* key)
 // Returns true if the hashmap contains a given key.
 bool map_containsn(hashmap_t* map, char* key, size_t key_length)
 {
+	if (key == NULL)
+		return false;
+
 	size_t index = map->function(key, key_length) % map->buckets_size;
 	hash_bucket* current = map->buckets[index];
 	while (current != NULL)
@@ -168,6 +174,9 @@ void* map_get(hashmap_t* map, char* key)
 // Returns the value associated with the given key or NULL if it does not exist.
 void* map_getn(hashmap_t* map, char* key, size_t key_length)
 {
+	if (key == NULL)
+		return NULL;
+
 	size_t index = map->function(key, key_length) % map->buckets_size;
 	hash_bucket* current = map->buckets[index];
 	while (current != NULL)
@@ -192,6 +201,9 @@ void map_remove(hashmap_t* map, char* key)
 // Removes a key from a hashmap.
 void map_removen(hashmap_t* map, char* key, size_t key_length)
 {
+	if (key == NULL)
+		return;
+
 	if (!map->resizing && map->item_count < map->buckets_size >> 5) // 16 seems like a good absolute minimum
 		map_resize(map, false);
 	size_t index = map->function(key, key_length) % map->buckets_size;

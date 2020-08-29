@@ -12,13 +12,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "../../../utils/hashmap.h"
+
 // Represents the types of types.
 typedef enum
 {
 	IR_TYPES_PRIMITIVE,
 	IR_TYPES_PRODUCT,
 	IR_TYPES_INTERSECT,
-	IR_TYPES_UNION
+	IR_TYPES_UNION,
+	IR_TYPES_LIST,
+	IR_TYPES_FUNC
 } ir_type_types_t;
 
 // Represents a curly type in the intermediate representation.
@@ -38,6 +42,8 @@ typedef struct s_type
 	// Linked list of types
 	struct s_type* next;
 } type_t;
+
+extern hashmap_t* types_map;
 
 // create_primatives(void) -> void
 // Creates the builtin primative types.
