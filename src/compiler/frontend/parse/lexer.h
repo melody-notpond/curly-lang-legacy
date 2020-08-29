@@ -89,6 +89,10 @@ typedef struct
 // Initialises a lexer.
 void init_lexer(lexer_t* lex, char* string);
 
+// lex_type_string(lex_type_t) -> char*
+// Converts a lex_type_t into a string.
+char* lex_type_string(lex_type_t type);
+
 // lex_next(lexer_t*) -> token_t*
 // Consumes the next token in the string.
 token_t* lex_next(lexer_t* lex);

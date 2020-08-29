@@ -78,9 +78,8 @@ void clean_parse_result(parse_result_t result)
 	else if (result.error != NULL)
 	{
 		// Free error fields
-		free(result.error->message);
+		free(result.error->expected);
 		free(result.error->value.value);
 		free(result.error);
 	}
 }
-

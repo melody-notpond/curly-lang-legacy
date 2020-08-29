@@ -1,5 +1,5 @@
 factorials = with acc = 1,
-	for i in 0..
+	for i in (range 0 nil)
 		acc = (
 			if i == 0
 			then 1

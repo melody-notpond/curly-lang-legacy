@@ -23,7 +23,7 @@ typedef struct
 	token_t value;
 
 	// The error message.
-	char* message;
+	char* expected;
 } error_t;
 
 // Represents an abstract syntax tree node.

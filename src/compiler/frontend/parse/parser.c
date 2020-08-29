@@ -23,13 +23,13 @@ parse_result_t succ_result(ast_t* ast)
 
 // err_result(bool, token_t, char*) -> parse_result_t
 // Returns a parse result containing an error.
-parse_result_t err_result(bool fatal, token_t token, char* msg)
+parse_result_t err_result(bool fatal, token_t token, char* expected)
 {
 	error_t* err = malloc(sizeof(error_t));
 	err->fatal = fatal;
 	err->value = token;
 	err->value.value = token.value != NULL ? strdup(token.value) : NULL;
-	err->message = strdup(msg);
+	err->expected = strdup(expected);
 
 	parse_result_t res;
 	res.succ = false;
@@ -50,17 +50,12 @@ parse_result_t consume_string(lexer_t* lex, char* string, bool fatal)
 
 	// Check for a lexer error
 	else if (token->type == LEX_TYPE_NONE)
-		return err_result(true, *token, strdup("Invalid token encountered"));
+		return err_result(true, *token, string);
 
 	// Return an error
 	else
 	{
-		char* msg = "Expected '' , got '%s'";
-		char* buffer = malloc(strlen(string) + strlen(msg) + 1);
-		strncpy(buffer, msg, 10);
-		strcpy(buffer + 10, string);
-		strcpy(buffer + 10 + strlen(string), msg + 10);
-		return err_result(fatal, *token, buffer);
+		return err_result(fatal, *token, string);
 	}
 }
 
@@ -77,12 +72,12 @@ parse_result_t consume_type(lexer_t* lex, lex_type_t type, bool fatal)
 
 	// Check for a lexer error
 	else if (token->type == LEX_TYPE_NONE)
-		return err_result(true, *token, strdup("Invalid token encountered"));
+		return err_result(true, *token, lex_type_string(type));
 
 	// Return an error
 	else
 	{
-		return err_result(fatal, *token, strdup("Expected type, got '%s'"));
+		return err_result(fatal, *token, lex_type_string(type));
 	}
 }
 
@@ -99,12 +94,12 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag, bool fatal)
 
 	// Check for a lexer error
 	else if (token->type == LEX_TYPE_NONE)
-		return err_result(true, *token, strdup("Invalid token encountered"));
+		return err_result(true, *token, tag == LEX_TAG_OPERAND ? "operand" : tag == LEX_TAG_OPERATOR ? "operator" : "none");
 
 	// Return an error
 	else
 	{
-		return err_result(fatal, *token, strdup("Expected tag, got '%s'"));
+		return err_result(fatal, *token, tag == LEX_TAG_OPERAND ? "operand" : tag == LEX_TAG_OPERATOR ? "operator" : "none");
 	}
 }
 
@@ -147,6 +142,9 @@ parse_result_t expression(lexer_t* lex);
 // application: expression+
 parse_result_t application(lexer_t* lex);
 
+// statement: assignment | application
+parse_result_t statement(lexer_t* lex);
+
 // for_loop: 'for' symbol 'in' expression application
 parse_result_t for_loop(lexer_t* lex)
 {
@@ -183,8 +181,13 @@ parse_result_t for_loop(lexer_t* lex)
 	call(iter, true, expression, lex, fory, true);
 	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, iter.ast);
 
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, fory, false);
+	clean_parse_result(newline);
+
 	// Consume the body
-	call(body, true, application, lex, fory, true);
+	call(body, true, statement, lex, fory, true);
 	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, body.ast);
 	return fory;
 }
@@ -207,12 +210,16 @@ parse_result_t where_expr(lexer_t* lex)
 	// Consume the iterator
 	call(iter, true, expression, lex, in, true);
 	list_append_element(in.ast->children, in.ast->children_size, in.ast->children_count, ast_t*, iter.ast);
-
 	// Consume the where operator and form the tree
 	consume(where, true, string, lex, "where", in, true);
 	where.ast->children_size = 2;
 	where.ast->children = calloc(2, sizeof(ast_t*));
 	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, in.ast);
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, where, false);
+	clean_parse_result(newline);
 
 	// Consume the predicate
 	call(pred, true, application, lex, in, true);
@@ -230,14 +237,26 @@ parse_result_t list_expr(lexer_t* lex)
 	consume(lbrack, true, string, lex, "[", (parse_result_t) {false}, false);
 	lbrack.ast->children_size = 1;
 	lbrack.ast->children = calloc(1, sizeof(ast_t*));
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lbrack, false);
+	clean_parse_result(newline);
 	repush_lexer(lex);
 
 	// Try to consume a list comprehension
 	call(fory, false, for_loop, lex, lbrack, false);
 	if (fory.succ)
 	{
-		// Add for loop to the tree and get right bracket
+		// Add for loop to the tree
 		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, fory.ast);
+
+		// Consume a newline
+		repush_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lbrack, false);
+		clean_parse_result(newline);
+
+		// Get right bracket
 		consume(rbrack, true, string, lex, "]", lbrack, true);
 		clean_parse_result(rbrack);
 		return lbrack;
@@ -247,8 +266,14 @@ parse_result_t list_expr(lexer_t* lex)
 	call(where, false, where_expr, lex, lbrack, false);
 	if (where.succ)
 	{
-		// Add where expression to the tree and get right bracket
+		// Add where expression to the tree
 		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, where.ast);
+		// Consume a newline
+		repush_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lbrack, false);
+		clean_parse_result(newline);
+
+		// Get right bracket
 		consume(rbrack, true, string, lex, "]", lbrack, true);
 		clean_parse_result(rbrack);
 		return lbrack;
@@ -271,6 +296,11 @@ parse_result_t list_expr(lexer_t* lex)
 			if (!comma.succ) break;
 			repush_lexer(lex);
 
+			// Consume a newline
+			repush_lexer(lex);
+			consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lbrack, false);
+			clean_parse_result(newline);
+
 			// Consume item
 			call(app, false, application, lex, lbrack, false);
 			if (app.succ)
@@ -278,6 +308,11 @@ parse_result_t list_expr(lexer_t* lex)
 			else clean_parse_result(app);
 		}
 	}
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, lbrack, false);
+	clean_parse_result(newline2);
 
 	// Consume right bracket
 	consume(rbrack, true, string, lex, "]", lbrack, true);
@@ -314,7 +349,11 @@ parse_result_t dict_expr(lexer_t* lex)
 
 	// Consume curly brace
 	consume(lcurly, true, string, lex, "{", (parse_result_t) {false}, false);
+
+	// Consume a newline
 	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lcurly, false);
+	clean_parse_result(newline);
 
 	// Try to collect items for the dictionary
 	call(item, false, dict_item, lex, lcurly, false);
@@ -333,6 +372,11 @@ parse_result_t dict_expr(lexer_t* lex)
 			if (!comma.succ) break;
 			repush_lexer(lex);
 
+			// Consume a newline
+			repush_lexer(lex);
+			consume(newline, false, type, lex, LEX_TYPE_NEWLINE, lcurly, false);
+			clean_parse_result(newline);
+
 			// Consume item
 			call(item, false, dict_item, lex, lcurly, false);
 			if (item.succ)
@@ -340,6 +384,11 @@ parse_result_t dict_expr(lexer_t* lex)
 			else clean_parse_result(item);
 		}
 	}
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, lcurly, false);
+	clean_parse_result(newline2);
 
 	// Consume right curly brace
 	consume(rcurly, true, string, lex, "}", lcurly, true);
@@ -376,7 +425,20 @@ parse_result_t value(lexer_t* lex)
 	// Consume a parenthesised application
 	consume(lparen, true, string, lex, "(", (parse_result_t) {false}, false);
 	clean_parse_result(lparen);
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, (parse_result_t) {false}, false);
+	clean_parse_result(newline);
+
+	// Consume application
 	call(app, true, application, lex, (parse_result_t) {false}, true);
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, app, false);
+	clean_parse_result(newline2);
+
 	consume(rparen, true, string, lex, ")", app, true);
 	clean_parse_result(rparen);
 	return app;
@@ -478,7 +540,7 @@ infix_parser(bitor, bitand, LEX_TYPE_BAR)
 // bitxor: bitor (('^') bitor)*
 infix_parser(bitxor, bitor, LEX_TYPE_CARET)
 
-// compare: bitxor (/==|[><]=?|in/ bitxor)*
+// compare: bitxor (/[=!]=|[><]=?|in/ bitxor)*
 infix_parser(compare, bitxor, LEX_TYPE_COMPARE)
 
 // and: compare (('and') compare)*
@@ -514,6 +576,11 @@ parse_result_t with_expr(lexer_t* lex)
 	consume(comma, true, type, lex, LEX_TYPE_COMMA, with, true);
 	clean_parse_result(comma);
 
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, with, false);
+	clean_parse_result(newline);
+
 	while (true)
 	{
 		push_lexer(lex);
@@ -530,6 +597,11 @@ parse_result_t with_expr(lexer_t* lex)
 		// Consume a comma
 		consume(comma, true, type, lex, LEX_TYPE_COMMA, with, true);
 		clean_parse_result(comma);
+
+		// Consume a newline
+		repush_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, with, false);
+		clean_parse_result(newline);
 	}
 
 	// Get an application
@@ -551,18 +623,34 @@ parse_result_t if_expr(lexer_t* lex)
 	iffy.ast->children = calloc(3, sizeof(ast_t*));
 	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, cond.ast);
 
-	// Consume the body
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, iffy, false);
+	clean_parse_result(newline);
+
+	// Consume then
 	consume(then, true, string, lex, "then", iffy, true);
 	clean_parse_result(then);
-	call(body, true, application, lex, iffy, true);
+
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, iffy, false);
+	clean_parse_result(newline2);
+
+	// Consume body
+	call(body, true, statement, lex, iffy, true);
 	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, body.ast);
 
-	// Consume the else statement if applicable
+	// Consume a newline
 	repush_lexer(lex);
+	consume(newline3, false, type, lex, LEX_TYPE_NEWLINE, iffy, false);
+	clean_parse_result(newline3);
+
+	// Consume the else statement if applicable
 	consume(elsy, false, string, lex, "else", iffy, false);
 	if (elsy.succ)
 	{
-		call(else_body, true, application, lex, iffy, true);
+		call(else_body, true, statement, lex, iffy, true);
 		list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, else_body.ast);
 	}
 
@@ -665,7 +753,7 @@ parse_result_t assignment(lexer_t* lex)
 		}
 
 		// Consume equal sign
-		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, dot, true);
+		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, dot, false);
 		assign.ast->children_size = 2;
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, dot.ast);
@@ -792,7 +880,7 @@ parse_result_t application(lexer_t* lex)
 	return func;
 }
 
-// statement: assignment | expression
+// statement: assignment | application
 parse_result_t statement(lexer_t* lex)
 {
 	// Push the lexer
@@ -826,11 +914,8 @@ parse_result_t lang_parser(lexer_t* lex)
 		// Consume one statement
 		call(state, false, statement, lex, result, false);
 		if (!state.succ)
-		{
 			clean_parse_result(state);
-			break;
-		}
-		list_append_element(result.ast->children, result.ast->children_size, result.ast->children_count, ast_t*, state.ast);
+		else list_append_element(result.ast->children, result.ast->children_size, result.ast->children_count, ast_t*, state.ast);
 
 		// Consume a newline
 		repush_lexer(lex);

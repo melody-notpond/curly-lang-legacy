@@ -25,6 +25,67 @@ void init_lexer(lexer_t* lex, char* string)
 	lex->count = 0;
 }
 
+// lex_type_string(lex_type_t) -> char*
+// Converts a lex_type_t into a string.
+char* lex_type_string(lex_type_t type)
+{
+	switch (type)
+	{
+		case LEX_TYPE_NONE:
+			return "none";
+		case LEX_TYPE_EOF:
+			return "EOF";
+		case LEX_TYPE_INT:
+			return "int";
+		case LEX_TYPE_FLOAT:
+			return "float";
+		case LEX_TYPE_LGROUP:
+			return "left grouping";
+		case LEX_TYPE_RGROUP:
+			return "right grouping";
+		case LEX_TYPE_COLON:
+			return "':'";
+		case LEX_TYPE_NEWLINE:
+			return "newline";
+		case LEX_TYPE_COMMA:
+			return "','";
+		case LEX_TYPE_SYMBOL:
+			return "symbol";
+		case LEX_TYPE_KEYWORD:
+			return "keyword";
+		case LEX_TYPE_ASSIGN:
+			return "'='";
+		case LEX_TYPE_COMPARE:
+			return "comparison operator";
+		case LEX_TYPE_DOT:
+			return "'.'";
+		case LEX_TYPE_RANGE:
+			return "'..'";
+		case LEX_TYPE_MULDIV:
+			return "'*' or '/'";
+		case LEX_TYPE_ADDSUB:
+			return "'+' or '-'";
+		case LEX_TYPE_BITSHIFT:
+			return "'>>' or '<<'";
+		case LEX_TYPE_AND:
+			return "'and'";
+		case LEX_TYPE_OR:
+			return "'or'";
+		case LEX_TYPE_XOR:
+			return "'xor'";
+		case LEX_TYPE_AMP:
+			return "'&'";
+		case LEX_TYPE_BAR:
+			return "'|'";
+		case LEX_TYPE_CARET:
+			return "'^'";
+		case LEX_TYPE_STRING:
+			return "string";
+		default:
+			return "type";
+	}
+}
+
 // lex_skip_whitespace(lexer_t*) -> void
 // Skips whitespace before a token.
 void lex_skip_whitespace(lexer_t* lex)
@@ -49,8 +110,6 @@ void lex_skip_whitespace(lexer_t* lex)
 		// Check for comments ending
 		} else if (comment && lex->string[lex->pos] == '\n')
 		{
-			lex->charpos = 0;
-			lex->lino++;
 			comment = false;
 			break;
 
@@ -139,7 +198,7 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_ASSIGN;
 					token.tag = LEX_TAG_OPERATOR;
-				} else if (c == '<' || c == '>')
+				} else if (c == '<' || c == '>' || c == '!')
 				{
 					token.type = LEX_TYPE_COMPARE;
 					token.tag = LEX_TAG_OPERATOR;
@@ -147,7 +206,7 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_DOT;
 					token.tag = LEX_TAG_OPERATOR;
-				} else if (c == '*' || c == '/')
+				} else if (c == '*' || c == '/' || c == '%')
 				{
 					token.type = LEX_TYPE_MULDIV;
 					token.tag = LEX_TAG_OPERATOR;
@@ -209,8 +268,11 @@ token_t* lex_next(lexer_t* lex)
 				// << and >> are operators
 				if ((c == '<' || c == '>') && lex->string[i - 1] == c)
 					token.type = LEX_TYPE_BITSHIFT;
+				// != is a comparison operator
+				else if (lex->string[i - 1] == '!' && c != '=')
+					token.type = LEX_TYPE_NONE;
 				// <= and >= are comparison operators
-				else if ((lex->string[i - 1] != '<' && lex->string[i - 1] != '>') || c != '=')
+				else if ((lex->string[i - 1] != '<' && lex->string[i - 1] != '>' && lex->string[i - 1] != '!') || c != '=')
 					iter = false;
 				break;
 			case LEX_TYPE_DOT:
