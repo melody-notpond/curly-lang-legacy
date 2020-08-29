@@ -51,6 +51,8 @@ char* lex_type_string(lex_type_t type)
 			return "','";
 		case LEX_TYPE_SYMBOL:
 			return "symbol";
+		case LEX_TYPE_RESERVED_CONSTANT:
+			return "'true', 'false', or 'nil'";
 		case LEX_TYPE_KEYWORD:
 			return "keyword";
 		case LEX_TYPE_ASSIGN:
@@ -352,6 +354,11 @@ token_t* lex_next(lexer_t* lex)
 		{
 			token.type = LEX_TYPE_KEYWORD;
 			token.tag = LEX_TAG_OPERATOR;
+		} else if (!strcmp(token.value, "true")
+				|| !strcmp(token.value, "false")
+				|| !strcmp(token.value, "nil"))
+		{
+			token.type = LEX_TYPE_RESERVED_CONSTANT;
 		} else if (!strcmp(token.value, "in"))
 		{
 			// in is treated as an infix operator on the same level as comparing operators
