@@ -56,7 +56,7 @@ fib n: int = (fib n - 1) + (fib n - 2)
 # anonymous function
 lambda arg0: type0 arg1: type1 arg0 + arg1
 
-ex_type: type = isFloat: bool * (
+ex_type: type = isFloat: bool & (
 	num: int | num: float
 )
 
@@ -69,3 +69,5 @@ instance.isFloat # false
 instance.0 # false
 instance.num # 42
 instance.1 # 42
+
+# types: & - intersection type; * - product type; | - union type; >> - function type
