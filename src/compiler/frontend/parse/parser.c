@@ -681,21 +681,25 @@ parse_result_t assignment(lexer_t* lex)
 		// Push the lexer
 		push_lexer(lex);
 
-		// Consume a symbol and add it to the symbol ast node
-		consume(arg, false, type, lex, LEX_TYPE_SYMBOL, symbol, false);
+		// Consume an operand and add it to the symbol ast node
+		consume(arg, false, tag, lex, LEX_TAG_OPERAND, symbol, false);
 		if (!arg.succ) break;
 		list_append_element(symbol.ast->children, symbol.ast->children_size, symbol.ast->children_count, ast_t*, arg.ast);
 
-		// Consume a colon and add it to the symbol ast node
-		consume(colon, true, type, lex, LEX_TYPE_COLON, symbol, false);
-		colon.ast->children_size = 2;
-		colon.ast->children = calloc(2, sizeof(ast_t*));
-		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast->children[symbol.ast->children_count - 1]);
-		symbol.ast->children[symbol.ast->children_count - 1] = colon.ast;
+		// If a symbol was absorbed, attach a type
+		if (arg.ast->value.type == LEX_TYPE_SYMBOL)
+		{
+			// Consume a colon and add it to the symbol ast node
+			consume(colon, true, type, lex, LEX_TYPE_COLON, symbol, false);
+			colon.ast->children_size = 2;
+			colon.ast->children = calloc(2, sizeof(ast_t*));
+			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast->children[symbol.ast->children_count - 1]);
+			symbol.ast->children[symbol.ast->children_count - 1] = colon.ast;
 
-		// Consume an expression and add it to the colon ast node
-		call(type, true, expression, lex, symbol, false);
-		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+			// Consume an expression and add it to the colon ast node
+			call(type, true, expression, lex, symbol, false);
+			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+		}
 	}
 
 	// Consume equal sign

@@ -69,6 +69,3 @@ instance.isFloat # false
 instance.0 # false
 instance.num # 42
 instance.1 # 42
-
-# things the parser still doesn't have:
-#  - pattern matching
