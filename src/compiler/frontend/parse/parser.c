@@ -28,7 +28,7 @@ parse_result_t err_result(bool fatal, token_t token, char* msg)
 	error_t* err = malloc(sizeof(error_t));
 	err->fatal = fatal;
 	err->value = token;
-	err->value.value = strdup(token.value);
+	err->value.value = token.value != NULL ? strdup(token.value) : NULL;
 	err->message = strdup(msg);
 
 	parse_result_t res;
@@ -434,7 +434,7 @@ parse_result_t name(lexer_t* lex)																				\
 																												\
 		/* Get operator */																						\
 		consume(op, false, type, lex, operator, left, false);													\
-		if (!op.succ) break;																					\
+		if (!op.succ) { clean_parse_result(op); break; }														\
 																												\
 		/* Add left operand to the operator ast node */															\
 		op.ast->children_size = 2;																				\
@@ -520,7 +520,11 @@ parse_result_t with_expr(lexer_t* lex)
 
 		// Consume an assignment and add it to the with keyword ast node if found
 		call(assign, false, assignment, lex, with, false);
-		if (!assign.succ) break;
+		if (!assign.succ)
+		{
+			clean_parse_result(assign);
+			break;
+		}
 		list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, assign.ast);
 
 		// Consume a comma
@@ -652,6 +656,7 @@ parse_result_t assignment(lexer_t* lex)
 
 			// Consume a dot
 			consume(dot2, false, type, lex, LEX_TYPE_DOT, dot, false);
+			clean_parse_result(dot2);
 			if (!dot2.succ) break;
 
 			// Consume a value
@@ -682,7 +687,11 @@ parse_result_t assignment(lexer_t* lex)
 
 		// Consume an operand and add it to the symbol ast node
 		consume(arg, false, tag, lex, LEX_TAG_OPERAND, symbol, false);
-		if (!arg.succ) break;
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+			break;
+		}
 		list_append_element(symbol.ast->children, symbol.ast->children_size, symbol.ast->children_count, ast_t*, arg.ast);
 
 		// If a symbol was absorbed, attach a type
@@ -772,7 +781,11 @@ parse_result_t application(lexer_t* lex)
 
 		// Add arguments to the tree
 		call(arg, false, expression, lex, func, false);
-		if (!arg.succ) break;
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+			break;
+		}
 		list_append_element(func.ast->children, func.ast->children_size, func.ast->children_count, ast_t*, arg.ast);
 	}
 
@@ -794,6 +807,45 @@ parse_result_t statement(lexer_t* lex)
 	clean_parse_result(assign);
 	call(app, false, application, lex, (parse_result_t) {false}, false);
 	return app;
+}
+
+// lang_parser(lexer_t*) -> parse_result_t
+// Parses the curly language.
+// lang_parser: statement*
+parse_result_t lang_parser(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+	parse_result_t result = succ_result(init_ast((token_t) {0, 0, NULL, 0, 0, 0}));
+
+	while (true)
+	{
+		// Push the lexer
+		push_lexer(lex);
+
+		// Consume one statement
+		call(state, false, statement, lex, result, false);
+		if (!state.succ)
+		{
+			clean_parse_result(state);
+			break;
+		}
+		list_append_element(result.ast->children, result.ast->children_size, result.ast->children_count, ast_t*, state.ast);
+
+		// Consume a newline
+		repush_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, result, false);
+		if (!newline.succ)
+		{
+			clean_parse_result(newline);
+			break;
+		}
+	}
+
+	// Assert that the end of file has been reached
+	consume(eof, true, type, lex, LEX_TYPE_EOF, result, true);
+	clean_parse_result(eof);
+	return result;
 }
 
 #undef repush_lexer

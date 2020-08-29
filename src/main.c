@@ -14,7 +14,7 @@
 int main(int argc, char** argv)
 {
 	lexer_t lex;
-	init_lexer(&lex, "funct 0 x:z = 0");
+	init_lexer(&lex, "fib 0 = 1\nfib 1 = 1\n\nfib n: int = (fib n - 1) + (fib n - 2)");
 
 	// token_t* token;
 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	// }
 	// lex.token_pos = 0;
 
-	parse_result_t res = statement(&lex);
+	parse_result_t res = lang_parser(&lex);
 
 	if (res.succ)
 		print_ast(res.ast);

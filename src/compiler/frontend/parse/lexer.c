@@ -36,14 +36,23 @@ void lex_skip_whitespace(lexer_t* lex)
 	{
 		// Get the next character
 		c = lex->string[lex->pos];
+		if (c == '\0') break;
 
 		// Check for newline
-		if (c == '\n')
+		if (c == '\\' && lex->string[lex->pos + 1] == '\n')
 		{
-			lex->pos++;
+			lex->pos += 2;
 			lex->charpos = 0;
 			lex->lino++;
 			comment = false;
+
+		// Check for comments ending
+		} else if (comment && lex->string[lex->pos] == '\n')
+		{
+			lex->charpos = 0;
+			lex->lino++;
+			comment = false;
+			break;
 
 		// Check for whitespace
 		} else if (comment || c == ' ' || c == '\t' || c == '\r' || c == '#')
@@ -115,10 +124,9 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_COLON;
 					token.tag = LEX_TAG_OPERATOR;
-				} else if (c == '\\')
+				} else if (c == '\n')
 				{
-					token.type = LEX_TYPE_BACKSLASH;
-					token.tag = LEX_TAG_OPERATOR;
+					token.type = LEX_TYPE_NEWLINE;
 				} else if (c == ',')
 				{
 					token.type = LEX_TYPE_COMMA;
@@ -225,12 +233,23 @@ token_t* lex_next(lexer_t* lex)
 					iter = false;
 				}
 				break;
-
+			case LEX_TYPE_NEWLINE:
+				// Append all newlines to the token
+				lex_skip_whitespace(lex);
+				i = lex->pos;
+				if (lex->string[i] != '\n')
+					iter = false;
+				else
+				{
+					lex->lino++;
+					lex->charpos = -1;
+					lex->pos++;
+				}
+				break;
 			// These token types are only one character long
 			case LEX_TYPE_LGROUP:
 			case LEX_TYPE_RGROUP:
 			case LEX_TYPE_COLON:
-			case LEX_TYPE_BACKSLASH:
 			case LEX_TYPE_COMMA:
 			case LEX_TYPE_RANGE:
 			case LEX_TYPE_MULDIV:

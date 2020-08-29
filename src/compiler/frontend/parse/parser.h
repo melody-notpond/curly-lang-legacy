@@ -12,7 +12,9 @@
 #include "ast.h"
 #include "lexer.h"
 
-// statement: assignment | expression
-parse_result_t statement(lexer_t* lex);
+// lang_parser(lexer_t*) -> parse_result_t
+// Parses the curly language.
+// lang_parser: statement*
+parse_result_t lang_parser(lexer_t* lex);
 
 #endif /* parser_h */
