@@ -320,23 +320,38 @@ parse_result_t list_expr(lexer_t* lex)
 	return lbrack;
 }
 
-// dict_item: symbol '=' application
+// dict_item: (symbol '=')? application
 parse_result_t dict_item(lexer_t* lex)
 {
 	// Push the lexer
 	push_lexer(lex);
 
 	// Consume a symbol
-	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false}, false);
+	consume(symbol, false, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false}, false);
 
 	// Consume an equal sign and create the tree
-	consume(assign, true, type, lex, LEX_TYPE_ASSIGN, symbol, true);
-	assign.ast->children_size = 2;
-	assign.ast->children = calloc(2, sizeof(ast_t*));
-	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, symbol.ast);
+	consume(assign, false, type, lex, LEX_TYPE_ASSIGN, symbol, false);
+
+	if (symbol.succ && assign.succ)
+	{
+		assign.ast->children_size = 2;
+		assign.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, symbol.ast);
+	} else if (assign.succ)
+	{
+		clean_parse_result(assign);
+		return symbol;
+	} else
+	{
+		clean_parse_result(symbol);
+		clean_parse_result(assign);
+		assign.ast = NULL;
+	}
 
 	// Consume an application
 	call(app, true, application, lex, assign, true);
+	if (!assign.succ)
+		return app;
 	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
 	return assign;
 }
@@ -383,7 +398,7 @@ parse_result_t dict_expr(lexer_t* lex)
 				list_append_element(lcurly.ast->children, lcurly.ast->children_size, lcurly.ast->children_count, ast_t*, item.ast);
 			else clean_parse_result(item);
 		}
-	}
+	} else clean_parse_result(item);
 
 	// Consume a newline
 	repush_lexer(lex);
