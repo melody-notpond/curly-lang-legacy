@@ -348,7 +348,7 @@ parse_result_t dict_expr(lexer_t* lex)
 	return lcurly;
 }
 
-// value: int | float | symbol | string | '(' application ')' | list_expr
+// value: int | float | symbol | string | '(' application ')' | list_expr | dict_expr
 parse_result_t value(lexer_t* lex)
 {
 	// Push the lexer
@@ -381,6 +381,42 @@ parse_result_t value(lexer_t* lex)
 	consume(rparen, true, string, lex, ")", app, true);
 	clean_parse_result(rparen);
 	return app;
+}
+#include <stdio.h>
+// prefix: ('*' | '-')? value
+parse_result_t prefix(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Try to consume curry operator
+	consume(curry, false, string, lex, "*", (parse_result_t) {false}, false);
+	if (curry.succ)
+	{
+		// Append a value to the curry operator
+		call(val, true, value, lex, curry, true);
+		curry.ast->children_size = 1;
+		curry.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, val.ast);
+		return curry;
+	}
+
+	// Try to consume negative operator
+	clean_parse_result(curry);
+	consume(negative, false, string, lex, "-", (parse_result_t) {false}, false);
+	if (negative.succ)
+	{
+		// Append a value to the curry operator
+		call(val, true, value, lex, negative, true);
+		negative.ast->children_size = 1;
+		negative.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, val.ast);
+		return negative;
+	}
+
+	// Return the regular value if no prefix was found
+	clean_parse_result(negative);
+	return value(lex);
 }
 
 #define infix_parser(name, subparser, operator)																						\
@@ -418,8 +454,8 @@ parse_result_t name(lexer_t* lex)																				\
 	return left;																								\
 }
 
-// attribute: value ('.' value)*
-infix_parser(attribute, value, LEX_TYPE_DOT)
+// attribute: prefix ('.' prefix)*
+infix_parser(attribute, prefix, LEX_TYPE_DOT)
 
 // typing: attribute (':' attribute)*
 // Note that the code correctness checker will assert only one colon pair is present per series
@@ -519,6 +555,7 @@ parse_result_t if_expr(lexer_t* lex)
 	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, body.ast);
 
 	// Consume the else statement if applicable
+	repush_lexer(lex);
 	consume(elsy, false, string, lex, "else", iffy, false);
 	if (elsy.succ)
 	{
@@ -530,8 +567,9 @@ parse_result_t if_expr(lexer_t* lex)
 }
 
 // assignment: symbol '..' symbol '=' application
-//           | symbol ':' symbol = application
-//           | symbol (symbol ':' symbol)* '=' application
+//           | symbol ':' expression '=' application
+//           | symbol ('.' value)+ '=' application
+//           | symbol (symbol ':' expression)* '=' application
 parse_result_t assignment(lexer_t* lex)
 {
 	// Push the lexer
@@ -578,8 +616,8 @@ parse_result_t assignment(lexer_t* lex)
 		colon.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast);
 
-		// Consume another symbol and add it as the tail to the range operator ast node
-		consume(type, true, type, lex, LEX_TYPE_SYMBOL, colon, true);
+		// Consume an expression for the type
+		call(type, true, expression, lex, colon, false);
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 
 		// Consume equal sign

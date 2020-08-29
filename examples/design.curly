@@ -22,10 +22,10 @@ if condition then expression else expression # if else statement
 debug expression # can place anywhere, prints out a message like this if debug is enabled:
 # (db) expression evaluated to value on file.curly:lino:charno
 
-a..b:c # numbers in [a, b) with step size c (negative is backwards) as a generator
+range a b c # numbers in [a, b) with step size c (negative is backwards) as a generator
 list.i.j.k # get the kth element of the jth element of the ith element of list
 dict.a # get the value of key a in dict
-list.a..b:c # get the sublist of list with indices in range (a..b:c)
+list.(range a b c) # get the sublist of list with indices in the range
 x in set # check if x is in set
 
 # list compehensions are generated lazily
@@ -46,7 +46,7 @@ for some i in iter f i # checks that some element of the iterable follows some p
 "string owo" # a string
 "" expression # expression as a string /concatenation
 
-# type names: int, float, string, obj, list, set, dict, gen, type, func
+# type names: int, float, string, list, set, dict, gen, type, func
 
 # example: fibonacci
 fib 0 = 1
@@ -72,5 +72,3 @@ instance.1 # 42
 
 # things the parser still doesn't have:
 #  - pattern matching
-#  - currying and negative signs
-#  - ranges
