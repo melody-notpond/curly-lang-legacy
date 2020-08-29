@@ -70,7 +70,7 @@ instance.0 # false
 instance.num # 42
 instance.1 # 42
 
-# types: & - intersection type; * - product type; | - union type; >> - function type
+# types: & - intersection type; * - product type; | - union type; >> - function type; *type - generator of type; [type] - list of type
 complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
 pair: type = int * int
 tree t: type = leaf: t | branch: ((tree t) * (tree t))

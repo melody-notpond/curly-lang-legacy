@@ -22,6 +22,7 @@ typedef enum
 	IR_TYPES_INTERSECT,
 	IR_TYPES_UNION,
 	IR_TYPES_LIST,
+	IR_TYPES_GENERATOR,
 	IR_TYPES_FUNC
 } ir_type_types_t;
 
@@ -56,6 +57,10 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count);
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.
 bool types_equal(type_t* t1, type_t* t2);
+
+// print_type(type_t*) -> void
+// Prints out a type.
+void print_type(type_t* type);
 
 // clean_types(void) -> void
 // Frees every type created.

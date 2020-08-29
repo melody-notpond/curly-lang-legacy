@@ -6,6 +6,7 @@
 // Created on August 29 2020.
 // 
 
+#include <stdio.h>
 #include <string.h>
 
 #include "types.h"
@@ -89,6 +90,65 @@ bool types_equal(type_t* t1, type_t* t2)
 			return false;
 	}
 }
+
+// print_type_helper(type_t*, int) -> void
+// Helps to print out a type's internal structure.
+void print_type_helper(type_t* type, char* name, int level)
+{
+	// Print indentation
+	for (int i = 0; i < level; i++)
+	{
+		putc('\t', stdout);
+	}
+	if (level > 0) printf("| ");
+
+	// Print out the field name if applicable
+	if (name != NULL)
+		printf("%s: ", name);
+
+	// Print out the type of the type
+	switch (type->type_type)
+	{
+		case IR_TYPES_PRIMITIVE:
+			printf("prim");
+			break;
+		case IR_TYPES_PRODUCT:
+			printf("prod");
+			break;
+		case IR_TYPES_INTERSECT:
+			printf("inter");
+			break;
+		case IR_TYPES_UNION:
+			printf("union");
+			break;
+		case IR_TYPES_LIST:
+			printf("list");
+			break;
+		case IR_TYPES_GENERATOR:
+			printf("gen");
+			break;
+		case IR_TYPES_FUNC:
+			printf("func");
+			break;
+		default:
+			printf("type");
+			break;
+	}
+
+	// Print out the type name if applicable
+	if (type->type_name != NULL)
+		printf(" %s", type->type_name);
+
+	// Print out children
+	for (int i = 0; i < type->field_count; i++)
+	{
+		print_type_helper(type->field_types[i], type->field_names[i], level + 1);
+	}
+}
+
+// print_type(type_t*) -> void
+// Prints out a type.
+void print_type(type_t* type) { print_type_helper(type, NULL, 0); }
 
 // clean_types(void) -> void
 // Frees every type created.

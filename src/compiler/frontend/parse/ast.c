@@ -24,6 +24,8 @@ ast_t* init_ast(token_t token)
 	return ast;
 }
 
+// print_ast_helper(ast_t*, int) -> void
+// Helps to print an ast node.
 void print_ast_helper(ast_t* ast, int level)
 {
 	// Tab out the ast node
