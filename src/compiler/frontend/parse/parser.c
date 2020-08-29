@@ -6,7 +6,6 @@
 // Created on August 28 2020.
 // 
 
-#include <stdio.h>
 #include <string.h>
 
 #include "../../../utils/list.h"
@@ -348,7 +347,7 @@ parse_result_t dict_expr(lexer_t* lex)
 	return lcurly;
 }
 
-// value: int | float | symbol | string | '(' application ')' | list_expr | dict_expr
+// value: operand | '(' application ')' | list_expr | dict_expr
 parse_result_t value(lexer_t* lex)
 {
 	// Push the lexer
@@ -382,7 +381,7 @@ parse_result_t value(lexer_t* lex)
 	clean_parse_result(rparen);
 	return app;
 }
-#include <stdio.h>
+
 // prefix: ('*' | '-')? value
 parse_result_t prefix(lexer_t* lex)
 {
@@ -569,7 +568,7 @@ parse_result_t if_expr(lexer_t* lex)
 // assignment: symbol '..' symbol '=' application
 //           | symbol ':' expression '=' application
 //           | symbol ('.' value)+ '=' application
-//           | symbol (symbol ':' expression)* '=' application
+//           | symbol (operand\symbol | symbol ':' expression)* '=' application
 parse_result_t assignment(lexer_t* lex)
 {
 	// Push the lexer
