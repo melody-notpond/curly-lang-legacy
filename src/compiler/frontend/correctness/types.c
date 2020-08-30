@@ -48,6 +48,17 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	return type;
 }
 
+// type_get_return_type(type_t*) -> type_t*
+// Get the return type of a function type.
+type_t* type_get_return_type(type_t* type)
+{
+	while (type->type_type == IR_TYPES_FUNC && type->field_count > 0)
+	{
+		type = type->field_types[type->field_count - 1];
+	}
+	return type;
+}
+
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.
 bool types_equal(type_t* t1, type_t* t2)

@@ -44,6 +44,8 @@ typedef struct s_type
 	struct s_type* next;
 } type_t;
 
+extern type_t* type_linked_list_head;
+
 // create_primatives(void) -> void
 // Creates the builtin primative types.
 void create_primatives();
@@ -51,6 +53,10 @@ void create_primatives();
 // init_type(ir_type_types_t, char*, size_t) -> type_t*
 // Initialises a new type.
 type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count);
+
+// type_get_return_type(type_t*) -> type_t*
+// Get the return type of a function type.
+type_t* type_get_return_type(type_t* type);
 
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.

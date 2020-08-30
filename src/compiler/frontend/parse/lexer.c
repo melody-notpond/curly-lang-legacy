@@ -51,8 +51,10 @@ char* lex_type_string(lex_type_t type)
 			return "','";
 		case LEX_TYPE_SYMBOL:
 			return "symbol";
-		case LEX_TYPE_RESERVED_CONSTANT:
-			return "'true', 'false', or 'nil'";
+		case LEX_TYPE_BOOL:
+			return "'true' or 'false'";
+		case LEX_TYPE_NIL:
+			return "'nil'";
 		case LEX_TYPE_KEYWORD:
 			return "keyword";
 		case LEX_TYPE_ASSIGN:
@@ -184,7 +186,7 @@ token_t* lex_next(lexer_t* lex)
 				} else if (c == ':')
 				{
 					token.type = LEX_TYPE_COLON;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '\n')
 				{
 					token.type = LEX_TYPE_NEWLINE;
@@ -203,19 +205,19 @@ token_t* lex_next(lexer_t* lex)
 				} else if (c == '<' || c == '>' || c == '!')
 				{
 					token.type = LEX_TYPE_COMPARE;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '.')
 				{
 					token.type = LEX_TYPE_DOT;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '*' || c == '/' || c == '%')
 				{
 					token.type = LEX_TYPE_MULDIV;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '+' || c == '-')
 				{
 					token.type = LEX_TYPE_ADDSUB;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '"')
 				{
 					token.type = LEX_TYPE_STRING;
@@ -223,15 +225,15 @@ token_t* lex_next(lexer_t* lex)
 				} else if (c == '&')
 				{
 					token.type = LEX_TYPE_AMP;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '|')
 				{
 					token.type = LEX_TYPE_BAR;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				} else if (c == '^')
 				{
 					token.type = LEX_TYPE_CARET;
-					token.tag = LEX_TAG_OPERATOR;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
 				}
 				break;
 			case LEX_TYPE_INT:
@@ -263,8 +265,10 @@ token_t* lex_next(lexer_t* lex)
 			case LEX_TYPE_ASSIGN:
 				// If there's another equal sign, then it's == (equal to)
 				if (c == '=')
+				{
 					token.type = LEX_TYPE_COMPARE;
-				else iter = false;
+					token.tag = LEX_TAG_INFIX_OPERATOR;
+				} else iter = false;
 				break;
 			case LEX_TYPE_COMPARE:
 				// << and >> are operators
@@ -280,8 +284,10 @@ token_t* lex_next(lexer_t* lex)
 			case LEX_TYPE_DOT:
 				// .. is the range operator
 				if (c == '.')
+				{
 					token.type = LEX_TYPE_RANGE;
-				else iter = false;
+					token.tag = LEX_TAG_OPERATOR;
+				} else iter = false;
 				break;
 			case LEX_TYPE_STRING:
 				// Strings end at an unescaped quotation mark
@@ -355,10 +361,12 @@ token_t* lex_next(lexer_t* lex)
 			token.type = LEX_TYPE_KEYWORD;
 			token.tag = LEX_TAG_OPERATOR;
 		} else if (!strcmp(token.value, "true")
-				|| !strcmp(token.value, "false")
-				|| !strcmp(token.value, "nil"))
+				|| !strcmp(token.value, "false"))
 		{
-			token.type = LEX_TYPE_RESERVED_CONSTANT;
+			token.type = LEX_TYPE_BOOL;
+		} else if (!strcmp(token.value, "nil"))
+		{
+			token.type = LEX_TYPE_NIL;
 		} else if (!strcmp(token.value, "in"))
 		{
 			// in is treated as an infix operator on the same level as comparing operators

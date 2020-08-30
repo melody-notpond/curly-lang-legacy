@@ -94,12 +94,12 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag, bool fatal)
 
 	// Check for a lexer error
 	else if (token->type == LEX_TYPE_NONE)
-		return err_result(true, *token, tag == LEX_TAG_OPERAND ? "operand" : tag == LEX_TAG_OPERATOR ? "operator" : "none");
+		return err_result(true, *token, tag == LEX_TAG_OPERAND ? "operand" : "tag");
 
 	// Return an error
 	else
 	{
-		return err_result(fatal, *token, tag == LEX_TAG_OPERAND ? "operand" : tag == LEX_TAG_OPERATOR ? "operator" : "none");
+		return err_result(fatal, *token, tag == LEX_TAG_OPERAND ? "operand" : "tag");
 	}
 }
 
