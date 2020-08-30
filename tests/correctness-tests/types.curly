@@ -8,7 +8,10 @@
 
 y: int = 0 # succeeds
 y = 2 # succeeds
-y = "" # fails
+t: type = int # succeeds
+l = [1,2,3] # succeeds
+l2 = ["a", "b", 3] # fails
+# y = "" # fails
 # y: string = "" # fails
 # x: string = x # fails
 # y # succeeds

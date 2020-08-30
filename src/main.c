@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 
 		lexer_t lex;
 		init_lexer(&lex, string);
+		free(string);
 
 		// token_t* token;
 		// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
@@ -59,6 +60,7 @@ int main(int argc, char** argv)
 		}
 
 		cleanup_lexer(&lex);
+		clean_types();
 	}
 	return 0;
 }

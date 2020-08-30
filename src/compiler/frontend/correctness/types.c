@@ -63,6 +63,9 @@ type_t* type_get_return_type(type_t* type)
 // Returns whether the two types are equal or not.
 bool types_equal(type_t* t1, type_t* t2)
 {
+	if (t1 == NULL || t2 == NULL)
+		return t1 == t2;
+
 	// Types must be the same type of type and have the same number of fields
 	if (t1->type_type != t2->type_type || t1->field_count != t2->field_count)
 		return false;

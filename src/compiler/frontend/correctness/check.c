@@ -40,8 +40,12 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				// Get type from variable list
 				ast->type = scope_lookup_var_type(scope, ast->value.value);
 
+				// If variable isn't found, try finding it as a type
+				if (ast->type == NULL && scope_lookup_type(scope, ast->value.value) != NULL)
+					ast->type = scope_lookup_type(scope, "type");
+
 				// If variable isn't found, report an error
-				if (ast->type == NULL)
+				else
 					printf("Undeclared variable %s found at %i:%i\n", ast->value.value, ast->value.lino, ast->value.charpos);
 				return ast->type != NULL;
 			default:
@@ -143,8 +147,44 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		// TODO: range and function assignment
 		} else return false;
 
-	// TODO: literally everything else
-	} else return false;
+	// Lists
+	} else if (!strcmp(ast->value.value, "["))
+		{
+			// Empty list type for empty lists
+			if (ast->children_count == 0)
+			{
+				ast->type = init_type(IR_TYPES_LIST, NULL, ast->children_count > 0);
+				return true;
+			}
+
+			// Create type list
+			if (!check_correctness_helper(ast->children[0], scope)) return false;
+			if (ast->children_count == 0 && types_equal(ast->children[0]->type, scope_lookup_type(scope, "type")))
+			{
+				ast->type = ast->children[0]->type;
+				return true;
+			}
+
+			// Check that the type of the first element is the same as the type of the rest of the elements
+			type_t* elem_type = ast->children[0]->type;
+			for (int i = 1; i < ast->children_count; i++)
+			{
+				if (!check_correctness_helper(ast->children[i], scope)) return false;
+				if (!types_equal(elem_type, ast->children[i]->type))
+				{
+					// Report error
+					printf("List has different types at %i:%i and %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos, ast->children[i]->value.lino, ast->children[i]->value.charpos);
+					return false;
+				}
+			}
+
+			// Create the list type
+			ast->type = init_type(IR_TYPES_LIST, NULL, 1);
+			ast->type->field_types[0] = elem_type;
+			return true;
+
+		// TODO: literally everything else
+		} else return false;
 	return false;
 }
 
