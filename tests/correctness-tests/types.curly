@@ -6,7 +6,7 @@
 # *type - generator of type
 # [type] - list of type
 
-y: ([int]) = [1,2,3,4]
+# y: (a:int & b:bool) = [1,2,3,4]
 # y: int = 0 # succeeds
 # y = 2 # succeeds
 # t: type = int # succeeds
@@ -18,12 +18,12 @@ y: ([int]) = [1,2,3,4]
 # y # succeeds
 # z # fails
 
-# pair: type = int * int
+pair: type = int * int
 # p: pair = {5, 4}
 
-# complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-# z1: complex = {rect = {x = 1, y = 2}}
-# z2: complex = {rect = {1, 2}}
+complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
+# z1: complex = {rect = {x = 1.0, y = 2.0}}
+# z2: complex = {rect = {1.0, 2.0}}
 
 # tree: type >> type
 # tree t: type = leaf: t | branch: ((tree t) * (tree t))

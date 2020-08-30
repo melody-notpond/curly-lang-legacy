@@ -99,9 +99,11 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 	// Union types
 	} else if (!strcmp(ast->value.value, "|"))
 	{
-		// List of types (reverse order)
+		// List of field types and names (reverse order)
 		type_t** types = NULL;
-		size_t size = 0;
+		char** names = NULL;
+		size_t t_size = 0;
+		size_t n_size = 0;
 		size_t count = 0;
 
 		do
@@ -110,7 +112,17 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 			ast->type = scope_lookup_type(scope, "type");
 			type_t* type = generate_type(ast->children[1], scope);
 			if (type == NULL) return NULL;
-			list_append_element(types, size, count, type_t*, type);
+			if (type->field_count == 1 && type->type_type == IR_TYPES_PRODUCT)
+			{
+				list_append_element(types, t_size, count, type_t*, type->field_types[0]);
+				count--;
+				list_append_element(names, n_size, count, char*, type->field_names[0]);
+			} else
+			{
+				list_append_element(types, t_size, count, type_t*, type);
+				count--;
+				list_append_element(names, n_size, count, char*, NULL);
+			}
 
 			// Get the next ast and continue if it's also a product
 			ast = ast->children[0];
@@ -119,13 +131,24 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		// Get the last ast's type and append it to the list of types
 		type_t* subtype = generate_type(ast, scope);
 		if (subtype == NULL) return NULL;
-		list_append_element(types, size, count, type_t*, subtype);
+		if (subtype->field_count == 1 && subtype->type_type == IR_TYPES_PRODUCT)
+		{
+			list_append_element(types, t_size, count, type_t*, subtype->field_types[0]);
+			count--;
+			list_append_element(names, n_size, count, char*, subtype->field_names[0]);
+		} else
+		{
+			list_append_element(types, t_size, count, type_t*, subtype);
+			count--;
+			list_append_element(names, n_size, count, char*, NULL);
+		}
 
 		// Create a new product type and add the subtypes
 		type_t* type = init_type(IR_TYPES_UNION, NULL, count);
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
+			type->field_names[i] = names[count - i - 1];
 		}
 		return type;
 
@@ -189,6 +212,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
+			type->field_names[i] = names[count - i - 1];
 		}
 		return type;
 
@@ -306,6 +330,25 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				if (var_type == NULL)
 				{
 					var_ast->type = type;
+
+					// Deal with adding new types
+					if (types_equal(var_ast->type, scope_lookup_type(scope, "type")))
+					{
+						if (map_contains(scope->types, var_ast->value.value))
+						{
+							printf("Mutable type %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+							return false;
+						} else
+						{
+							type_t* type = generate_type(val_ast, scope);
+							if (type == NULL) return false;
+							type->type_name = strdup(var_ast->value.value);
+							print_type(type);
+							map_add(scope->types, var_ast->value.value, type);
+							return true;
+						}
+					}
+
 					return true;
 
 				// Check if the type is correct
@@ -345,15 +388,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 
 			// Get the type of the expression
 			ast_t* val_ast = ast->children[1];
-			if (!check_correctness_helper(val_ast, scope)) return false;
-
-			// Assert the type of the value and variable are the same
-			if (!types_equal(var_ast->type, val_ast->type))
-			{
-				printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
-				return false;
-			}
-
+			
 			// Check for self assignment (var: type = var)
 			if (val_ast->value.type == LEX_TYPE_SYMBOL && !strcmp(var_ast->value.value, val_ast->value.value))
 			{
@@ -361,9 +396,40 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				return false;
 			}
 
-			// Add variable value to the scope
-			map_add(scope->var_vals, var_ast->value.value, val_ast);
-			return true;
+			// Deal with adding new types
+			if (types_equal(type, scope_lookup_type(scope, "type")))
+			{
+				// Error on reassigning a previously defined type
+				if (map_contains(scope->types, var_ast->value.value))
+				{
+					printf("Mutable type %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+					return false;
+				} else
+				{
+					// Add the new type
+					type_t* type = generate_type(val_ast, scope);
+					if (type == NULL) return false;
+					type->type_name = strdup(var_ast->value.value);
+					print_type(type);
+					map_add(scope->types, var_ast->value.value, type);
+					return true;
+				}
+
+			// Variable is not a type
+			} else
+			{
+				// Assert the type of the value and variable are the same
+				if (!check_correctness_helper(val_ast, scope)) return false;
+				if (!types_equal(var_ast->type, val_ast->type))
+				{
+					printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
+					return false;
+				}
+
+				// Add variable value to the scope
+				map_add(scope->var_vals, var_ast->value.value, val_ast);
+				return true;
+			}
 
 		// TODO: range and function assignment
 		} else return false;
