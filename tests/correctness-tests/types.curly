@@ -6,11 +6,12 @@
 # *type - generator of type
 # [type] - list of type
 
-y: int = 0 # succeeds
-y = 2 # succeeds
-t: type = int # succeeds
-l = [1,2,3] # succeeds
-l2 = ["a", "b", 3] # fails
+y: ([int]) = [1,2,3,4]
+# y: int = 0 # succeeds
+# y = 2 # succeeds
+# t: type = int # succeeds
+# l = [1,2,3] # succeeds
+# l2 = ["a", "b", 3] # fails
 # y = "" # fails
 # y: string = "" # fails
 # x: string = x # fails

@@ -151,6 +151,7 @@ void print_type_helper(type_t* type, char* name, int level)
 	// Print out the type name if applicable
 	if (type->type_name != NULL)
 		printf(" %s", type->type_name);
+	puts("");
 
 	// Print out children
 	for (int i = 0; i < type->field_count; i++)
