@@ -6,7 +6,12 @@
 # *type - generator of type
 # [type] - list of type
 
-pair: type = int * int
+y: int = 0 # succeeds
+x: string = x # fails
+y # succeeds
+z # fails
+
+# pair: type = int * int
 # p: pair = {5, 4}
 
 # complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
@@ -20,5 +25,5 @@ pair: type = int * int
 
 # linked: type >> type
 # linked t: type = t * (linked t)
-# iterate: linked obj >> *obj
+# iterate: (linked obj) >> *obj
 # iterate l: (linked obj) = gen l.0 (*(iterate l.1))

@@ -7,8 +7,10 @@
 //
 
 #include <editline/readline.h>
+#include <stdio.h>
 #include <string.h>
 
+#include "compiler/frontend/correctness/check.h"
 #include "compiler/frontend/parse/lexer.h"
 #include "compiler/frontend/parse/parser.h"
 
@@ -43,8 +45,13 @@ int main(int argc, char** argv)
 		parse_result_t res = lang_parser(&lex);
 
 		if (res.succ)
+		{
 			print_ast(res.ast);
-		else
+			printf("Checking types\n");
+			if (check_correctness(res.ast))
+				printf("Check successful!\n");
+			else printf("Check failed\n");
+		} else
 		{
 			puts("an error occured");
 			printf("Expected %s, got '%s'\n", res.error->expected, res.error->value.value);
