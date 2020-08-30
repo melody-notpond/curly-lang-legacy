@@ -53,10 +53,36 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 	// Assign nodes with undeclared variables
 	} else if (ast->value.type == LEX_TYPE_ASSIGN)
 	{
-		// var = expr (cannot be recursive)
+		// var (arg: type)* = expr
 		if (ast->children[0]->value.type == LEX_TYPE_SYMBOL)
 		{
-			// TODO
+			// Get the type of the value
+			ast_t* var_ast = ast->children[0];
+			ast_t* val_ast = ast->children[1];
+			if (!check_correctness_helper(val_ast, scope)) return false;
+			type_t* type = val_ast->type;
+
+			// var = expr (cannot be recursive)
+			if (var_ast->children_count == 0)
+			{
+				// Add the type if it does not exist
+				type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
+				if (var_type == NULL)
+				{
+					var_ast->type = type;
+					return true;
+
+				// Check if the type is correct
+				} else if (types_equal(var_type, type))
+					return true;
+
+				// Error since the types are not equal
+				else
+				{
+					printf("Assigning incompatible type to %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+					return false;
+				}
+			} else return false;
 
 		// var: type = expr (can be recursive)
 		} else if (ast->children[0]->value.type == LEX_TYPE_COLON)

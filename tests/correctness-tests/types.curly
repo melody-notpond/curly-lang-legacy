@@ -7,9 +7,12 @@
 # [type] - list of type
 
 y: int = 0 # succeeds
-x: string = x # fails
-y # succeeds
-z # fails
+y = 2 # succeeds
+y = "" # fails
+# y: string = "" # fails
+# x: string = x # fails
+# y # succeeds
+# z # fails
 
 # pair: type = int * int
 # p: pair = {5, 4}
