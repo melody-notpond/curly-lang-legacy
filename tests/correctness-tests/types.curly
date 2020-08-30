@@ -1,0 +1,24 @@
+# types:
+# & - intersection type
+# * - product type
+# | - union type
+# >> - function type
+# *type - generator of type
+# [type] - list of type
+
+pair: type = int * int
+# p: pair = {5, 4}
+
+# complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
+# z1: complex = {rect = {x = 1, y = 2}}
+# z2: complex = {rect = {1, 2}}
+
+# tree: type >> type
+# tree t: type = leaf: t | branch: ((tree t) * (tree t))
+# t1: (tree bool) = {branch={{branch={false, true}}, {leaf=true}}}
+# t2: (tree bool) = {{false, true}, {false}}
+
+# linked: type >> type
+# linked t: type = t * (linked t)
+# iterate: linked obj >> *obj
+# iterate l: (linked obj) = gen l.0 (*(iterate l.1))
