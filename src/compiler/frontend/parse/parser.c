@@ -164,6 +164,7 @@ parse_result_t for_loop(lexer_t* lex)
 			list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, all.ast);
 		else
 		{
+			// stan loona
 			clean_parse_result(all);
 			consume(some, false, string, lex, "some", fory, false);
 			if (some.succ)
