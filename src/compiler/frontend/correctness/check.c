@@ -499,6 +499,31 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		ast->type = type;
 		return true;
 
+	// Variable declarations
+	} else if (!strcmp(ast->value.value, ":"))
+	{
+		// Check that the variable is a symbol
+		ast_t* var_ast = ast->children[0];
+		if (var_ast->value.type != LEX_TYPE_SYMBOL)
+		{
+			printf("Declaration of nonsymbol found at %i:%i\n", var_ast->value.lino, var_ast->value.charpos);
+			return false;
+
+		// Check that the variable wasn't previously declared
+		} else if (map_contains(scope->var_types, var_ast->value.value))
+		{
+			printf("Redeclaration of %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+			return false;
+		}
+
+		// Generate the type and assign it
+		type_t* type = generate_type(ast->children[1], scope);
+		if (type == NULL) return false;
+		var_ast->type = type;
+		print_type(type);
+		map_add(scope->var_types, var_ast->value.value, type);
+		return true;
+
 	// TODO: literally everything else
 	} else return false;
 	return false;
