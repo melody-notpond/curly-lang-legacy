@@ -208,7 +208,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Create a new product type and add the subtypes
-		type_t* type = init_type(IR_TYPES_INTERSECT, NULL, count);
+		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, count);
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
@@ -352,8 +352,11 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 					return true;
 
 				// Check if the type is correct
-				} else if (types_equal(var_type, type))
+				} else if (type_subtype(var_type, type, true))
+				{
+					print_type(val_ast->type);
 					return true;
+				}
 
 				// Error since the types are not equal
 				else
@@ -420,13 +423,14 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Assert the type of the value and variable are the same
 				if (!check_correctness_helper(val_ast, scope)) return false;
-				if (!types_equal(var_ast->type, val_ast->type))
+				if (!type_subtype(var_ast->type, val_ast->type, true))
 				{
 					printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
 					return false;
 				}
 
 				// Add variable value to the scope
+				print_type(val_ast->type);
 				map_add(scope->var_vals, var_ast->value.value, val_ast);
 				return true;
 			}
@@ -436,42 +440,67 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 
 	// Lists
 	} else if (!strcmp(ast->value.value, "["))
+	{
+		// Empty list type for empty lists
+		if (ast->children_count == 0)
 		{
-			// Empty list type for empty lists
-			if (ast->children_count == 0)
-			{
-				ast->type = init_type(IR_TYPES_LIST, NULL, ast->children_count > 0);
-				return true;
-			}
-
-			// Create type list
-			if (!check_correctness_helper(ast->children[0], scope)) return false;
-			if (ast->children_count == 0 && types_equal(ast->children[0]->type, scope_lookup_type(scope, "type")))
-			{
-				ast->type = ast->children[0]->type;
-				return true;
-			}
-
-			// Check that the type of the first element is the same as the type of the rest of the elements
-			type_t* elem_type = ast->children[0]->type;
-			for (int i = 1; i < ast->children_count; i++)
-			{
-				if (!check_correctness_helper(ast->children[i], scope)) return false;
-				if (!types_equal(elem_type, ast->children[i]->type))
-				{
-					// Report error
-					printf("List has different types at %i:%i and %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos, ast->children[i]->value.lino, ast->children[i]->value.charpos);
-					return false;
-				}
-			}
-
-			// Create the list type
-			ast->type = init_type(IR_TYPES_LIST, NULL, 1);
-			ast->type->field_types[0] = elem_type;
+			ast->type = init_type(IR_TYPES_LIST, NULL, 0);
 			return true;
+		}
 
-		// TODO: literally everything else
-		} else return false;
+		// Create type list
+		if (!check_correctness_helper(ast->children[0], scope)) return false;
+		if (ast->children_count == 0 && types_equal(ast->children[0]->type, scope_lookup_type(scope, "type")))
+		{
+			ast->type = ast->children[0]->type;
+			return true;
+		}
+
+		// Check that the type of the first element is the same as the type of the rest of the elements
+		type_t* elem_type = ast->children[0]->type;
+		for (int i = 1; i < ast->children_count; i++)
+		{
+			if (!check_correctness_helper(ast->children[i], scope)) return false;
+			if (!types_equal(elem_type, ast->children[i]->type))
+			{
+				// Report error
+				printf("List has different types at %i:%i and %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos, ast->children[i]->value.lino, ast->children[i]->value.charpos);
+				return false;
+			}
+		}
+
+		// Create the list type
+		ast->type = init_type(IR_TYPES_LIST, NULL, 1);
+		ast->type->field_types[0] = elem_type;
+		return true;
+
+	// Structures
+	} else if (!strcmp(ast->value.value, "{"))
+	{
+		// Create the type
+		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, ast->children_count);
+		for (int i = 0; i < ast->children_count; i++)
+		{
+			// Set the subtype
+			ast_t* child = ast->children[i];
+			ast_t* node = child->value.type == LEX_TYPE_ASSIGN ? child->children[1] : child;
+			if (!check_correctness_helper(node, scope)) return false;
+			type->field_types[i] = node->type;
+
+			if (node != child)
+			{
+				child->type = node->type;
+				child->children[0]->type = node->type;
+				type->field_names[i] = strdup(child->children[0]->value.value);
+			}
+		}
+
+		// Set the ast's type
+		ast->type = type;
+		return true;
+
+	// TODO: literally everything else
+	} else return false;
 	return false;
 }
 

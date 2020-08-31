@@ -59,6 +59,66 @@ type_t* type_get_return_type(type_t* type)
 	return type;
 }
 
+// type_subtype(type_t*, type_t*, bool) -> bool
+// Returns true if the second type is a valid type under the first type.
+bool type_subtype(type_t* super, type_t* sub, bool override_fields)
+{
+	if (super == NULL || sub == NULL)
+		return super == sub;
+
+	// Empty lists are valid subtypes of populated lists
+	if (super->type_type == IR_TYPES_LIST && sub->type_type == IR_TYPES_LIST && sub->field_count == 0)
+		return true;
+
+	// Union types must be paired with a product subtype with 1 field
+	else if (super->type_type == IR_TYPES_UNION && (sub->type_type != IR_TYPES_PRODUCT || sub->field_count != 1))
+		return false;
+
+	// Nonunion types must be the same type of type and have the same number of fields
+	else if (super->type_type != IR_TYPES_UNION && (super->type_type != sub->type_type || super->field_count != sub->field_count))
+		return false;
+
+	// Every type is equal to itself
+	else if (super == sub)
+		return true;
+
+	// Check the contents of the type
+	switch (super->type_type)
+	{
+		case IR_TYPES_PRIMITIVE:
+			// Primatives are equal if they have the same name
+			return !strcmp(super->type_name, sub->type_name);
+		case IR_TYPES_UNION:
+			// Union types check its subtypes against the passed subtype
+			for (int i = 0; i < super->field_count; i++)
+			{
+				bool equal = (super->field_names[i] != NULL && sub->field_names[0] != NULL ? !strcmp(super->field_names[i], sub->field_names[0]) : false) && type_subtype(super->field_types[i], sub->field_types[0], override_fields);
+				if (equal) return true;
+			}
+			return false;
+		case IR_TYPES_PRODUCT:
+		case IR_TYPES_LIST:
+		case IR_TYPES_FUNC:
+			// Compound types are equal if their field types are the same
+			for (int i = 0; i < super->field_count; i++)
+			{
+				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i], override_fields);
+				if (!equal) return false;
+			}
+
+			// Force any null labels to match the super type
+			if (override_fields)
+				for (int i = 0; i < super->field_count; i++)
+				{
+					if (super->field_names[i] != NULL && sub->field_names[i] == NULL)
+						sub->field_names[i] = strdup(super->field_names[i]);
+				}
+			return true;
+		default:
+			return false;
+	}
+}
+
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.
 bool types_equal(type_t* t1, type_t* t2)
@@ -70,7 +130,7 @@ bool types_equal(type_t* t1, type_t* t2)
 	if (t1->type_type != t2->type_type || t1->field_count != t2->field_count)
 		return false;
 
-	// Every time is equal to itself
+	// Every type is equal to itself
 	else if (t1 == t2)
 		return true;
 
@@ -81,7 +141,6 @@ bool types_equal(type_t* t1, type_t* t2)
 			// Primatives are equal if they have the same name
 			return !strcmp(t1->type_name, t2->type_name);
 		case IR_TYPES_PRODUCT:
-		case IR_TYPES_INTERSECT:
 		case IR_TYPES_UNION:
 		case IR_TYPES_LIST:
 		case IR_TYPES_FUNC:
@@ -127,9 +186,6 @@ void print_type_helper(type_t* type, char* name, int level)
 			break;
 		case IR_TYPES_PRODUCT:
 			printf("prod");
-			break;
-		case IR_TYPES_INTERSECT:
-			printf("inter");
 			break;
 		case IR_TYPES_UNION:
 			printf("union");

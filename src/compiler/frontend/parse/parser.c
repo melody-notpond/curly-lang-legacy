@@ -727,7 +727,7 @@ parse_result_t assignment(lexer_t* lex)
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 
 		// Consume equal sign
-		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, colon, true);
+		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, colon, false);
 		assign.ast->children_size = 2;
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, colon.ast);

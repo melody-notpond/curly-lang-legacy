@@ -19,7 +19,6 @@ typedef enum
 {
 	IR_TYPES_PRIMITIVE,
 	IR_TYPES_PRODUCT,
-	IR_TYPES_INTERSECT,
 	IR_TYPES_UNION,
 	IR_TYPES_LIST,
 	IR_TYPES_GENERATOR,
@@ -57,6 +56,10 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count);
 // type_get_return_type(type_t*) -> type_t*
 // Get the return type of a function type.
 type_t* type_get_return_type(type_t* type);
+
+// type_subtype(type_t*, type_t*, bool) -> bool
+// Returns true if the second type is a valid type under the first type.
+bool type_subtype(type_t* super, type_t* sub, bool override_fields);
 
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.
