@@ -25,6 +25,35 @@ ast_t* init_ast(token_t token)
 	return ast;
 }
 
+// asts_equal(ast_t*, ast_t*) -> bool
+// Returns whether or not the two given ast nodes are equal.
+bool asts_equal(ast_t* a1, ast_t* a2)
+{
+	// The ast nodes are equal if they're both null or the same object
+	if (a1 == NULL || a2 == NULL)
+		return a1 == a2;
+	else if (a1 == a2)
+		return true;
+
+	// Check the token
+	else if (a1->value.type != a2->value.type || a1->value.tag != a2->value.tag || strcmp(a1->value.value, a2->value.value))
+		return false;
+
+	// The two ast nodes must have the same number of children to be equal
+	else if (a1->children_count != a2->children_count)
+		return false;
+
+	// Check that the child nodes are equal
+	for (size_t i = 0; i < a1->children_count; i++)
+	{
+		bool equal = asts_equal(a1->children[i], a2->children[i]);
+		if (!equal) return false;
+	}
+
+	// The ast nodes are equal
+	return true;
+}
+
 // print_ast_helper(ast_t*, int) -> void
 // Helps to print an ast node.
 void print_ast_helper(ast_t* ast, int level)

@@ -28,6 +28,9 @@ typedef enum
 // Represents a curly type in the intermediate representation.
 typedef struct s_type
 {
+	// If the type is currently being printed
+	bool printing;
+
 	// The type of type
 	ir_type_types_t type_type;
 

@@ -36,6 +36,7 @@ void create_primatives()
 type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 {
 	type_t* type = malloc(sizeof(type_t));
+	type->printing = false;
 	type->type_type = type_type;
 	type->type_name = name != NULL ? strdup(name) : NULL;
 	type->field_types = calloc(field_count, sizeof(type_t*));
@@ -90,9 +91,9 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			return !strcmp(super->type_name, sub->type_name);
 		case IR_TYPES_UNION:
 			// Union types check its subtypes against the passed subtype
-			for (int i = 0; i < super->field_count; i++)
+			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = (super->field_names[i] != NULL && sub->field_names[0] != NULL ? !strcmp(super->field_names[i], sub->field_names[0]) : false) && type_subtype(super->field_types[i], sub->field_types[0], override_fields);
+				bool equal = (super->field_names[i] != NULL && sub->field_names[0] != NULL ? !strcmp(super->field_names[i], sub->field_names[0]) : true) && type_subtype(super->field_types[i], sub->field_types[0], override_fields);
 				if (equal) return true;
 			}
 			return false;
@@ -100,7 +101,7 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 		case IR_TYPES_LIST:
 		case IR_TYPES_FUNC:
 			// Compound types are equal if their field types are the same
-			for (int i = 0; i < super->field_count; i++)
+			for (size_t i = 0; i < super->field_count; i++)
 			{
 				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i], override_fields);
 				if (!equal) return false;
@@ -108,11 +109,13 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 
 			// Force any null labels to match the super type
 			if (override_fields)
-				for (int i = 0; i < super->field_count; i++)
+			{
+				for (size_t i = 0; i < super->field_count; i++)
 				{
 					if (super->field_names[i] != NULL && sub->field_names[i] == NULL)
 						sub->field_names[i] = strdup(super->field_names[i]);
 				}
+			}
 			return true;
 		default:
 			return false;
@@ -145,7 +148,7 @@ bool types_equal(type_t* t1, type_t* t2)
 		case IR_TYPES_LIST:
 		case IR_TYPES_FUNC:
 			// Compound types are equal if their field types are the same
-			for (int i = 0; i < t1->field_count; i++)
+			for (size_t i = 0; i < t1->field_count; i++)
 			{
 				bool equal = types_equal(t1->field_types[i], t2->field_types[i]);
 				if (!equal) return false;
@@ -166,13 +169,6 @@ void print_type_helper(type_t* type, char* name, int level)
 		putc('\t', stdout);
 	}
 	if (level > 0) printf("| ");
-
-	// Stop after 3 levels (recursive data structures aren't nice to print out...)
-	if (level > 3)
-	{
-		puts("...");
-		return;
-	}
 
 	// Print out the field name if applicable
 	if (name != NULL)
@@ -209,11 +205,26 @@ void print_type_helper(type_t* type, char* name, int level)
 		printf(" %s", type->type_name);
 	puts("");
 
+	// If the type is currently being printed out, stop printing it a second time
+	if (type->printing)
+	{
+		// Print indentation
+		for (int i = 0; i < level + 1; i++)
+		{
+			putc('\t', stdout);
+		}
+		puts("| ...");
+		return;
+	} else type->printing = true;
+
 	// Print out children
 	for (int i = 0; i < type->field_count; i++)
 	{
 		print_type_helper(type->field_types[i], type->field_names[i], level + 1);
 	}
+
+	// Set printing to false
+	type->printing = false;
 }
 
 // print_type(type_t*) -> void

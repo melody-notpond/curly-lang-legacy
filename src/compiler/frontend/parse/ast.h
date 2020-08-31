@@ -60,6 +60,10 @@ typedef struct
 // Initialises an ast.
 ast_t* init_ast(token_t token);
 
+// asts_equal(ast_t*, ast_t*) -> bool
+// Returns whether or not the two given ast nodes are equal.
+bool asts_equal(ast_t* a1, ast_t* a2);
+
 // print_ast(ast_t*) -> void
 // Prints an ast.
 void print_ast(ast_t* ast);

@@ -12,9 +12,9 @@
 #include "../../../utils/list.h"
 #include "check.h"
 
-// generate_type(ast_t*, ir_scope_t*) -> type_t*
+// generate_type(ast_t*, ir_scope_t*, ast_t*, type_t*) -> type_t*
 // Generates a type from an infix expression.
-type_t* generate_type(ast_t* ast, ir_scope_t* scope)
+type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 {
 	// types:
 	// & - intersection type
@@ -24,8 +24,12 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 	// *type - generator of type
 	// [type] - list of type
 
+	// If the ast is the same as the type name then its equal
+	if (asts_equal(ast, self))
+		return head;
+
 	// Type symbols
-	if (ast->value.type == LEX_TYPE_SYMBOL && ast->children_count == 0)
+	else if (ast->value.type == LEX_TYPE_SYMBOL && ast->children_count == 0)
 	{
 		type_t* type = scope_lookup_type(scope, ast->value.value);
 		if (type == NULL)
@@ -53,11 +57,12 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Get the type of the right hand side
+		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, 1);
+		if (head == NULL) head = type;
 		ast_t* field_type = ast->children[1];
-		type_t* subtype = generate_type(field_type, scope);
+		type_t* subtype = generate_type(field_type, scope, self, head);
 
 		// Create a new type
-		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, 1);
 		type->field_names[0] = strdup(field_name->value.value);
 		type->field_types[0] = subtype;
 		ast->type = scope_lookup_type(scope, "type");
@@ -70,12 +75,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		type_t** types = NULL;
 		size_t size = 0;
 		size_t count = 0;
+		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, 0);
+		if (head == NULL) head = type;
 
 		do
 		{
 			// Get type and append it to the list of types
 			ast->type = scope_lookup_type(scope, "type");
-			type_t* type = generate_type(ast->children[1], scope);
+			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			list_append_element(types, size, count, type_t*, type);
 
@@ -84,12 +91,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		} while (!strcmp(ast->value.value, "*"));
 
 		// Get the last ast's type and append it to the list of types
-		type_t* subtype = generate_type(ast, scope);
+		type_t* subtype = generate_type(ast, scope, self, head);
 		if (subtype == NULL) return NULL;
 		list_append_element(types, size, count, type_t*, subtype);
 
 		// Create a new product type and add the subtypes
-		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, count);
+		type->field_count = count;
+		type->field_names = calloc(count, sizeof(char*));
+		type->field_types = calloc(count, sizeof(type_t*));
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
@@ -105,12 +114,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		size_t t_size = 0;
 		size_t n_size = 0;
 		size_t count = 0;
+		type_t* type = init_type(IR_TYPES_UNION, NULL, 0);
+		if (head == NULL) head = type;
 
 		do
 		{
 			// Get type and append it to the list of types
 			ast->type = scope_lookup_type(scope, "type");
-			type_t* type = generate_type(ast->children[1], scope);
+			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			if (type->field_count == 1 && type->type_type == IR_TYPES_PRODUCT)
 			{
@@ -129,7 +140,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		} while (!strcmp(ast->value.value, "|"));
 
 		// Get the last ast's type and append it to the list of types
-		type_t* subtype = generate_type(ast, scope);
+		type_t* subtype = generate_type(ast, scope, self, head);
 		if (subtype == NULL) return NULL;
 		if (subtype->field_count == 1 && subtype->type_type == IR_TYPES_PRODUCT)
 		{
@@ -144,7 +155,9 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Create a new product type and add the subtypes
-		type_t* type = init_type(IR_TYPES_UNION, NULL, count);
+		type->field_count = count;
+		type->field_names = calloc(count, sizeof(char*));
+		type->field_types = calloc(count, sizeof(type_t*));
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
@@ -161,12 +174,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		size_t t_size = 0;
 		size_t n_size = 0;
 		size_t count = 0;
+		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, 0);
+		if (head == NULL) head = type;
 
 		do
 		{
 			// Get type
 			ast->type = scope_lookup_type(scope, "type");
-			type_t* type = generate_type(ast->children[1], scope);
+			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 
 			// If it's a primitive make an error (cannot intersect primatives)
@@ -189,7 +204,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		} while (!strcmp(ast->value.value, "&"));
 
 		// Get the last ast's type and append it to the list of types
-		type_t* subtype = generate_type(ast, scope);
+		type_t* subtype = generate_type(ast, scope, self, head);
 		if (subtype == NULL) return NULL;
 
 		// If it's a primitive make an error (cannot intersect primatives)
@@ -208,7 +223,9 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Create a new product type and add the subtypes
-		type_t* type = init_type(IR_TYPES_PRODUCT, NULL, count);
+		type->field_count = count;
+		type->field_names = calloc(count, sizeof(char*));
+		type->field_types = calloc(count, sizeof(type_t*));
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
@@ -223,12 +240,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		type_t** types = NULL;
 		size_t size = 0;
 		size_t count = 0;
+		type_t* type = init_type(IR_TYPES_FUNC, NULL, 0);
+		if (head == NULL) head = type;
 
 		do
 		{
 			// Get type and append it to the list of types
 			ast->type = scope_lookup_type(scope, "type");
-			type_t* type = generate_type(ast->children[1], scope);
+			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			list_append_element(types, size, count, type_t*, type);
 
@@ -237,12 +256,14 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 		} while (!strcmp(ast->value.value, ">>"));
 
 		// Get the last ast's type and append it to the list of types
-		type_t* subtype = generate_type(ast, scope);
+		type_t* subtype = generate_type(ast, scope, self, head);
 		if (subtype == NULL) return NULL;
 		list_append_element(types, size, count, type_t*, subtype);
 
 		// Create a new product type and add the subtypes
-		type_t* type = init_type(IR_TYPES_FUNC, NULL, count);
+		type->field_count = count;
+		type->field_names = calloc(count, sizeof(char*));
+		type->field_types = calloc(count, sizeof(type_t*));
 		for (size_t i = 0; i < count; i++)
 		{
 			type->field_types[i] = types[count - i - 1];
@@ -253,9 +274,10 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope)
 	} else if (!strcmp(ast->value.value, "[") && ast->children_count == 1)
 	{
 		// Create list type
-		type_t* subtype = generate_type(ast->children[0], scope);
-		if (subtype == NULL) return NULL;
 		type_t* type = init_type(IR_TYPES_LIST, NULL, 1);
+		if (head == NULL) head = type;
+		type_t* subtype = generate_type(ast->children[0], scope, self, head);
+		if (subtype == NULL) return NULL;
 		type->field_types[0] = subtype;
 		return type;
 
@@ -327,6 +349,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Add the type if it does not exist
 				type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
+				print_type(val_ast->type);
 				if (var_type == NULL)
 				{
 					var_ast->type = type;
@@ -340,7 +363,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 							return false;
 						} else
 						{
-							type_t* type = generate_type(val_ast, scope);
+							type_t* type = generate_type(val_ast, scope, var_ast, NULL);
 							if (type == NULL) return false;
 							type->type_name = strdup(var_ast->value.value);
 							print_type(type);
@@ -354,7 +377,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				// Check if the type is correct
 				} else if (type_subtype(var_type, type, true))
 				{
-					print_type(val_ast->type);
 					return true;
 				}
 
@@ -381,7 +403,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			}
 
 			// Construct a type
-			type_t* type = generate_type(type_ast, scope);
+			type_t* type = generate_type(type_ast, scope, NULL, NULL);
 			if (type == NULL) return false;
 			print_type(type);
 			var_ast->type = type;
@@ -410,7 +432,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				} else
 				{
 					// Add the new type
-					type_t* type = generate_type(val_ast, scope);
+					type_t* type = generate_type(val_ast, scope, var_ast, NULL);
 					if (type == NULL) return false;
 					type->type_name = strdup(var_ast->value.value);
 					print_type(type);
@@ -423,6 +445,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Assert the type of the value and variable are the same
 				if (!check_correctness_helper(val_ast, scope)) return false;
+				print_type(val_ast->type);
 				if (!type_subtype(var_ast->type, val_ast->type, true))
 				{
 					printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
@@ -430,7 +453,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				}
 
 				// Add variable value to the scope
-				print_type(val_ast->type);
 				map_add(scope->var_vals, var_ast->value.value, val_ast);
 				return true;
 			}
@@ -517,7 +539,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Generate the type and assign it
-		type_t* type = generate_type(ast->children[1], scope);
+		type_t* type = generate_type(ast->children[1], scope, NULL, NULL);
 		if (type == NULL) return false;
 		var_ast->type = type;
 		print_type(type);

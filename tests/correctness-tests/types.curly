@@ -25,10 +25,22 @@ comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
 z1: comp = {rect = {x = 1.0, y = 2.0}}
 z2: comp = {rect = {1.0, 2.0}}
 
-tree: (type >> type)
-# tree t: type = leaf: t | branch: ((tree t) * (tree t))
-# t1: (tree bool) = {branch={{branch={false, true}}, {leaf=true}}}
-# t2: (tree bool) = {{false, true}, {false}}
+# tree: (type >> type)
+tree: type = leaf: bool | branch: ((tree ) * (tree ))
+t1: (tree ) = {
+	branch = {
+		{branch = {
+			{true}, {false}
+		}}, {false}
+	}
+}
+t2: (tree ) = {
+	{
+		{{
+			{true}, {false}
+		}}, {false}
+	}
+}
 
 # linked: type >> type
 # linked t: type = t * (linked t)
