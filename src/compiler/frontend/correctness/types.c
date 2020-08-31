@@ -37,6 +37,7 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 {
 	type_t* type = malloc(sizeof(type_t));
 	type->printing = false;
+	type->name_carry = NULL;
 	type->type_type = type_type;
 	type->type_name = name != NULL ? strdup(name) : NULL;
 	type->field_types = calloc(field_count, sizeof(type_t*));
@@ -71,10 +72,6 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 	if (super->type_type == IR_TYPES_LIST && sub->type_type == IR_TYPES_LIST && sub->field_count == 0)
 		return true;
 
-	// Union types must be paired with a product subtype with 1 field
-	else if (super->type_type == IR_TYPES_UNION && (sub->type_type != IR_TYPES_PRODUCT || sub->field_count != 1))
-		return false;
-
 	// Nonunion types must be the same type of type and have the same number of fields
 	else if (super->type_type != IR_TYPES_UNION && (super->type_type != sub->type_type || super->field_count != sub->field_count))
 		return false;
@@ -93,8 +90,12 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			// Union types check its subtypes against the passed subtype
 			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = (super->field_names[i] != NULL && sub->field_names[0] != NULL ? !strcmp(super->field_names[i], sub->field_names[0]) : true) && type_subtype(super->field_types[i], sub->field_types[0], override_fields);
-				if (equal) return true;
+				bool equal = type_subtype(super->field_types[i], sub, override_fields);
+				if (equal)
+				{
+					sub->name_carry = super->field_names[i];
+					return true;
+				}
 			}
 			return false;
 		case IR_TYPES_PRODUCT:
@@ -105,17 +106,19 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			{
 				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i], override_fields);
 				if (!equal) return false;
-			}
 
-			// Force any null labels to match the super type
-			if (override_fields)
-			{
-				for (size_t i = 0; i < super->field_count; i++)
+				// Force null labels to match
+				if (sub->field_names[i] == NULL)
 				{
-					if (super->field_names[i] != NULL && sub->field_names[i] == NULL)
+					if (sub->field_types[i]->name_carry != NULL)
+					{
+						sub->field_names[i] = strdup(sub->field_types[i]->name_carry);
+						sub->field_types[i]->name_carry = NULL;
+					} else if (super->field_names[i] != NULL)
 						sub->field_names[i] = strdup(super->field_names[i]);
 				}
 			}
+
 			return true;
 		default:
 			return false;

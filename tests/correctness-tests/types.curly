@@ -22,25 +22,17 @@
 # p: pair = {5, 4}
 
 comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-z1: comp = {rect = {x = 1.0, y = 2.0}}
-z2: comp = {rect = {1.0, 2.0}}
+z1: comp = {r = 1.0, theta = 2.0}
+z2: comp = {1.0, 2.0}
 
 # tree: (type >> type)
 tree: type = leaf: bool | branch: ((tree ) * (tree ))
 t1: (tree ) = {
 	branch = {
-		{branch = {
-			{true}, {false}
-		}}, {false}
-	}
+		leaf = true, leaf = false
+	}, leaf = false
 }
-t2: (tree ) = {
-	{
-		{{
-			{true}, {false}
-		}}, {false}
-	}
-}
+t2: (tree ) = {{{true, false}, {true, false}}, {{true, false}, {true, false}}}
 
 # linked: type >> type
 # linked t: type = t * (linked t)

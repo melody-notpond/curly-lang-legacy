@@ -349,7 +349,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Add the type if it does not exist
 				type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
-				print_type(val_ast->type);
 				if (var_type == NULL)
 				{
 					var_ast->type = type;
@@ -377,6 +376,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				// Check if the type is correct
 				} else if (type_subtype(var_type, type, true))
 				{
+					print_type(type);
 					return true;
 				}
 
@@ -445,7 +445,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Assert the type of the value and variable are the same
 				if (!check_correctness_helper(val_ast, scope)) return false;
-				print_type(val_ast->type);
 				if (!type_subtype(var_ast->type, val_ast->type, true))
 				{
 					printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
@@ -453,6 +452,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				}
 
 				// Add variable value to the scope
+				print_type(val_ast->type);
 				map_add(scope->var_vals, var_ast->value.value, val_ast);
 				return true;
 			}

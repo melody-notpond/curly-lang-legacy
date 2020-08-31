@@ -31,6 +31,9 @@ typedef struct s_type
 	// If the type is currently being printed
 	bool printing;
 
+	// Carries the name from this type node to its parent.
+	char* name_carry;
+
 	// The type of type
 	ir_type_types_t type_type;
 
