@@ -416,12 +416,8 @@ parse_result_t name(lexer_t* lex)																				\
 // attribute: prefix ('.' prefix)*
 infix_parser(attribute, prefix, LEX_TYPE_DOT)
 
-// typing: attribute (':' attribute)*
-// Note that the code correctness checker will assert only one colon pair is present per series
-infix_parser(typing, attribute, LEX_TYPE_COLON)
-
 // muldiv: typing (('*'|'/') typing)*
-infix_parser(muldiv, typing, LEX_TYPE_MULDIV)
+infix_parser(muldiv, attribute, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
 infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
@@ -429,8 +425,12 @@ infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
+// typing: attribute (':' attribute)*
+// Note that the code correctness checker will assert only one colon pair is present per series
+infix_parser(typing, bitshift, LEX_TYPE_COLON)
+
 // bitand: bitshift (('&') bitshift)*
-infix_parser(bitand, bitshift, LEX_TYPE_AMP)
+infix_parser(bitand, typing, LEX_TYPE_AMP)
 
 // bitor: bitand (('|') bitand)*
 infix_parser(bitor, bitand, LEX_TYPE_BAR)

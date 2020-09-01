@@ -514,19 +514,15 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			return true;
 		}
 
-		// Create type list
-		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars)) return false;
-		if (ast->children_count == 0 && types_equal(ast->children[0]->type, scope_lookup_type(scope, "type")))
-		{
-			ast->type = ast->children[0]->type;
-			return true;
-		}
+		// Check the first element
+		if (!check_correctness_helper(ast->children[0], scope, false, disable_new_vars))
+			return false;
 
 		// Check that the type of the first element is the same as the type of the rest of the elements
 		type_t* elem_type = ast->children[0]->type;
 		for (int i = 1; i < ast->children_count; i++)
 		{
-			if (!check_correctness_helper(ast->children[i], scope, get_real_type, disable_new_vars)) return false;
+			if (!check_correctness_helper(ast->children[i], scope, false, disable_new_vars)) return false;
 			if (!types_equal(elem_type, ast->children[i]->type))
 			{
 				// Report error
@@ -719,6 +715,40 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		ast->type = init_type(IR_TYPES_GENERATOR, NULL, 1);
 		ast->type->field_types[0] = body->type;
 		print_type(ast->type);
+		return true;
+
+	// If expressions
+	} else if (!strcmp(ast->value.value, "if"))
+	{
+		// Check that the condition is a boolean
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "bool")))
+		{
+			printf("Nonboolean condition found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+			return false;
+		}
+
+		// Check the body
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, true))
+			return false;
+		ast->type = ast->children[1]->type;
+
+		// If (pun intended) there's an else clause, deal with that
+		if (ast->children_count == 3)
+		{
+			if (!check_correctness_helper(ast->children[2], scope, get_real_type, true))
+				return false;
+
+			// Else clause should have the same type as the body
+			if (!types_equal(ast->type, ast->children[2]->type))
+			{
+				printf("If statement with different types for bodies at %i:%i\n", ast->value.lino, ast->value.charpos);
+				return false;
+			}
+		}
+
+		// Return successfully
 		return true;
 
 	// TODO: literally everything else

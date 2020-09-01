@@ -371,19 +371,19 @@ token_t* lex_next(lexer_t* lex)
 		{
 			// in is treated as an infix operator on the same level as comparing operators
 			token.type = LEX_TYPE_COMPARE;
-			token.tag = LEX_TAG_OPERATOR;
+			token.tag = LEX_TAG_INFIX_OPERATOR;
 		} else if (!strcmp(token.value, "and"))
 		{
 			token.type = LEX_TYPE_AND;
-			token.tag = LEX_TAG_OPERATOR;
+			token.tag = LEX_TAG_INFIX_OPERATOR;
 		} else if (!strcmp(token.value, "or"))
 		{
 			token.type = LEX_TYPE_OR;
-			token.tag = LEX_TAG_OPERATOR;
+			token.tag = LEX_TAG_INFIX_OPERATOR;
 		} else if (!strcmp(token.value, "xor"))
 		{
 			token.type = LEX_TYPE_XOR;
-			token.tag = LEX_TAG_OPERATOR;
+			token.tag = LEX_TAG_INFIX_OPERATOR;
 		}
 	}
 

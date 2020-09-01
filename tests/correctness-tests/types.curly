@@ -26,7 +26,7 @@
 # z2: comp = {1.0, 2.0}
 
 # tree: (type >> type)
-# tree: type = leaf: bool | branch: (tree * tree)
+# tree: type = leaf: bool | branch: tree * tree
 # t1: tree = {
 #	branch = {
 #		leaf = true, leaf = false
@@ -34,8 +34,11 @@
 # }
 # t2: tree = {{true, false}, false}
 # test: bool = t2.branch.0
+# test: tree = false
+# test2: [tree] = [test, {false, true}]
 
-y: bool = for all i in [1,2,3] i = true
+# y: bool = for all i in [1,2,3] i = true
+# y: int = if true then 0 else false
 
 # linked: type >> type
 # linked t: type = t * (linked t)

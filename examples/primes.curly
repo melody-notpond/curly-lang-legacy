@@ -1,5 +1,3 @@
-primes = [
-		n in (range 2 nil) where
-			for all p in [p in primes where p*p <= n]
-				n % p != 0
-]
+primes: *int = n in (range 2 nil) where
+	for all p in (p in primes where p*p <= n)
+		n % p != 0

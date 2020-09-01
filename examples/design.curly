@@ -73,11 +73,16 @@ instance.1 # 42
 # types: & - intersection type; * - product type; | - union type; >> - function type; *type - generator of type; [type] - list of type
 complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
 pair: type = int * int
-tree t: type = leaf: t | branch: ((tree t) * (tree t))
+tree: type >> type
+tree t: type = leaf: t | branch: (tree t) * (tree t)
 
-z: complex = {rect = {x = 1, y = 2}}
+z1: complex = {rect = {x = 1, y = 2}}
 p: pair = {5, 4}
-t: (tree bool) = {branch={{branch={false, true}}, {leaf=true}}}
+t1: (tree bool) = {
+	branch = {
+		leaf = true, leaf = false
+	}, leaf = false
+}
 
-z: complex = {rect = {1, 2}}
-t: (tree bool) = {{false, true}, {false}}
+z2: complex = {rect = {1, 2}}
+t2: (tree bool) = {{true, false}, false}
