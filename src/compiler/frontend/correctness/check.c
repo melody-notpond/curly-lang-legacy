@@ -68,6 +68,17 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		ast->type = scope_lookup_type(scope, "type");
 		return type;
 
+	// Generator types
+	} else if (!strcmp(ast->value.value, "*") && ast->children_count == 1)
+	{
+		// Create generator type
+		type_t* type = init_type(IR_TYPES_GENERATOR, NULL, 1);
+		if (head == NULL) head = type;
+		type_t* subtype = generate_type(ast->children[0], scope, self, head);
+		if (subtype == NULL) return NULL;
+		type->field_types[0] = subtype;
+		return type;
+
 	// Product types
 	} else if (!strcmp(ast->value.value, "*"))
 	{
@@ -289,9 +300,9 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 	}
 }
 
-// check_correctness_helper(ast_t*, ir_scope_t*) -> void
+// check_correctness_helper(ast_t*, ir_scope_t*, bool, bool) -> void
 // Helper function for check_correctness.
-bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
+bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disable_new_vars)
 {
 	// Leaf node of ast
 	if (ast->value.tag == LEX_TAG_OPERAND)
@@ -318,8 +329,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			{
 				// Get type from variable list
 				ast_t* type_ast = scope_lookup_var_val(scope, ast->value.value);
-				ast->type = type_ast != NULL ? type_ast->type : scope_lookup_type(scope, ast->value.value);
-				print_type(ast->type);
+				ast->type = get_real_type && type_ast != NULL ? type_ast->type : scope_lookup_var_type(scope, ast->value.value);
 
 				// If variable isn't found, try finding it as a type
 				if (ast->type == NULL && scope_lookup_type(scope, ast->value.value) != NULL)
@@ -345,7 +355,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			// Get the type of the value
 			ast_t* var_ast = ast->children[0];
 			ast_t* val_ast = ast->children[1];
-			if (!check_correctness_helper(val_ast, scope)) return false;
+			if (!check_correctness_helper(val_ast, scope, get_real_type, disable_new_vars)) return false;
 			type_t* type = val_ast->type;
 
 			// var = expr (cannot be recursive)
@@ -355,17 +365,27 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
 				if (var_type == NULL)
 				{
+					// Disable new variables if necessary
+					if (disable_new_vars)
+					{
+						printf("Unable to create new variables in current context at %i:%i\n", var_ast->value.lino, var_ast->value.charpos);
+						return false;
+					}
+
 					var_ast->type = type;
+					ast->type = type;
 
 					// Deal with adding new types
 					if (types_equal(var_ast->type, scope_lookup_type(scope, "type")))
 					{
+						// Mutable types are not allowed
 						if (map_contains(scope->types, var_ast->value.value))
 						{
 							printf("Mutable type %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
 							return false;
 						} else
 						{
+							// Create and save type
 							type_t* type = generate_type(val_ast, scope, var_ast, NULL);
 							if (type == NULL) return false;
 							type->type_name = strdup(var_ast->value.value);
@@ -373,6 +393,12 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 							map_add(scope->types, var_ast->value.value, type);
 							return true;
 						}
+					} else
+					{
+						// Save variable type and value
+						map_add(scope->var_types, var_ast->value.value, type);
+						map_add(scope->var_vals, var_ast->value.value, val_ast);
+						return true;
 					}
 
 					return true;
@@ -381,6 +407,9 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				} else if (type_subtype(var_type, type, true))
 				{
 					print_type(type);
+					map_add(scope->var_types, var_ast->value.value, type);
+					map_add(scope->var_vals, var_ast->value.value, val_ast);
+					ast->type = type;
 					return true;
 				}
 
@@ -390,16 +419,26 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 					printf("Assigning incompatible type to %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
 					return false;
 				}
+
+			// TODO: functions
 			} else return false;
 
 		// var: type = expr (can be recursive)
 		} else if (ast->children[0]->value.type == LEX_TYPE_COLON)
 		{
+			// Disable new variables if necessary
+			ast_t* var_ast = ast->children[0]->children[0];
+			if (disable_new_vars)
+			{
+				printf("Unable to create new variables in current context at %i:%i\n", var_ast->value.lino, var_ast->value.charpos);
+				return false;
+			}
+
 			// Get the type and var name ast
 			ast_t* type_ast = ast->children[0]->children[1];
 			type_ast->type = scope_lookup_type(scope, "type");
-			ast_t* var_ast = ast->children[0]->children[0];
 
+			// Check for redeclarations
 			if (map_contains(scope->var_types, var_ast->value.value))
 			{
 				printf("Redeclaration of %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
@@ -411,9 +450,10 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			if (type == NULL) return false;
 			print_type(type);
 			var_ast->type = type;
+			ast->type = type;
 
 			// Add variable type to the scope
-			map_add(scope->var_types, var_ast->value.value, var_ast->type);
+			map_add(scope->var_types, var_ast->value.value, type);
 
 			// Get the type of the expression
 			ast_t* val_ast = ast->children[1];
@@ -448,7 +488,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			} else
 			{
 				// Assert the type of the value and variable are the same
-				if (!check_correctness_helper(val_ast, scope)) return false;
+				if (!check_correctness_helper(val_ast, scope, get_real_type, disable_new_vars)) return false;
 				if (!type_subtype(var_ast->type, val_ast->type, true))
 				{
 					printf("Types do not match at %i:%i - %i:%i\n", var_ast->value.lino, var_ast->value.charpos, val_ast->value.lino, val_ast->value.charpos);
@@ -475,7 +515,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		}
 
 		// Create type list
-		if (!check_correctness_helper(ast->children[0], scope)) return false;
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars)) return false;
 		if (ast->children_count == 0 && types_equal(ast->children[0]->type, scope_lookup_type(scope, "type")))
 		{
 			ast->type = ast->children[0]->type;
@@ -486,7 +526,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		type_t* elem_type = ast->children[0]->type;
 		for (int i = 1; i < ast->children_count; i++)
 		{
-			if (!check_correctness_helper(ast->children[i], scope)) return false;
+			if (!check_correctness_helper(ast->children[i], scope, get_real_type, disable_new_vars)) return false;
 			if (!types_equal(elem_type, ast->children[i]->type))
 			{
 				// Report error
@@ -510,7 +550,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			// Set the subtype
 			ast_t* child = ast->children[i];
 			ast_t* node = child->value.type == LEX_TYPE_ASSIGN ? child->children[1] : child;
-			if (!check_correctness_helper(node, scope)) return false;
+			if (!check_correctness_helper(node, scope, get_real_type, disable_new_vars)) return false;
 			type->field_types[i] = node->type;
 
 			if (node != child)
@@ -554,7 +594,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 	} else if (!strcmp(ast->value.value, "."))
 	{
 		// Check the leftmost node first
-		if (!check_correctness_helper(ast->children[0], scope))
+		if (!check_correctness_helper(ast->children[0], scope, true, disable_new_vars))
 				return false;
 
 		// If it's a structure then check if the attribute is valid
@@ -597,12 +637,12 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 			} else
 			{
 				// Get index
-				int64_t index = atoll(ast->children[1]->value.value);
+				size_t index = atoll(ast->children[1]->value.value);
 
 				// Error if the index is greater than the number of types (there's no negative numbers)
 				if (index >= ast->children[0]->type->field_count)
 				{
-					printf("Index %i out of bounds for type with %i fields found at %i:%i\n", index, ast->children[0]->type->field_count, ast->children[1]->value.lino, ast->children[1]->value.charpos);
+					printf("Index %zu out of bounds for type with %zu fields found at %i:%i\n", index, ast->children[0]->type->field_count, ast->children[1]->value.lino, ast->children[1]->value.charpos);
 					return false;
 				}
 
@@ -614,6 +654,72 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 
 		// TODO: getting elements from lists
 		} else return false;
+
+	// with expressions
+	} else if (!strcmp(ast->value.value, "with"))
+	{
+		// Create a new scope
+		scope = push_scope(scope);
+
+		// Deal with child nodes
+		for (size_t i = 0; i < ast->children_count; i++)
+		{
+			if (!check_correctness_helper(ast->children[i], scope, get_real_type, false))
+				return false;
+		}
+
+		// Pop scope and set the type
+		scope = pop_scope(scope);
+		ast->type = ast->children[ast->children_count - 1]->type;
+		return true;
+
+	// For loops
+	} else if (!strcmp(ast->value.value, "for"))
+	{
+		// Check the second node (the iterator)
+		ast_t* iterator = ast->children[ast->children_count - 2];
+		ast_t* var = ast->children[ast->children_count - 3];
+		if (!check_correctness_helper(iterator, scope, get_real_type, true))
+			return false;
+
+		// The second node must be a list or generator type
+		if (iterator->type->type_type != IR_TYPES_LIST && iterator->type->type_type != IR_TYPES_GENERATOR)
+		{
+			printf("Attempted iteration over noniterator type at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+			return false;
+		}
+
+		// Register the iterating symbol as a variable
+		var->type = iterator->type->field_types[0];
+		map_add(scope->var_types, var->value.value, iterator->type->field_types[0]);
+
+		// Check the body of the for loop
+		ast_t* body = ast->children[ast->children_count - 1];
+		if (!check_correctness_helper(body, scope, get_real_type, true))
+			return false;
+
+		// Remove the iterator variable
+		map_remove(scope->var_types, var->value.value);
+
+		// If there is some quantifier (pun intended), make sure the type of the body is booleans
+		if (ast->children_count == 4)
+		{
+			if (!types_equal(body->type, scope_lookup_type(scope, "bool")))
+			{
+				printf("Quantifier returns something other than a boolean found at %i:%i\n", ast->value.lino, ast->value.charpos);
+				return false;
+			}
+
+			// Return success
+			ast->type = body->type;
+			return true;
+		}
+
+		// Update the type of the loop and return success
+		ast->type = init_type(IR_TYPES_GENERATOR, NULL, 1);
+		ast->type->field_types[0] = body->type;
+		print_type(ast->type);
+		return true;
 
 	// TODO: literally everything else
 	} else return false;
@@ -635,11 +741,11 @@ bool check_correctness(ast_t* ast)
 	{
 		for (int i = 0; i < ast->children_count; i++)
 		{
-			if (!check_correctness_helper(ast->children[i], scope))
+			if (!check_correctness_helper(ast->children[i], scope, false, false))
 				return false;
 		}
 		return true;
 
 	// Check the correctness of the node itself
-	} else return check_correctness_helper(ast, scope);
+	} else return check_correctness_helper(ast, scope, false, false);
 }

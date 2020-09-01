@@ -110,6 +110,7 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			return false;
 		case IR_TYPES_PRODUCT:
 		case IR_TYPES_LIST:
+		case IR_TYPES_GENERATOR:
 		case IR_TYPES_FUNC:
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < super->field_count; i++)
@@ -162,6 +163,7 @@ bool types_equal(type_t* t1, type_t* t2)
 		case IR_TYPES_PRODUCT:
 		case IR_TYPES_UNION:
 		case IR_TYPES_LIST:
+		case IR_TYPES_GENERATOR:
 		case IR_TYPES_FUNC:
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < t1->field_count; i++)
