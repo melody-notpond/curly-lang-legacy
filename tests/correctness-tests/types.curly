@@ -26,13 +26,14 @@
 # z2: comp = {1.0, 2.0}
 
 # tree: (type >> type)
-# tree: type = leaf: bool | branch: (tree * tree)
+tree: type = leaf: bool | branch: (tree * tree)
 # t1: tree = {
 #	branch = {
 #		leaf = true, leaf = false
 #	}, leaf = false
 # }
-# t2: tree = {{true, false}, false}
+t2: tree = {{true, false}, false}
+test: bool = t2.branch.0
 
 # linked: type >> type
 # linked t: type = t * (linked t)

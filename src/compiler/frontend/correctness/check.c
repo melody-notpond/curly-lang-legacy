@@ -315,17 +315,21 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 				ast->type = scope_lookup_type(scope, "obj");
 				return true;
 			case LEX_TYPE_SYMBOL:
+			{
 				// Get type from variable list
-				ast->type = scope_lookup_var_type(scope, ast->value.value);
+				ast_t* type_ast = scope_lookup_var_val(scope, ast->value.value);
+				ast->type = type_ast != NULL ? type_ast->type : scope_lookup_type(scope, ast->value.value);
+				print_type(ast->type);
 
 				// If variable isn't found, try finding it as a type
 				if (ast->type == NULL && scope_lookup_type(scope, ast->value.value) != NULL)
 					ast->type = scope_lookup_type(scope, "type");
 
 				// If variable isn't found, report an error
-				else
+				if (ast->type == NULL)
 					printf("Undeclared variable %s found at %i:%i\n", ast->value.value, ast->value.lino, ast->value.charpos);
 				return ast->type != NULL;
+			}
 			default:
 				// Unknown type
 				printf("Unknown type found at %i:%i\n", ast->value.lino, ast->value.charpos);
@@ -413,7 +417,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 
 			// Get the type of the expression
 			ast_t* val_ast = ast->children[1];
-			
+
 			// Check for self assignment (var: type = var)
 			if (val_ast->value.type == LEX_TYPE_SYMBOL && !strcmp(var_ast->value.value, val_ast->value.value))
 			{
@@ -545,6 +549,71 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope)
 		print_type(type);
 		map_add(scope->var_types, var_ast->value.value, type);
 		return true;
+
+	// Getting attributes
+	} else if (!strcmp(ast->value.value, "."))
+	{
+		// Check the leftmost node first
+		if (!check_correctness_helper(ast->children[0], scope))
+				return false;
+
+		// If it's a structure then check if the attribute is valid
+		if (ast->children[0]->type->type_type == IR_TYPES_PRODUCT || ast->children[0]->type->type_type == IR_TYPES_UNION)
+		{
+			// Attribute must be a symbol or an integer
+			if (ast->children[1]->value.type != LEX_TYPE_SYMBOL && ast->children[1]->value.type != LEX_TYPE_INT)
+			{
+				printf("Access of invalid attribute %s found at %i:%i\n", ast->children[1]->value.value, ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return false;
+			}
+
+			// Check that the structure has the attribute
+			if (ast->children[1]->value.type == LEX_TYPE_SYMBOL)
+			{
+				bool found = false;
+				for (size_t i = 0; i < ast->children[0]->type->field_count; i++)
+				{
+					if (!strcmp(ast->children[0]->type->field_names[i], ast->children[1]->value.value))
+					{
+						// Cannot access duplicate attributes by name
+						if (found)
+						{
+							printf("Access of duplicate attribute %s found at %i:%i\n", ast->children[1]->value.value, ast->children[1]->value.lino, ast->children[1]->value.charpos);
+							return false;
+						} else
+						{
+							found = true;
+							ast->type = ast->children[0]->type->field_types[i];
+							ast->children[1]->type = ast->children[0]->type->field_types[i];
+							print_type(ast->type);
+						}
+					}
+				}
+
+				// Print error if necessary and return
+				if (!found)
+					printf("Access of nonexistent attribute %s found at %i:%i\n", ast->children[1]->value.value, ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return found;
+			} else
+			{
+				// Get index
+				int64_t index = atoll(ast->children[1]->value.value);
+
+				// Error if the index is greater than the number of types (there's no negative numbers)
+				if (index >= ast->children[0]->type->field_count)
+				{
+					printf("Index %i out of bounds for type with %i fields found at %i:%i\n", index, ast->children[0]->type->field_count, ast->children[1]->value.lino, ast->children[1]->value.charpos);
+					return false;
+				}
+
+				// Get the type
+				ast->type = ast->children[0]->type->field_types[index];
+				ast->children[1]->type = ast->children[0]->type->field_types[index];
+				return true;
+			}
+
+		// TODO: getting elements from lists
+		} else return false;
 
 	// TODO: literally everything else
 	} else return false;

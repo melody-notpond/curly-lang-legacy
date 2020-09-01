@@ -50,7 +50,7 @@ ast_t* scope_lookup_var_val(ir_scope_t* scope, char* name)
 	while (scope != NULL)
 	{
 		// Get the ast in the current scope
-		ast_t* ast = map_get(scope->var_types, name);
+		ast_t* ast = map_get(scope->var_vals, name);
 
 		// Return the ast if found
 		if (ast != NULL)

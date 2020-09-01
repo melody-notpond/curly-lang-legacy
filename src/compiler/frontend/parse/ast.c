@@ -58,6 +58,9 @@ bool asts_equal(ast_t* a1, ast_t* a2)
 // Helps to print an ast node.
 void print_ast_helper(ast_t* ast, int level)
 {
+	if (ast == NULL)
+		return;
+
 	// Tab out the ast node
 	for (int i = 0; i < level; i++)
 	{
