@@ -9,13 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "scope.h"
 #include "types.h"
 
-type_t* type_linked_list_head = NULL;
+static type_t* type_linked_list_head = NULL;
 
-// create_primatives(void) -> void
+// create_primatives(ir_scope_t*) -> void
 // Creates the builtin primative types.
-void create_primatives()
+void create_primatives(ir_scope_t* scope)
 {
 	// Primatives must be the first types created
 	if (type_linked_list_head != NULL)
@@ -29,6 +30,14 @@ void create_primatives()
 	init_type(IR_TYPES_PRIMITIVE, "dict", 0);
 	init_type(IR_TYPES_PRIMITIVE, "obj", 0);
 	init_type(IR_TYPES_PRIMITIVE, "type", 0);
+
+	// Add to scope
+	type_t* head = type_linked_list_head;
+	while (head != NULL)
+	{
+		map_add(scope->types, head->type_name, head);
+		head = head->next;
+	}
 }
 
 // init_type(ir_type_types_t, char*, size_t, type_t) -> type_t*
@@ -93,7 +102,8 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 				bool equal = type_subtype(super->field_types[i], sub, override_fields);
 				if (equal)
 				{
-					sub->name_carry = super->field_names[i];
+					if (override_fields)
+						sub->name_carry = super->field_names[i];
 					return true;
 				}
 			}
@@ -108,14 +118,17 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 				if (!equal) return false;
 
 				// Force null labels to match
-				if (sub->field_names[i] == NULL)
+				if (override_fields)
 				{
-					if (sub->field_types[i]->name_carry != NULL)
+					if (sub->field_names[i] == NULL)
 					{
-						sub->field_names[i] = strdup(sub->field_types[i]->name_carry);
-						sub->field_types[i]->name_carry = NULL;
-					} else if (super->field_names[i] != NULL)
-						sub->field_names[i] = strdup(super->field_names[i]);
+						if (sub->field_types[i]->name_carry != NULL)
+						{
+							sub->field_names[i] = strdup(sub->field_types[i]->name_carry);
+							sub->field_types[i]->name_carry = NULL;
+						} else if (super->field_names[i] != NULL)
+							sub->field_names[i] = strdup(super->field_names[i]);
+					}
 				}
 			}
 

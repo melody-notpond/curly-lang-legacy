@@ -1,10 +1,10 @@
 //
 // correctness
 // scope.h: Header file for scope.c.
-// 
+//
 // Created by jenra.
 // Created on August 29 2020.
-// 
+//
 
 #ifndef scope_h
 #define scope_h

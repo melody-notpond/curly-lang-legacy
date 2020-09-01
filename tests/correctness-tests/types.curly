@@ -6,7 +6,7 @@
 # *type - generator of type
 # [type] - list of type
 
-# y: (a:int & b:bool) = [1,2,3,4]
+# n: (a:int & b:bool) = {2, false} # succeeds
 # y: int = 0 # succeeds
 # y = 2 # succeeds
 # t: type = int # succeeds
@@ -21,18 +21,18 @@
 # pair: type = int * int
 # p: pair = {5, 4}
 
-comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-z1: comp = {r = 1.0, theta = 2.0}
-z2: comp = {1.0, 2.0}
+# comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
+# z1: comp = {r = 1.0, theta = 2.0}
+# z2: comp = {1.0, 2.0}
 
 # tree: (type >> type)
-tree: type = leaf: bool | branch: ((tree ) * (tree ))
-t1: (tree ) = {
-	branch = {
-		leaf = true, leaf = false
-	}, leaf = false
-}
-t2: (tree ) = {{{true, false}, {true, false}}, {{true, false}, {true, false}}}
+# tree: type = leaf: bool | branch: (tree * tree)
+# t1: tree = {
+#	branch = {
+#		leaf = true, leaf = false
+#	}, leaf = false
+# }
+# t2: tree = {{true, false}, false}
 
 # linked: type >> type
 # linked t: type = t * (linked t)

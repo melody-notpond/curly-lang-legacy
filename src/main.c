@@ -6,7 +6,7 @@
 // July 27 2020
 //
 
-#include <editline/readline.h>
+// #include <editline/readline.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -61,6 +61,6 @@ int main(int argc, char** argv)
 
 		cleanup_lexer(&lex);
 		clean_types();
-	}
+	} else puts("usage: curly filename");
 	return 0;
 }

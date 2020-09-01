@@ -559,13 +559,7 @@ bool check_correctness(ast_t* ast)
 	ir_scope_t* scope = push_scope(NULL);
 
 	// Add primitives to the global scope
-	create_primatives();
-	type_t* head = type_linked_list_head;
-	while (head != NULL)
-	{
-		map_add(scope->types, head->type_name, head);
-		head = head->next;
-	}
+	create_primatives(scope);
 
 	// Check the correctness of child nodes if top node
 	if (ast->value.type == LEX_TYPE_NONE)

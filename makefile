@@ -9,7 +9,7 @@
 CC = gcc
 CFLAGS = -Wall -O0 -ggdb3
 LDFLAGS = 
-LIBS = -lreadline
+LIBS = # -lreadline
 
 CODE = src/
 

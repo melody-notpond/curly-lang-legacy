@@ -49,11 +49,11 @@ typedef struct s_type
 	struct s_type* next;
 } type_t;
 
-extern type_t* type_linked_list_head;
+typedef struct s_ir_scope ir_scope_t;
 
-// create_primatives(void) -> void
+// create_primatives(ir_scope_t*) -> void
 // Creates the builtin primative types.
-void create_primatives();
+void create_primatives(ir_scope_t* scope);
 
 // init_type(ir_type_types_t, char*, size_t) -> type_t*
 // Initialises a new type.
