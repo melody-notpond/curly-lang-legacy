@@ -40,7 +40,7 @@
 # y: bool = for all i in [1,2,3] i = true
 # y: int = if true then 0 else false
 
-x: *int = x in [1,2,3] where x < 3
+x: *int = x in [1,2,3] where x < 3 and x != 1
 
 # linked: type >> type
 # linked t: type = t * (linked t)

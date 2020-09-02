@@ -53,8 +53,6 @@ char* lex_type_string(lex_type_t type)
 			return "symbol";
 		case LEX_TYPE_BOOL:
 			return "'true' or 'false'";
-		case LEX_TYPE_NIL:
-			return "'nil'";
 		case LEX_TYPE_KEYWORD:
 			return "keyword";
 		case LEX_TYPE_ASSIGN:
@@ -364,9 +362,6 @@ token_t* lex_next(lexer_t* lex)
 				|| !strcmp(token.value, "false"))
 		{
 			token.type = LEX_TYPE_BOOL;
-		} else if (!strcmp(token.value, "nil"))
-		{
-			token.type = LEX_TYPE_NIL;
 		} else if (!strcmp(token.value, "in"))
 		{
 			// in is treated as an infix operator on the same level as comparing operators

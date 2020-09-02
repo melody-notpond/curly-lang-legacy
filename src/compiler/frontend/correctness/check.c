@@ -322,9 +322,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			case LEX_TYPE_BOOL:
 				ast->type = scope_lookup_type(scope, "bool");
 				return true;
-			case LEX_TYPE_NIL:
-				ast->type = scope_lookup_type(scope, "obj");
-				return true;
 			case LEX_TYPE_SYMBOL:
 			{
 				// Get type from variable list
@@ -801,6 +798,26 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			return false;
 
 		// Set the type of the node to bool and return success
+		ast->type = scope_lookup_type(scope, "bool");
+		return true;
+
+	} else if (!strcmp(ast->value.value, "and") || !strcmp(ast->value.value, "or") || !strcmp(ast->value.value, "xor"))
+	{
+		// Check both child nodes
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Assert that both nodes are booleans
+		int i = 0;
+		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "bool")) || !types_equal(ast->children[++i]->type, scope_lookup_type(scope, "bool")))
+		{
+			printf("Nonboolean used for and expression found at %i:%i\n", ast->children[i]->value.lino, ast->children[i]->value.charpos);
+			return false;
+		}
+
+		// Set the type and return success
 		ast->type = scope_lookup_type(scope, "bool");
 		return true;
 
