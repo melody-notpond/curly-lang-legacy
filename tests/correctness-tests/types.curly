@@ -6,43 +6,52 @@
 # *type - generator of type
 # [type] - list of type
 
-# n: (a:int & b:bool) = {2, false} # succeeds
-# y: int = 0 # succeeds
+# n: (a:Int & b:Bool) = {2, false} # succeeds
+# y: Int = 0 # succeeds
 # y = 2 # succeeds
-# t: type = int # succeeds
+# t: Type = int # succeeds
 # l = [1,2,3] # succeeds
 # l2 = ["a", "b", 3] # fails
 # y = "" # fails
-# y: string = "" # fails
-# x: string = x # fails
+# y: String = "" # fails
+# x: String = x # fails
 # y # succeeds
 # z # fails
 
-# pair: type = int * int
-# p: pair = {5, 4}
+# Pair: Type = int * int
+# p: Pair = {5, 4}
 
-# comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-# z1: comp = {r = 1.0, theta = 2.0}
-# z2: comp = {1.0, 2.0}
+# Comp: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
+# z1: Comp = {r = 1.0, theta = 2.0}
+# z2: Comp = {1.0, 2.0}
 
-# tree: (type >> type)
-# tree: type = leaf: bool | branch: tree * tree
-# t1: tree = {
+# Tree: (Type >> Type)
+# Tree: Type = leaf: bool | branch: tree * tree
+# t1: Tree = {
 #	branch = {
 #		leaf = true, leaf = false
 #	}, leaf = false
 # }
-# t2: tree = {{true, false}, false}
-# test: bool = t2.branch.0
-# test: tree = false
-# test2: [tree] = [test, {false, true}]
+# t2: Tree = {{true, false}, false}
+# test: Bool = t2.branch.0
+# test: Tree = false
+# test2: [Tree] = [test, {false, true}]
 
-# y: bool = for all i in [1,2,3] i = true
-# y: int = if true then 0 else false
+# y: Bool = for all i in [1,2,3] i = true
+# y: Int = if true then 0 else false
 
-x: *int = x in [1,2,3] where x < 3 and x != 1
+# x: *Int = x in [1,2,3] where x < 3 and x != 1
 
-# linked: type >> type
-# linked t: type = t * (linked t)
-# iterate: (linked obj) >> *obj
-# iterate l: (linked obj) = gen l.0 (*(iterate l.1))
+# Maybe: (Type >> Enum)
+# Maybe T = Just T | Nothing
+
+# x test:Int = 2
+
+Test: Enum = A | B
+t1: Test = A
+t2: Test = B
+
+# Linked: Type >> Type
+# Linked T: Type = T * (Maybe (Linked T))
+# iterate: (Linked Int) >> *Int
+# iterate l: (Linked Int) = gen l.0 (*(iterate l.1))

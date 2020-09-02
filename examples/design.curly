@@ -51,16 +51,16 @@ for some i in iter f i # checks that some element of the iterable follows some p
 # example: fibonacci
 fib 0 = 1
 fib 1 = 1
-fib n: int = (fib n - 1) + (fib n - 2)
+fib n: Int = (fib n - 1) + (fib n - 2)
 
 # anonymous function
 lambda arg0: type0 arg1: type1 arg0 + arg1
 
-ex_type: type = isFloat: bool & (
+ExType: Type = isFloat: bool & (
 	num: int | num: float
 )
 
-instance: ex_type = {
+instance: ExType = {
     isFloat = false,
     num = 42
 }
@@ -71,18 +71,18 @@ instance.num # 42
 instance.1 # 42
 
 # types: & - intersection type; * - product type; | - union type; >> - function type; *type - generator of type; [type] - list of type
-complex: type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-pair: type = int * int
-tree: type >> type
-tree t: type = leaf: t | branch: (tree t) * (tree t)
+Complex: Type = rect: (x: float & y: float) | polar: (r: float & theta: float)
+Pair: Type = int * int
+Tree: Type >> type
+Tree t: Type = leaf: t | branch: (tree t) * (tree t)
 
-z1: complex = {rect = {x = 1, y = 2}}
-p: pair = {5, 4}
-t1: (tree bool) = {
+z1: Complex = {r = 1, theta = 2}
+p: Pair = {5, 4}
+t1: (Tree Bool) = {
 	branch = {
 		leaf = true, leaf = false
 	}, leaf = false
 }
 
-z2: complex = {rect = {1, 2}}
-t2: (tree bool) = {{true, false}, false}
+z2: Complex = {1, 2}
+t2: (Tree Bool) = {{true, false}, false}

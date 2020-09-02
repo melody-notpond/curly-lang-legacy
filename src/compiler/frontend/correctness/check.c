@@ -65,7 +65,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		// Create a new type
 		type->field_names[0] = strdup(field_name->value.value);
 		type->field_types[0] = subtype;
-		ast->type = scope_lookup_type(scope, "type");
+		ast->type = scope_lookup_type(scope, "Type");
 		return type;
 
 	// Generator types
@@ -92,7 +92,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		do
 		{
 			// Get type and append it to the list of types
-			ast->type = scope_lookup_type(scope, "type");
+			ast->type = scope_lookup_type(scope, "Type");
 			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			list_append_element(types, size, count, type_t*, type);
@@ -131,7 +131,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		do
 		{
 			// Get type and append it to the list of types
-			ast->type = scope_lookup_type(scope, "type");
+			ast->type = scope_lookup_type(scope, "Type");
 			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			if (type->field_count == 1 && type->type_type == IR_TYPES_PRODUCT)
@@ -191,7 +191,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		do
 		{
 			// Get type
-			ast->type = scope_lookup_type(scope, "type");
+			ast->type = scope_lookup_type(scope, "Type");
 			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 
@@ -257,7 +257,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		do
 		{
 			// Get type and append it to the list of types
-			ast->type = scope_lookup_type(scope, "type");
+			ast->type = scope_lookup_type(scope, "Type");
 			type_t* type = generate_type(ast->children[1], scope, self, head);
 			if (type == NULL) return NULL;
 			list_append_element(types, size, count, type_t*, type);
@@ -300,6 +300,84 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 	}
 }
 
+// generate_enum(ast_t*, ir_scope_t*) -> type_t*
+// Generates an enum type from a given ast.
+type_t* generate_enum(ast_t* ast, ir_scope_t* scope, bool save)
+{
+	// Enum values
+	if (ast->value.type == LEX_TYPE_SYMBOL)
+	{
+		// Create the enum
+		type_t* enumy = init_type(IR_TYPES_ENUMERATION, ast->value.value, ast->children_count);
+		ast->type = enumy;
+
+		// Add subenums to the enum type
+		for (size_t i = 0; i < ast->children_count; i++)
+		{
+			type_t* subenum = generate_enum(ast->children[i], scope, false);
+			if (subenum == NULL) return NULL;
+			enumy->field_types[i] = subenum;
+		}
+
+		// Save the enum if allowed
+		if (save)
+		{
+			map_add(scope->var_types, ast->value.value, enumy);
+			map_add(scope->var_vals, ast->value.value, ast);
+		}
+		return enumy;
+
+	// Unions
+	} else if (!strcmp(ast->value.value, "|"))
+	{
+		// Save should be true
+		if (!save)
+		{
+			printf("Enum used as parameter of enum found at %i:%i\n", ast->value.lino, ast->value.charpos);
+			return NULL;
+		}
+
+		// List of field types (reverse order)
+		type_t** enums = NULL;
+		size_t size = 0;
+		size_t count = 0;
+		type_t* enumy = init_type(IR_TYPES_UNION, NULL, 0);
+
+		do
+		{
+			// Get enum and append it to the list of enums
+			ast->type = scope_lookup_type(scope, "Enum");
+			type_t* enumy = generate_enum(ast->children[1], scope, true);
+			if (enumy == NULL) return NULL;
+			list_append_element(enums, size, count, type_t*, enumy);
+
+			// Get the next ast and continue if it's also a product
+			ast = ast->children[0];
+		} while (!strcmp(ast->value.value, "|"));
+
+		// Get the last ast's enum and append it to the list of enums
+		type_t* subenum = generate_enum(ast, scope, true);
+		if (subenum == NULL) return NULL;
+		list_append_element(enums, size, count, type_t*, subenum);
+
+		// Create a new enum type and add the subtypes
+		enumy->field_count = count;
+		enumy->field_names = calloc(count, sizeof(char*));
+		enumy->field_types = calloc(count, sizeof(type_t*));
+		for (size_t i = 0; i < count; i++)
+		{
+			enumy->field_types[i] = enums[count - i - 1];
+		}
+		return enumy;
+
+	// Error on anything else
+	} else
+	{
+		printf("Invalid type found at %i:%i\n", ast->value.lino, ast->value.charpos);
+		return NULL;
+	}
+}
+
 // check_correctness_helper(ast_t*, ir_scope_t*, bool, bool) -> void
 // Helper function for check_correctness.
 bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disable_new_vars)
@@ -311,16 +389,16 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		switch (ast->value.type)
 		{
 			case LEX_TYPE_INT:
-				ast->type = scope_lookup_type(scope, "int");
+				ast->type = scope_lookup_type(scope, "Int");
 				return true;
 			case LEX_TYPE_FLOAT:
-				ast->type = scope_lookup_type(scope, "float");
+				ast->type = scope_lookup_type(scope, "Float");
 				return true;
 			case LEX_TYPE_STRING:
-				ast->type = scope_lookup_type(scope, "string");
+				ast->type = scope_lookup_type(scope, "String");
 				return true;
 			case LEX_TYPE_BOOL:
-				ast->type = scope_lookup_type(scope, "bool");
+				ast->type = scope_lookup_type(scope, "Bool");
 				return true;
 			case LEX_TYPE_SYMBOL:
 			{
@@ -330,7 +408,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 
 				// If variable isn't found, try finding it as a type
 				if (ast->type == NULL && scope_lookup_type(scope, ast->value.value) != NULL)
-					ast->type = scope_lookup_type(scope, "type");
+					ast->type = scope_lookup_type(scope, "Type");
 
 				// If variable isn't found, report an error
 				if (ast->type == NULL)
@@ -373,7 +451,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 					ast->type = type;
 
 					// Deal with adding new types
-					if (types_equal(var_ast->type, scope_lookup_type(scope, "type")))
+					if (types_equal(var_ast->type, scope_lookup_type(scope, "Type")))
 					{
 						// Mutable types are not allowed
 						if (map_contains(scope->types, var_ast->value.value))
@@ -433,7 +511,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 
 			// Get the type and var name ast
 			ast_t* type_ast = ast->children[0]->children[1];
-			type_ast->type = scope_lookup_type(scope, "type");
+			type_ast->type = scope_lookup_type(scope, "Type");
 
 			// Check for redeclarations
 			if (map_contains(scope->var_types, var_ast->value.value))
@@ -463,7 +541,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			}
 
 			// Deal with adding new types
-			if (types_equal(type, scope_lookup_type(scope, "type")))
+			if (types_equal(type, scope_lookup_type(scope, "Type")))
 			{
 				// Error on reassigning a previously defined type
 				if (map_contains(scope->types, var_ast->value.value))
@@ -481,7 +559,26 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 					return true;
 				}
 
-			// Variable is not a type
+			// Deal with adding new enums
+			} else if (types_equal(type, scope_lookup_type(scope, "Enum")))
+			{
+				// Error on reassigning a previously defined enum
+				if (map_contains(scope->types, var_ast->value.value))
+				{
+					printf("Mutable enum %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+					return false;
+				} else
+				{
+					// Add the new enum
+					type_t* type = generate_enum(val_ast, scope, true);
+					if (type == NULL) return false;
+					type->type_name = strdup(var_ast->value.value);
+					print_type(type);
+					map_add(scope->types, var_ast->value.value, type);
+					return true;
+				}
+
+				// Variable is not a type
 			} else
 			{
 				// Assert the type of the value and variable are the same
@@ -697,7 +794,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// If there is some quantifier (pun intended), make sure the type of the body is booleans
 		if (ast->children_count == 4)
 		{
-			if (!types_equal(body->type, scope_lookup_type(scope, "bool")))
+			if (!types_equal(body->type, scope_lookup_type(scope, "Bool")))
 			{
 				printf("Quantifier returns something other than a boolean found at %i:%i\n", ast->value.lino, ast->value.charpos);
 				return false;
@@ -720,7 +817,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// Check that the condition is a boolean
 		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
 			return false;
-		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "bool")))
+		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "Bool")))
 		{
 			printf("Nonboolean condition found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
 			return false;
@@ -758,7 +855,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// Assert the second node is a boolean type
 		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
 			return false;
-		if (!types_equal(ast->children[1]->type, scope_lookup_type(scope, "bool")))
+		if (!types_equal(ast->children[1]->type, scope_lookup_type(scope, "Bool")))
 		{
 			printf("Where expression with nonboolean type in body found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
 			return false;
@@ -785,7 +882,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 
 		// Set types and return success
 		ast->children[0]->type = ast->children[1]->type->field_types[0];
-		ast->type = scope_lookup_type(scope, "bool");
+		ast->type = scope_lookup_type(scope, "Bool");
 		return true;
 
 	// Comparison operators
@@ -798,7 +895,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			return false;
 
 		// Set the type of the node to bool and return success
-		ast->type = scope_lookup_type(scope, "bool");
+		ast->type = scope_lookup_type(scope, "Bool");
 		return true;
 
 	} else if (!strcmp(ast->value.value, "and") || !strcmp(ast->value.value, "or") || !strcmp(ast->value.value, "xor"))
@@ -811,14 +908,14 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 
 		// Assert that both nodes are booleans
 		int i = 0;
-		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "bool")) || !types_equal(ast->children[++i]->type, scope_lookup_type(scope, "bool")))
+		if (!types_equal(ast->children[0]->type, scope_lookup_type(scope, "Bool")) || !types_equal(ast->children[++i]->type, scope_lookup_type(scope, "Bool")))
 		{
 			printf("Nonboolean used for and expression found at %i:%i\n", ast->children[i]->value.lino, ast->children[i]->value.charpos);
 			return false;
 		}
 
 		// Set the type and return success
-		ast->type = scope_lookup_type(scope, "bool");
+		ast->type = scope_lookup_type(scope, "Bool");
 		return true;
 
 	// TODO: literally everything else

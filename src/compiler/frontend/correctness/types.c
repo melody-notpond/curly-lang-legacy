@@ -23,13 +23,13 @@ void create_primatives(ir_scope_t* scope)
 		return;
 
 	// Create primatives
-	init_type(IR_TYPES_PRIMITIVE, "int", 0);
-	init_type(IR_TYPES_PRIMITIVE, "float", 0);
-	init_type(IR_TYPES_PRIMITIVE, "string", 0);
-	init_type(IR_TYPES_PRIMITIVE, "bool", 0);
-	init_type(IR_TYPES_PRIMITIVE, "dict", 0);
-	init_type(IR_TYPES_PRIMITIVE, "obj", 0);
-	init_type(IR_TYPES_PRIMITIVE, "type", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Int", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Float", 0);
+	init_type(IR_TYPES_PRIMITIVE, "String", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Bool", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Dict", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Type", 0);
+	init_type(IR_TYPES_PRIMITIVE, "Enum", 0);
 
 	// Add to scope
 	type_t* head = type_linked_list_head;
@@ -95,6 +95,9 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 		case IR_TYPES_PRIMITIVE:
 			// Primatives are equal if they have the same name
 			return !strcmp(super->type_name, sub->type_name);
+		case IR_TYPES_ENUMERATION:
+			// Enums check if they have the same name and number of subtypes
+			return !strcmp(super->type_name, sub->type_name) && super->field_count == sub->field_count;
 		case IR_TYPES_UNION:
 			// Union types check its subtypes against the passed subtype
 			for (size_t i = 0; i < super->field_count; i++)
@@ -160,6 +163,10 @@ bool types_equal(type_t* t1, type_t* t2)
 		case IR_TYPES_PRIMITIVE:
 			// Primatives are equal if they have the same name
 			return !strcmp(t1->type_name, t2->type_name);
+		case IR_TYPES_ENUMERATION:
+			// Enums are equal if they have the same name and subtypes
+			if (strcmp(t1->type_name, t2->type_name))
+				return false;
 		case IR_TYPES_PRODUCT:
 		case IR_TYPES_UNION:
 		case IR_TYPES_LIST:
@@ -197,6 +204,9 @@ void print_type_helper(type_t* type, char* name, int level)
 	{
 		case IR_TYPES_PRIMITIVE:
 			printf("prim");
+			break;
+		case IR_TYPES_ENUMERATION:
+			printf("enum");
 			break;
 		case IR_TYPES_PRODUCT:
 			printf("prod");

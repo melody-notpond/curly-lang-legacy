@@ -683,8 +683,16 @@ parse_result_t assignment(lexer_t* lex)
 		// If a symbol was absorbed, attach a type
 		if (arg.ast->value.type == LEX_TYPE_SYMBOL)
 		{
-			// Consume a colon and add it to the symbol ast node
-			consume(colon, true, type, lex, LEX_TYPE_COLON, symbol, false);
+			// Consume a colon if able
+			repush_lexer(lex);
+			consume(colon, false, type, lex, LEX_TYPE_COLON, symbol, false);
+			if (!colon.succ)
+			{
+				clean_parse_result(colon);
+				continue;
+			}
+
+			// Add the symbol node to the colon
 			colon.ast->children_size = 2;
 			colon.ast->children = calloc(2, sizeof(ast_t*));
 			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast->children[symbol.ast->children_count - 1]);
