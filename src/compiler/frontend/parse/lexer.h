@@ -46,7 +46,8 @@ typedef enum
 	LEX_TYPE_AMP,
 	LEX_TYPE_BAR,
 	LEX_TYPE_CARET,
-	LEX_TYPE_STRING
+	LEX_TYPE_STRING,
+	LEX_TYPE_APPLICATION
 } lex_type_t;
 
 // Represents a token.

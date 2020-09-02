@@ -864,13 +864,23 @@ parse_result_t application(lexer_t* lex)
 		// Push lexer
 		push_lexer(lex);
 
-		// Add arguments to the tree
+		// Get argument
 		call(arg, false, expression, lex, func, false);
 		if (!arg.succ)
 		{
 			clean_parse_result(arg);
 			break;
 		}
+
+		// Construct tree if necessary
+		if (func.ast->value.type != LEX_TYPE_APPLICATION)
+		{
+			ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
+			list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
+			func.ast = app;
+		}
+
+		// Add argument to the tree
 		list_append_element(func.ast->children, func.ast->children_size, func.ast->children_count, ast_t*, arg.ast);
 	}
 

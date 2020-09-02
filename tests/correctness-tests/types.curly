@@ -42,6 +42,8 @@
 
 # x: *Int = x in [1,2,3] where x < 3 and x != 1
 
+x..xs = [1, 2, 3]
+
 # Maybe: (Type >> Enum)
 # Maybe T = Just T | Nothing
 

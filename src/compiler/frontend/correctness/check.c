@@ -29,7 +29,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		return head;
 
 	// Type symbols
-	else if (ast->value.type == LEX_TYPE_SYMBOL && ast->children_count == 0)
+	else if (ast->value.type == LEX_TYPE_SYMBOL)
 	{
 		type_t* type = scope_lookup_type(scope, ast->value.value);
 		if (type == NULL)
@@ -421,10 +421,18 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 				return false;
 		}
 
+	// Function applications
+	} else if (ast->value.type == LEX_TYPE_APPLICATION)
+	{
+		// Check the applicator
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+		printf("Function application is unsupported at the moment");
+
 	// Assign nodes with undeclared variables
 	} else if (ast->value.type == LEX_TYPE_ASSIGN)
 	{
-		// var (arg: type)* = expr
+		// var = expr (cannot be recursive)
 		if (ast->children[0]->value.type == LEX_TYPE_SYMBOL)
 		{
 			// Get the type of the value
@@ -433,70 +441,64 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			if (!check_correctness_helper(val_ast, scope, get_real_type, disable_new_vars)) return false;
 			type_t* type = val_ast->type;
 
-			// var = expr (cannot be recursive)
-			if (var_ast->children_count == 0)
+			// Add the type if it does not exist
+			type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
+			if (var_type == NULL)
 			{
-				// Add the type if it does not exist
-				type_t* var_type = scope_lookup_var_type(scope, var_ast->value.value);
-				if (var_type == NULL)
+				// Disable new variables if necessary
+				if (disable_new_vars)
 				{
-					// Disable new variables if necessary
-					if (disable_new_vars)
-					{
-						printf("Unable to create new variables in current context at %i:%i\n", var_ast->value.lino, var_ast->value.charpos);
-						return false;
-					}
-
-					var_ast->type = type;
-					ast->type = type;
-
-					// Deal with adding new types
-					if (types_equal(var_ast->type, scope_lookup_type(scope, "Type")))
-					{
-						// Mutable types are not allowed
-						if (map_contains(scope->types, var_ast->value.value))
-						{
-							printf("Mutable type %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
-							return false;
-						} else
-						{
-							// Create and save type
-							type_t* type = generate_type(val_ast, scope, var_ast, NULL);
-							if (type == NULL) return false;
-							type->type_name = strdup(var_ast->value.value);
-							print_type(type);
-							map_add(scope->types, var_ast->value.value, type);
-							return true;
-						}
-					} else
-					{
-						// Save variable type and value
-						map_add(scope->var_types, var_ast->value.value, type);
-						map_add(scope->var_vals, var_ast->value.value, val_ast);
-						return true;
-					}
-
-					return true;
-
-				// Check if the type is correct
-				} else if (type_subtype(var_type, type, true))
-				{
-					print_type(type);
-					map_add(scope->var_types, var_ast->value.value, type);
-					map_add(scope->var_vals, var_ast->value.value, val_ast);
-					ast->type = type;
-					return true;
-				}
-
-				// Error since the types are not equal
-				else
-				{
-					printf("Assigning incompatible type to %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+					printf("Unable to create new variables in current context at %i:%i\n", var_ast->value.lino, var_ast->value.charpos);
 					return false;
 				}
 
-			// TODO: functions
-			} else return false;
+				var_ast->type = type;
+				ast->type = type;
+
+				// Deal with adding new types
+				if (types_equal(var_ast->type, scope_lookup_type(scope, "Type")))
+				{
+					// Mutable types are not allowed
+					if (map_contains(scope->types, var_ast->value.value))
+					{
+						printf("Mutable type %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+						return false;
+					} else
+					{
+						// Create and save type
+						type_t* type = generate_type(val_ast, scope, var_ast, NULL);
+						if (type == NULL) return false;
+						type->type_name = strdup(var_ast->value.value);
+						print_type(type);
+						map_add(scope->types, var_ast->value.value, type);
+						return true;
+					}
+				} else
+				{
+					// Save variable type and value
+					map_add(scope->var_types, var_ast->value.value, type);
+					map_add(scope->var_vals, var_ast->value.value, val_ast);
+					return true;
+				}
+
+				return true;
+
+			// Check if the type is correct
+			} else if (type_subtype(var_type, type, true))
+			{
+				print_type(type);
+				map_add(scope->var_types, var_ast->value.value, type);
+				map_add(scope->var_vals, var_ast->value.value, val_ast);
+				ast->type = type;
+				return true;
+			}
+
+			// Error since the types are not equal
+			else
+			{
+				printf("Assigning incompatible type to %s found at %i:%i\n", var_ast->value.value, var_ast->value.lino, var_ast->value.charpos);
+				return false;
+			}
 
 		// var: type = expr (can be recursive)
 		} else if (ast->children[0]->value.type == LEX_TYPE_COLON)
@@ -578,7 +580,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 					return true;
 				}
 
-				// Variable is not a type
+			// Variable is not a type
 			} else
 			{
 				// Assert the type of the value and variable are the same
@@ -594,6 +596,54 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 				map_add(scope->var_vals, var_ast->value.value, val_ast);
 				return true;
 			}
+
+		// x..xs = expr (cannot be recursive)
+		} else if (ast->children[0]->value.type == LEX_TYPE_RANGE)
+		{
+			// Check expression
+			if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+				return false;
+
+			// Assert that it's an iterator
+			if (ast->children[1]->type->type_type != IR_TYPES_LIST && ast->children[1]->type->type_type != IR_TYPES_GENERATOR)
+			{
+				printf("Range assignment of noniterator found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return false;
+			}
+
+			// Set types and return success
+			ast_t* head = ast->children[0]->children[0];
+			ast_t* tail = ast->children[0]->children[1];
+			head->type = ast->children[1]->type->field_types[0];
+			tail->type = ast->children[1]->type;
+			ast->type = ast->children[1]->type->field_types[0];
+
+			// Check type if head existed before
+			type_t* type = scope_lookup_var_type(scope, head->value.value);
+			if (type == NULL)
+			{
+				map_add(scope->var_types, head->value.value, head->type);
+				map_add(scope->var_vals, head->value.value, head);
+			} else if (!type_subtype(type, head->type, true))
+			{
+				printf("Mismatched types found at %i:%i\n", head->value.lino, head->value.charpos);
+				return false;
+			}
+
+			// Check type if tail existed before
+			type = scope_lookup_var_type(scope, tail->value.value);
+			if (type == NULL)
+			{
+				map_add(scope->var_types, tail->value.value, tail->type);
+				map_add(scope->var_vals, tail->value.value, tail);
+			} else if (!type_subtype(type, tail->type, true))
+			{
+				printf("Mismatched types found at %i:%i\n", tail->value.lino, tail->value.charpos);
+				return false;
+			}
+
+			// Return success
+			return true;
 
 		// TODO: range and function assignment
 		} else return false;

@@ -83,6 +83,8 @@ char* lex_type_string(lex_type_t type)
 			return "'^'";
 		case LEX_TYPE_STRING:
 			return "string";
+		case LEX_TYPE_APPLICATION:
+			return "application";
 		default:
 			return "type";
 	}
