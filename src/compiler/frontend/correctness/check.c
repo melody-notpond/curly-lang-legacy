@@ -751,6 +751,59 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// Return successfully
 		return true;
 
+	// Where expressions
+	} else if (!strcmp(ast->value.value, "where"))
+	{
+		// Check the first node
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Assert the second node is a boolean type
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+		if (!types_equal(ast->children[1]->type, scope_lookup_type(scope, "bool")))
+		{
+			printf("Where expression with nonboolean type in body found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+			return false;
+		}
+
+		// Set the type and return success
+		ast->type = init_type(IR_TYPES_GENERATOR, NULL, 1);
+		ast->type->field_types[0] = ast->children[0]->children[0]->type;
+		return true;
+
+	// In operator
+	} else if (!strcmp(ast->value.value, "in"))
+	{
+		// Check the second node
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Assert that the second type is an iterator
+		if (ast->children[1]->type->type_type != IR_TYPES_LIST && ast->children[1]->type->type_type != IR_TYPES_GENERATOR)
+		{
+			printf("Noniterator used in in expression found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+			return false;
+		}
+
+		// Set types and return success
+		ast->children[0]->type = ast->children[1]->type->field_types[0];
+		ast->type = scope_lookup_type(scope, "bool");
+		return true;
+
+	// Comparison operators
+	} else if (ast->value.type == LEX_TYPE_COMPARE)
+	{
+		// Check both child nodes
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Set the type of the node to bool and return success
+		ast->type = scope_lookup_type(scope, "bool");
+		return true;
+
 	// TODO: literally everything else
 	} else return false;
 	return false;
