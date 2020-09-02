@@ -42,17 +42,18 @@
 
 # x: *Int = x in [1,2,3] where x < 3 and x != 1
 
-x..xs = [1, 2, 3]
+# x..xs = [1,2,3]
 
 # Maybe: (Type >> Enum)
 # Maybe T = Just T | Nothing
 
 # x test:Int = 2
 
-Test: Enum = A | B
-t1: Test = A
-t2: Test = B
-
+# Test: Enum = A | B
+# t1: Test = A
+# t2: Test = B
+test: Int >> Int >> Int >> Int >> Int >> Int >> Int
+a b c d e f g
 # Linked: Type >> Type
 # Linked T: Type = T * (Maybe (Linked T))
 # iterate: (Linked Int) >> *Int

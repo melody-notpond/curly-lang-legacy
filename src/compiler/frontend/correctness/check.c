@@ -165,7 +165,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 			list_append_element(names, n_size, count, char*, NULL);
 		}
 
-		// Create a new product type and add the subtypes
+		// Create a new union type and add the subtypes
 		type->field_count = count;
 		type->field_names = calloc(count, sizeof(char*));
 		type->field_types = calloc(count, sizeof(type_t*));
@@ -233,7 +233,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 			list_append_element(types, t_size, count, type_t*, subtype->field_types[i]);
 		}
 
-		// Create a new product type and add the subtypes
+		// Create a new intersection type and add the subtypes
 		type->field_count = count;
 		type->field_names = calloc(count, sizeof(char*));
 		type->field_types = calloc(count, sizeof(type_t*));
@@ -247,38 +247,35 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 	// Function types
 	} else if (!strcmp(ast->value.value, ">>"))
 	{
-		// List of types (reverse order)
-		type_t** types = NULL;
-		size_t size = 0;
-		size_t count = 0;
-		type_t* type = init_type(IR_TYPES_FUNC, NULL, 0);
+		// Fill final return type
+		type_t* type = init_type(IR_TYPES_FUNC, NULL, 2);
 		if (head == NULL) head = type;
+		type->field_types[1] = generate_type(ast->children[1], scope, self, head);
+		if (type->field_types[1] == NULL)
+			return NULL;
 
-		do
+		while (true)
 		{
-			// Get type and append it to the list of types
-			ast->type = scope_lookup_type(scope, "Type");
-			type_t* type = generate_type(ast->children[1], scope, self, head);
-			if (type == NULL) return NULL;
-			list_append_element(types, size, count, type_t*, type);
-
-			// Get the next ast and continue if it's also a product
+			// Get next ast node
 			ast = ast->children[0];
-		} while (!strcmp(ast->value.value, ">>"));
+			if (strcmp(ast->value.value, ">>"))
+				break;
 
-		// Get the last ast's type and append it to the list of types
-		type_t* subtype = generate_type(ast, scope, self, head);
-		if (subtype == NULL) return NULL;
-		list_append_element(types, size, count, type_t*, subtype);
+			// Fill argument
+			type->field_types[0] = generate_type(ast->children[1], scope, self, head);
+			if (type->field_types[0] == NULL)
+				return NULL;
 
-		// Create a new product type and add the subtypes
-		type->field_count = count;
-		type->field_names = calloc(count, sizeof(char*));
-		type->field_types = calloc(count, sizeof(type_t*));
-		for (size_t i = 0; i < count; i++)
-		{
-			type->field_types[i] = types[count - i - 1];
+			// Generate the function returning the current function
+			type_t* t = init_type(IR_TYPES_FUNC, NULL, 2);
+			t->field_types[1] = type;
+			type = t;
 		}
+
+		// Fill argument
+		type->field_types[0] = generate_type(ast, scope, self, head);
+		if (type->field_types[0] == NULL)
+			return NULL;
 		return type;
 
 	// List types

@@ -872,16 +872,13 @@ parse_result_t application(lexer_t* lex)
 			break;
 		}
 
-		// Construct tree if necessary
-		if (func.ast->value.type != LEX_TYPE_APPLICATION)
-		{
-			ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
-			list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
-			func.ast = app;
-		}
-
-		// Add argument to the tree
-		list_append_element(func.ast->children, func.ast->children_size, func.ast->children_count, ast_t*, arg.ast);
+		// Construct tree
+		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
+		app->children_size = 2;
+		app->children = calloc(2, sizeof(ast_t*));
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
+		func.ast = app;
 	}
 
 	return func;
