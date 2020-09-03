@@ -913,8 +913,54 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 				return true;
 			}
 
-		// TODO: getting elements from lists
-		} else return false;
+		// Getting attributes from lists
+		} else if (ast->children[0]->type->type_type == IR_TYPES_LIST)
+		{
+			// Check attribute
+			if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+				return false;
+
+			// Assert that the attribute is either an integer, a list of integers, or a generator of integers
+			type_t* int_t = scope_lookup_type(scope, "Int");
+			if (!(ast->children[1]->type->type_type == IR_TYPES_GENERATOR && types_equal(ast->children[1]->type->field_types[0], int_t))
+			 && !(ast->children[1]->type->type_type == IR_TYPES_LIST      && types_equal(ast->children[1]->type->field_types[0], int_t))
+			 && !types_equal(ast->children[1]->type, int_t))
+			{
+				printf("Invalid index for list found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return false;
+			}
+
+			// Return success
+			ast->type = ast->children[0]->type->field_types[0];
+			return true;
+
+		// Getting attributes from strings
+		} else if (types_equal(ast->children[0]->type, scope_lookup_type(scope, "String")))
+		{
+			// Check attribute
+			if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+				return false;
+
+			// Assert that the attribute is either an integer, a list of integers, or a generator of integers
+			type_t* int_t = scope_lookup_type(scope, "Int");
+			if (!(ast->children[1]->type->type_type == IR_TYPES_GENERATOR && types_equal(ast->children[1]->type->field_types[0], int_t))
+			 && !(ast->children[1]->type->type_type == IR_TYPES_LIST      && types_equal(ast->children[1]->type->field_types[0], int_t))
+			 && !types_equal(ast->children[1]->type, int_t))
+			{
+				printf("Invalid index for string found at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return false;
+			}
+
+			// Return success
+			ast->type = scope_lookup_type(scope, "String");
+			return true;
+
+		// Error on anything else
+		} else
+		{
+			printf("Attempt at retrieving attribute from invalid object found at %i:%i\n", ast->value.lino, ast->value.charpos);
+			return false;
+		}
 
 	// with expressions
 	} else if (!strcmp(ast->value.value, "with"))
