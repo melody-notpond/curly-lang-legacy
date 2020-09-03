@@ -468,6 +468,13 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			ast->type = func_type->field_types[1];
 			return true;
 
+		// Concatenating strings
+		} else if (types_equal(ast->children[0]->type, scope_lookup_type(scope, "String")))
+		{
+			// Set type and return success
+			ast->type = scope_lookup_type(scope, "String");
+			return true;
+
 		// Other kinds of applications are not supported at the moment
 		} else
 		{
