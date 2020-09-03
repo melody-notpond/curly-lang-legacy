@@ -297,54 +297,55 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 	}
 }
 
-// generate_enum(ast_t*, ir_scope_t*) -> type_t*
+// generate_enum(ast_t*, ir_scope_t*, type_t*) -> type_t*
 // Generates an enum type from a given ast.
-type_t* generate_enum(ast_t* ast, ir_scope_t* scope, bool save)
+type_t* generate_enum(ast_t* ast, ir_scope_t* scope, type_t* head)
 {
 	// Enum values
-	if (ast->value.type == LEX_TYPE_SYMBOL)
+	if (ast->value.type == LEX_TYPE_SYMBOL && ast->children_count == 0)
 	{
 		// Create the enum
-		type_t* enumy = init_type(IR_TYPES_ENUMERATION, ast->value.value, ast->children_count);
+		type_t* enumy = init_type(IR_TYPES_ENUMERATION, ast->value.value, 0); // ast->children_count);
 		ast->type = enumy;
 
 		// Add subenums to the enum type
-		for (size_t i = 0; i < ast->children_count; i++)
-		{
-			type_t* subenum = generate_enum(ast->children[i], scope, false);
-			if (subenum == NULL) return NULL;
-			enumy->field_types[i] = subenum;
-		}
+		// for (size_t i = 0; i < ast->children_count; i++)
+		// {
+		// 	type_t* subenum = generate_enum(ast->children[i], scope, false);
+		// 	if (subenum == NULL) return NULL;
+		// 	enumy->field_types[i] = subenum;
+		// }
 
 		// Save the enum if allowed
-		if (save)
-		{
-			map_add(scope->var_types, ast->value.value, enumy);
-			map_add(scope->var_vals, ast->value.value, ast);
-		}
+		//if (save)
+		//{
+		map_add(scope->var_types, ast->value.value, head);
+		map_add(scope->var_vals, ast->value.value, ast);
+		//}
 		return enumy;
 
 	// Unions
 	} else if (!strcmp(ast->value.value, "|"))
 	{
 		// Save should be true
-		if (!save)
-		{
-			printf("Enum used as parameter of enum found at %i:%i\n", ast->value.lino, ast->value.charpos);
-			return NULL;
-		}
+		// if (!save)
+		// {
+		// 	printf("Enum used as parameter of enum found at %i:%i\n", ast->value.lino, ast->value.charpos);
+		// 	return NULL;
+		// }
 
 		// List of field types (reverse order)
 		type_t** enums = NULL;
 		size_t size = 0;
 		size_t count = 0;
 		type_t* enumy = init_type(IR_TYPES_UNION, NULL, 0);
+		if (head == NULL) head = enumy;
 
 		do
 		{
 			// Get enum and append it to the list of enums
 			ast->type = scope_lookup_type(scope, "Enum");
-			type_t* enumy = generate_enum(ast->children[1], scope, true);
+			type_t* enumy = generate_enum(ast->children[1], scope, head);
 			if (enumy == NULL) return NULL;
 			list_append_element(enums, size, count, type_t*, enumy);
 
@@ -353,7 +354,7 @@ type_t* generate_enum(ast_t* ast, ir_scope_t* scope, bool save)
 		} while (!strcmp(ast->value.value, "|"));
 
 		// Get the last ast's enum and append it to the list of enums
-		type_t* subenum = generate_enum(ast, scope, true);
+		type_t* subenum = generate_enum(ast, scope, head);
 		if (subenum == NULL) return NULL;
 		list_append_element(enums, size, count, type_t*, subenum);
 
@@ -370,7 +371,7 @@ type_t* generate_enum(ast_t* ast, ir_scope_t* scope, bool save)
 	// Error on anything else
 	} else
 	{
-		printf("Invalid type found at %i:%i\n", ast->value.lino, ast->value.charpos);
+		printf("Invalid enum found at %i:%i\n", ast->value.lino, ast->value.charpos);
 		return NULL;
 	}
 }
@@ -421,16 +422,64 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 	// Function applications
 	} else if (ast->value.type == LEX_TYPE_APPLICATION)
 	{
-		// Check the applicator
+		// Check the applicator and argument
 		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
 			return false;
-		printf("Function application is unsupported at the moment");
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// If it's a type, then apply the type
+		if (types_equal(ast->children[0]->type, scope_lookup_type(scope, "Type")))
+		{
+			// Get the type
+			type_t* type;
+			if (ast->children[0]->value.type == LEX_TYPE_SYMBOL)
+				type = scope_lookup_type(scope, ast->children[0]->value.value);
+			else
+			{
+				printf("Parametric types are currently unsupported.\n");
+				return false;
+			}
+
+			// Check if the argument can be converted into the type
+			if (!type_subtype(type, ast->children[1]->type, true))
+			{
+				printf("Casting to incompatible type at %i:%i\n", ast->children[1]->value.lino, ast->children[1]->value.charpos);
+				return false;
+			}
+
+			// Set the type and return success
+			ast->type = type;
+			return true;
+
+		// Function application
+		} else if (ast->children[0]->type->type_type == IR_TYPES_FUNC)
+		{
+			// Check the argument type
+			type_t* func_type = ast->children[0]->type;
+			type_t* arg_type = ast->children[1]->type;
+			if (!type_subtype(func_type->field_types[0], arg_type, true))
+			{
+				printf("Invalid type passed into function found at %i:%i\n", ast->value.lino, ast->value.charpos);
+				return false;
+			}
+
+			// Set type and return success
+			ast->type = func_type->field_types[1];
+			return true;
+
+		// Other kinds of applications are not supported at the moment
+		} else
+		{
+			printf("Unsupported application found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+			return false;
+		}
 
 	// Assign nodes with undeclared variables
 	} else if (ast->value.type == LEX_TYPE_ASSIGN)
 	{
 		// var = expr (cannot be recursive)
-		if (ast->children[0]->value.type == LEX_TYPE_SYMBOL)
+		if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count == 0)
 		{
 			// Get the type of the value
 			ast_t* var_ast = ast->children[0];
@@ -569,7 +618,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 				} else
 				{
 					// Add the new enum
-					type_t* type = generate_enum(val_ast, scope, true);
+					type_t* type = generate_enum(val_ast, scope, NULL);
 					if (type == NULL) return false;
 					type->type_name = strdup(var_ast->value.value);
 					print_type(type);
@@ -597,6 +646,15 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// x..xs = expr (cannot be recursive)
 		} else if (ast->children[0]->value.type == LEX_TYPE_RANGE)
 		{
+			// Check if new variables are disabled
+			type_t* head_type = scope_lookup_var_type(scope, ast->children[0]->children[0]->value.value);
+			type_t* tail_type = scope_lookup_var_type(scope, ast->children[0]->children[1]->value.value);
+			if (disable_new_vars && (head_type == NULL || tail_type == NULL))
+			{
+				printf("Unable to create new variables in current context at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+				return false;
+			}
+
 			// Check expression
 			if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
 				return false;
@@ -642,7 +700,65 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			// Return success
 			return true;
 
-		// TODO: range and function assignment
+		// func (arg: type | value)* = expr (can be recursive)
+		} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL)
+		{
+			// Check if new variables are disabled
+			type_t* var_type = scope_lookup_var_type(scope, ast->children[0]->value.value);
+			if (disable_new_vars && var_type == NULL)
+			{
+				printf("Unable to create new variables in current context at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+				return false;
+			}
+
+			// Push a new scope
+			scope = push_scope(scope);
+
+			// Create the type of the function
+			type_t* type = init_type(IR_TYPES_FUNC, NULL, 2);
+			type_t* tail = type;
+			if (!check_correctness_helper(ast->children[0]->children[0], scope, get_real_type, disable_new_vars))
+				return false;
+			tail->field_types[0] = ast->children[0]->children[0]->type;
+
+			// Create all the arguments
+			for (size_t i = 1; i < ast->children[0]->children_count; i++)
+			{
+				tail->field_types[1] = init_type(IR_TYPES_FUNC, NULL, 2);
+				tail = tail->field_types[1];
+				if (!check_correctness_helper(ast->children[0]->children[i], scope, get_real_type, disable_new_vars))
+					return false;
+				tail->field_types[0] = ast->children[0]->children[i]->type;
+			}
+
+			// Check the body
+			if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+				return false;
+			tail->field_types[1] = ast->children[1]->type;
+
+			// Pop the scope
+			scope = pop_scope(scope);
+
+			// If previously defined, check that the types match
+			if (var_type != NULL && !type_subtype(var_type, type, true))
+			{
+				printf("Mismatched types found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+				return false;
+
+			// Add the variable if it's new
+			} else if (var_type == NULL)
+			{
+				map_add(scope->var_types, ast->children[0]->value.value, type);
+				map_add(scope->var_vals, ast->children[0]->value.value, ast->children[1]);
+			}
+
+			// Set types and return success
+			ast->children[0]->type = type;
+			ast->type = type;
+			print_type(type);
+			return true;
+
+		// TODO: attribute assignment
 		} else return false;
 
 	// Lists
@@ -723,6 +839,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		type_t* type = generate_type(ast->children[1], scope, NULL, NULL);
 		if (type == NULL) return false;
 		var_ast->type = type;
+		ast->type = type;
 		print_type(type);
 		map_add(scope->var_types, var_ast->value.value, type);
 		return true;
@@ -986,10 +1103,26 @@ bool check_correctness(ast_t* ast)
 		for (int i = 0; i < ast->children_count; i++)
 		{
 			if (!check_correctness_helper(ast->children[i], scope, false, false))
+			{
+				while (scope != NULL)
+				{
+					scope = pop_scope(scope);
+				}
 				return false;
+			}
 		}
+
+		pop_scope(scope);
 		return true;
 
 	// Check the correctness of the node itself
-	} else return check_correctness_helper(ast, scope, false, false);
+	} else
+	{
+		bool result = check_correctness_helper(ast, scope, false, false);
+		while (scope != NULL)
+		{
+			scope = pop_scope(scope);
+		}
+		return result;
+	}
 }

@@ -357,6 +357,7 @@ parse_result_t prefix(lexer_t* lex)
 		curry.ast->children_size = 1;
 		curry.ast->children = calloc(1, sizeof(ast_t*));
 		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, val.ast);
+		curry.ast->value.tag = LEX_TAG_OPERATOR;
 		return curry;
 	}
 

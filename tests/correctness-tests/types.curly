@@ -26,7 +26,7 @@
 # z2: Comp = {1.0, 2.0}
 
 # Tree: (Type >> Type)
-# Tree: Type = leaf: bool | branch: tree * tree
+# Tree: Type = leaf: Bool | branch: Tree * Tree
 # t1: Tree = {
 #	branch = {
 #		leaf = true, leaf = false
@@ -36,6 +36,10 @@
 # test: Bool = t2.branch.0
 # test: Tree = false
 # test2: [Tree] = [test, {false, true}]
+
+# trees: [Tree] = [Tree {false, true}, Tree false]
+
+# func arg0: Int arg1: String = arg0
 
 # y: Bool = for all i in [1,2,3] i = true
 # y: Int = if true then 0 else false
@@ -49,11 +53,15 @@
 
 # x test:Int = 2
 
-# Test: Enum = A | B
-# t1: Test = A
-# t2: Test = B
-test: Int >> Int >> Int >> Int >> Int >> Int >> Int
-a b c d e f g
+Test: Enum = A | B
+t1: Test = A
+t2: Test = B
+
+inp A = 0
+inp B = 1
+func a: Int b: Int c: Int d: Int e: Int f: Int g: Int = 0
+func 1 2 3 4 5 6 7
+
 # Linked: Type >> Type
 # Linked T: Type = T * (Maybe (Linked T))
 # iterate: (Linked Int) >> *Int

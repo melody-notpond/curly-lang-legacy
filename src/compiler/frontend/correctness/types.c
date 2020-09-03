@@ -195,6 +195,12 @@ void print_type_helper(type_t* type, char* name, int level)
 	}
 	if (level > 0) printf("| ");
 
+	if (type == NULL)
+	{
+		puts("null");
+		return;
+	}
+
 	// Print out the field name if applicable
 	if (name != NULL)
 		printf("%s: ", name);
