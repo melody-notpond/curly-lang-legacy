@@ -371,6 +371,7 @@ parse_result_t prefix(lexer_t* lex)
 		negative.ast->children_size = 1;
 		negative.ast->children = calloc(1, sizeof(ast_t*));
 		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, val.ast);
+		negative.ast->value.tag = LEX_TAG_OPERATOR;
 		return negative;
 	}
 
@@ -417,7 +418,7 @@ parse_result_t name(lexer_t* lex)																				\
 // attribute: prefix ('.' prefix)*
 infix_parser(attribute, prefix, LEX_TYPE_DOT)
 
-// muldiv: typing (('*'|'/') typing)*
+// muldiv: attribute (('*'|'/') attribute)*
 infix_parser(muldiv, attribute, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
@@ -426,7 +427,7 @@ infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
 
-// typing: attribute (':' attribute)*
+// typing: bitshift (':' bitshift)*
 // Note that the code correctness checker will assert only one colon pair is present per series
 infix_parser(typing, bitshift, LEX_TYPE_COLON)
 

@@ -308,32 +308,14 @@ type_t* generate_enum(ast_t* ast, ir_scope_t* scope, type_t* head)
 		type_t* enumy = init_type(IR_TYPES_ENUMERATION, ast->value.value, 0); // ast->children_count);
 		ast->type = enumy;
 
-		// Add subenums to the enum type
-		// for (size_t i = 0; i < ast->children_count; i++)
-		// {
-		// 	type_t* subenum = generate_enum(ast->children[i], scope, false);
-		// 	if (subenum == NULL) return NULL;
-		// 	enumy->field_types[i] = subenum;
-		// }
-
-		// Save the enum if allowed
-		//if (save)
-		//{
 		map_add(scope->var_types, ast->value.value, head);
 		map_add(scope->var_vals, ast->value.value, ast);
-		//}
+
 		return enumy;
 
 	// Unions
 	} else if (!strcmp(ast->value.value, "|"))
 	{
-		// Save should be true
-		// if (!save)
-		// {
-		// 	printf("Enum used as parameter of enum found at %i:%i\n", ast->value.lino, ast->value.charpos);
-		// 	return NULL;
-		// }
-
 		// List of field types (reverse order)
 		type_t** enums = NULL;
 		size_t size = 0;
@@ -1115,6 +1097,7 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		ast->type = scope_lookup_type(scope, "Bool");
 		return true;
 
+	// and, or, and xor operators
 	} else if (!strcmp(ast->value.value, "and") || !strcmp(ast->value.value, "or") || !strcmp(ast->value.value, "xor"))
 	{
 		// Check both child nodes
@@ -1133,6 +1116,31 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 
 		// Set the type and return success
 		ast->type = scope_lookup_type(scope, "Bool");
+		return true;
+
+	// Infix operators
+	} else if (ast->value.tag == LEX_TAG_INFIX_OPERATOR)
+	{
+		// Check the child nodes and adjust the type of declarations
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+		if (ast->children[0]->value.type == LEX_TYPE_COLON)
+			ast->children[0]->type = scope_lookup_type(scope, "Type");
+		if (!check_correctness_helper(ast->children[1], scope, get_real_type, disable_new_vars))
+			return false;
+		if (ast->children[1]->value.type == LEX_TYPE_COLON)
+			ast->children[1]->type = scope_lookup_type(scope, "Type");
+
+		// Find the type of the resulting infix expression
+		type_t* type = scope_lookup_infix(scope, ast->value.value, ast->children[0]->type, ast->children[1]->type);
+		if (type == NULL)
+		{
+			printf("Undefined infix operator found at %i:%i\n", ast->value.lino, ast->value.charpos);
+			return false;
+		}
+
+		// Set type and return success
+		ast->type = type;
 		return true;
 
 	// TODO: literally everything else

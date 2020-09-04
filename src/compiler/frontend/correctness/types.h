@@ -60,10 +60,6 @@ void create_primatives(ir_scope_t* scope);
 // Initialises a new type.
 type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count);
 
-// type_get_return_type(type_t*) -> type_t*
-// Get the return type of a function type.
-type_t* type_get_return_type(type_t* type);
-
 // type_subtype(type_t*, type_t*, bool) -> bool
 // Returns true if the second type is a valid type under the first type.
 bool type_subtype(type_t* super, type_t* sub, bool override_fields);

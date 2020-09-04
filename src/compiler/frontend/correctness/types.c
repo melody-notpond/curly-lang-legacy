@@ -23,12 +23,12 @@ void create_primatives(ir_scope_t* scope)
 		return;
 
 	// Create primatives
-	init_type(IR_TYPES_PRIMITIVE, "Int", 0);
-	init_type(IR_TYPES_PRIMITIVE, "Float", 0);
+	type_t* _int = init_type(IR_TYPES_PRIMITIVE, "Int", 0);
+	type_t* _float = init_type(IR_TYPES_PRIMITIVE, "Float", 0);
 	init_type(IR_TYPES_PRIMITIVE, "String", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Bool", 0);
-	init_type(IR_TYPES_PRIMITIVE, "Dict", 0);
-	init_type(IR_TYPES_PRIMITIVE, "Type", 0);
+	//init_type(IR_TYPES_PRIMITIVE, "Dict", 0);
+	type_t* _type = init_type(IR_TYPES_PRIMITIVE, "Type", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Enum", 0);
 
 	// Add to scope
@@ -38,6 +38,36 @@ void create_primatives(ir_scope_t* scope)
 		map_add(scope->types, head->type_name, head);
 		head = head->next;
 	}
+
+	// Define default arithmetic infix operations
+	add_infix_op(scope, "*", _int, _int, _int);
+	add_infix_op(scope, "*", _float, _int, _float);
+	add_infix_op(scope, "*", _int, _float, _float);
+	add_infix_op(scope, "*", _float, _float, _float);
+	add_infix_op(scope, "/", _int, _int, _int);
+	add_infix_op(scope, "/", _float, _int, _float);
+	add_infix_op(scope, "/", _int, _float, _float);
+	add_infix_op(scope, "/", _float, _float, _float);
+	add_infix_op(scope, "%", _int, _int, _int);
+	add_infix_op(scope, "+", _int, _int, _int);
+	add_infix_op(scope, "+", _float, _int, _float);
+	add_infix_op(scope, "+", _int, _float, _float);
+	add_infix_op(scope, "+", _float, _float, _float);
+	add_infix_op(scope, "-", _int, _int, _int);
+	add_infix_op(scope, "-", _float, _int, _float);
+	add_infix_op(scope, "-", _int, _float, _float);
+	add_infix_op(scope, "-", _float, _float, _float);
+	add_infix_op(scope, ">>", _int, _int, _int);
+	add_infix_op(scope, "<<", _int, _int, _int);
+	add_infix_op(scope, "&", _int, _int, _int);
+	add_infix_op(scope, "|", _int, _int, _int);
+	add_infix_op(scope, "^", _int, _int, _int);
+
+	// Define default type operations
+	add_infix_op(scope, "*", _type, _type, _type);
+	add_infix_op(scope, ">>", _type, _type, _type);
+	add_infix_op(scope, "&", _type, _type, _type);
+	add_infix_op(scope, "|", _type, _type, _type);
 }
 
 // init_type(ir_type_types_t, char*, size_t, type_t) -> type_t*
@@ -56,17 +86,6 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	// Add to linked list
 	type->next = type_linked_list_head;
 	type_linked_list_head = type;
-	return type;
-}
-
-// type_get_return_type(type_t*) -> type_t*
-// Get the return type of a function type.
-type_t* type_get_return_type(type_t* type)
-{
-	while (type->type_type == IR_TYPES_FUNC && type->field_count > 0)
-	{
-		type = type->field_types[type->field_count - 1];
-	}
 	return type;
 }
 
@@ -93,11 +112,9 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 	switch (super->type_type)
 	{
 		case IR_TYPES_PRIMITIVE:
-			// Primatives are equal if they have the same name
-			return !strcmp(super->type_name, sub->type_name);
 		case IR_TYPES_ENUMERATION:
-			// Enums check if they have the same name and number of subtypes
-			return !strcmp(super->type_name, sub->type_name) && super->field_count == sub->field_count;
+			// Primatives and enums check if they have the same name and number of subtypes
+			return !strcmp(super->type_name, sub->type_name);
 		case IR_TYPES_UNION:
 			// Union types check its subtypes against the passed subtype
 			for (size_t i = 0; i < super->field_count; i++)
@@ -161,12 +178,9 @@ bool types_equal(type_t* t1, type_t* t2)
 	switch (t1->type_type)
 	{
 		case IR_TYPES_PRIMITIVE:
-			// Primatives are equal if they have the same name
-			return !strcmp(t1->type_name, t2->type_name);
 		case IR_TYPES_ENUMERATION:
-			// Enums are equal if they have the same name and subtypes
-			if (strcmp(t1->type_name, t2->type_name))
-				return false;
+			// Primatives and enums are equal if they have the same name
+			return !strcmp(t1->type_name, t2->type_name);
 		case IR_TYPES_PRODUCT:
 		case IR_TYPES_UNION:
 		case IR_TYPES_LIST:
