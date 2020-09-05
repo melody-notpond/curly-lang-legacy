@@ -36,27 +36,56 @@ int convert_infix_op(char* op)
 	switch (op[0])
 	{
 		case '*':
-			return 0;
-		case '/':
 			return 1;
-		case '%':
+		case '/':
 			return 2;
-		case '+':
+		case '%':
 			return 3;
-		case '-':
+		case '+':
 			return 4;
+		case '-':
+			return 5;
 		case '<':
-			return op[1] == '<' && op[2] == '\0' ? 5 : -1;
+			return op[1] == '<' && op[2] == '\0' ? 6 : -1;
 		case '>':
-			return op[1] == '>' && op[2] == '\0' ? 6 : -1;
+			return op[1] == '>' && op[2] == '\0' ? 7 : -1;
 		case '&':
-			return 7;
-		case '|':
 			return 8;
-		case '^':
+		case '|':
 			return 9;
+		case '^':
+			return 10;
 		default:
 			return -1;
+	}
+}
+
+// add_prefix_op(ir_scope_t*, type_t*, type_t*) -> void
+// Adds a new prefix operator to the scope.
+void add_prefix_op(ir_scope_t* scope, type_t* operand, type_t* out)
+{
+	// Create the type
+	type_t* type = init_type(IR_TYPES_FUNC, NULL, 2);
+	type->field_types[0] = operand;
+	type->field_types[1] = out;
+
+	// Create the prefix operator
+	ir_infix_type_t* prefix = malloc(sizeof(ir_infix_type_t));
+	prefix->type = type;
+	prefix->next = NULL;
+
+	// Append the new operator
+	if (scope->infix_ops[0] == NULL)
+		scope->infix_ops[0] = prefix;
+	else
+	{
+		// Find the last element in the linked list
+		ir_infix_type_t* head = scope->infix_ops[0];
+		while (head->next != NULL)
+		{
+			head = head->next;
+		}
+		head->next = prefix;
 	}
 }
 
@@ -94,6 +123,23 @@ void add_infix_op(ir_scope_t* scope, char* op, type_t* left, type_t* right, type
 	}
 }
 
+// scope_lookup_prefix(ir_scope_t*, type_t*) -> type_t*
+// Looks up a prefix operator based on the argument type and returns the result type.
+type_t* scope_lookup_prefix(ir_scope_t* scope, type_t* operand)
+{
+	// Search for the prefix operator
+	ir_infix_type_t* current = scope->infix_ops[0];
+	while (current != NULL)
+	{
+		if (type_subtype(current->type->field_types[0], operand, false))
+			return current->type->field_types[1];
+		current = current->next;
+	}
+
+	// No operator found
+	return NULL;
+}
+
 // scope_lookup_infix(ir_scope_t*, char*, type_t*, type_t*) -> type_t*
 // Looks up an infix operator based on the argument types and returns the result type.
 type_t* scope_lookup_infix(ir_scope_t* scope, char* op, type_t* left, type_t* right)
@@ -106,7 +152,7 @@ type_t* scope_lookup_infix(ir_scope_t* scope, char* op, type_t* left, type_t* ri
 	ir_infix_type_t* current = scope->infix_ops[op_index];
 	while (current != NULL)
 	{
-		if (type_subtype(current->type->field_types[0], left, true) && type_subtype(current->type->field_types[1], right, true))
+		if (type_subtype(current->type->field_types[0], left, false) && type_subtype(current->type->field_types[1], right, false))
 			return current->type->field_types[2];
 		current = current->next;
 	}

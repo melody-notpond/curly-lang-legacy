@@ -23,7 +23,8 @@ typedef enum
 	IR_TYPES_UNION,
 	IR_TYPES_LIST,
 	IR_TYPES_GENERATOR,
-	IR_TYPES_FUNC
+	IR_TYPES_FUNC,
+	IR_TYPES_CURRY
 } ir_type_types_t;
 
 // Represents a curly type in the intermediate representation.

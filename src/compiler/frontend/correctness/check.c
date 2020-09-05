@@ -440,7 +440,23 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 			// Check the argument type
 			type_t* func_type = ast->children[0]->type;
 			type_t* arg_type = ast->children[1]->type;
-			if (!type_subtype(func_type->field_types[0], arg_type, true))
+			if (arg_type->type_type == IR_TYPES_CURRY)
+			{
+				// Check the subtypes of the curry
+				for (size_t i = 0; i < arg_type->field_count; i++)
+				{
+					if (func_type->type_type != IR_TYPES_FUNC || !type_subtype(func_type->field_types[0], arg_type->field_types[i], true))
+					{
+						printf("Invalid type passed into function found at %i:%i\n", ast->value.lino, ast->value.charpos);
+						return false;
+					}
+					func_type = func_type->field_types[1];
+				}
+
+				// Set type and return success
+				ast->type = func_type;
+				return true;
+			} else if (!type_subtype(func_type->field_types[0], arg_type, true))
 			{
 				printf("Invalid type passed into function found at %i:%i\n", ast->value.lino, ast->value.charpos);
 				return false;
@@ -1136,6 +1152,47 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		if (type == NULL)
 		{
 			printf("Undefined infix operator found at %i:%i\n", ast->value.lino, ast->value.charpos);
+			return false;
+		}
+
+		// Set type and return success
+		ast->type = type;
+		return true;
+
+	// Currying
+	} else if (!strcmp(ast->value.value, "*"))
+	{
+		// Check the child node
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Assert the type is a list or generator
+		if (ast->children[0]->type->type_type != IR_TYPES_PRODUCT)
+		{
+			printf("Curry on invalid operand found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
+			return false;
+		}
+
+		// Create the type and return success
+		ast->type = init_type(IR_TYPES_CURRY, NULL, ast->children[0]->type->field_count);
+		for (size_t i = 0; i < ast->type->field_count; i++)
+		{
+			ast->type->field_types[i] = ast->children[0]->type->field_types[i];
+		}
+		return true;
+
+	// Negatives
+	} else if (!strcmp(ast->value.value, "-"))
+	{
+		// Check the child node and adjust the type of declarations
+		if (!check_correctness_helper(ast->children[0], scope, get_real_type, disable_new_vars))
+			return false;
+
+		// Find the type of the resulting prefix expression
+		type_t* type = scope_lookup_prefix(scope, ast->children[0]->type);
+		if (type == NULL)
+		{
+			printf("Negative sign on invalid operand found at %i:%i\n", ast->children[0]->value.lino, ast->children[0]->value.charpos);
 			return false;
 		}
 

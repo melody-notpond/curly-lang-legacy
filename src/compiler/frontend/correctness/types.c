@@ -68,6 +68,10 @@ void create_primatives(ir_scope_t* scope)
 	add_infix_op(scope, ">>", _type, _type, _type);
 	add_infix_op(scope, "&", _type, _type, _type);
 	add_infix_op(scope, "|", _type, _type, _type);
+
+	// Define default prefix operations
+	add_prefix_op(scope, _int, _int);
+	add_prefix_op(scope, _float, _float);
 }
 
 // init_type(ir_type_types_t, char*, size_t, type_t) -> type_t*
@@ -132,6 +136,7 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 		case IR_TYPES_LIST:
 		case IR_TYPES_GENERATOR:
 		case IR_TYPES_FUNC:
+		case IR_TYPES_CURRY:
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < super->field_count; i++)
 			{
@@ -186,6 +191,7 @@ bool types_equal(type_t* t1, type_t* t2)
 		case IR_TYPES_LIST:
 		case IR_TYPES_GENERATOR:
 		case IR_TYPES_FUNC:
+		case IR_TYPES_CURRY:
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < t1->field_count; i++)
 			{

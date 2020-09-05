@@ -13,8 +13,9 @@
 #include "../parse/ast.h"
 #include "types.h"
 
-#define INFIX_OP_COUNT 10
+#define INFIX_OP_COUNT 11
 
+// Represents an infix operator's type
 typedef struct s_ir_infix_type
 {
 	// The type of the infix value
@@ -47,9 +48,17 @@ typedef struct s_ir_scope
 // Initialises a scope and pushes it onto the stack of scopes.
 ir_scope_t* push_scope(ir_scope_t* parent);
 
+// add_prefix_op(ir_scope_t*, type_t*, type_t*) -> void
+// Adds a new prefix operator to the scope.
+void add_prefix_op(ir_scope_t* scope, type_t* operand, type_t* out);
+
 // add_infix_op(ir_scope_t*, char*, type_t*, type_t*, type_t*) -> void
 // Adds an infix operation to the scope.
 void add_infix_op(ir_scope_t* scope, char* op, type_t* left, type_t* right, type_t* out);
+
+// scope_lookup_prefix(ir_scope_t*, type_t*) -> type_t*
+// Looks up a prefix operator based on the argument type and returns the result type.
+type_t* scope_lookup_prefix(ir_scope_t* scope, type_t* operand);
 
 // scope_lookup_infix(ir_scope_t*, char*, type_t*, type_t*) -> type_t*
 // Looks up an infix operator based on the argument types and returns the result type.

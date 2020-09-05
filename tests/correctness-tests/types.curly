@@ -46,14 +46,17 @@
 
 # x: *Int = x in [1,2,3] where x < 3 and x != 1
 
-# x..xs = [1,2,3]
+func a:Int b:String c:Float = 0
+func (*{0, "", 0.0})
 
-# Maybe: (Type >> Enum)
-# Maybe T = Just T | Nothing
+# x..xs = [1,2,3]
+# None: Enum = Nothing
+# Maybe: (Type >> Type)
+# Maybe T: Type = just: T | none: None
 
 # x test:Int = 2
 
-Test: Enum = A | B
+# Test: Enum = A | B
 # t1: Test = A
 # t2: Test = B
 
@@ -63,8 +66,6 @@ Test: Enum = A | B
 # func 1 2 3 4 5 6 7
 # "" 1 2 func A [1,2,3]
 # [1,2,3].""
-
-(a:Test)*(b:Test)
 
 # Linked: Type >> Type
 # Linked T: Type = T * (Maybe (Linked T))
