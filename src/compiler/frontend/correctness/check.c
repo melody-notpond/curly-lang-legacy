@@ -574,9 +574,10 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// Set type and return success
 		ast->type = type;
 		return true;
+	}
 
-	// TODO: literally everything else
-	} else return false;
+	// Invalid or unimplemented semantics
+	printf("Invalid or unimplemented semantics found at %i:%i\n", ast->value.lino, ast->value.charpos);
 	return false;
 }
 

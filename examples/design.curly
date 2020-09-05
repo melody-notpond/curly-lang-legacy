@@ -10,11 +10,11 @@ with var1 = expression, # create a scope in which var[123] are used
 	 f var1 var2 var3
 
 function arg1: type1 arg2: type2 = expression # function
-# a function can only have one signature (type1 * type2) >> return_type
+# a function can only have one signature type1 >> type2 >> return_type
 
 function arg1 (function arg2 arg3) # function application
 function arg1 # lazy evaluation
-function *list # currying
+function (*list) # currying
 
 if condition then expression # if statement
 if condition then expression else expression # if else statement
@@ -29,7 +29,7 @@ list.(range a b c) # get the sublist of list with indices in the range
 x in set # check if x is in set
 
 # list compehensions are generated lazily
-[for i in iter f i] # creates a list
+for i in iter f i # creates a list
 with acc = value, for i in iter acc = f acc i # folds iterable into a single value
 # pass - does not return a value
 # stop - halts a loop
@@ -41,7 +41,7 @@ for all i in iter f i # checks that all elements of the iterable follow some pre
 for some i in iter f i # checks that some element of the iterable follows some predicate
 
 # filtering
-[x in iter where f x] # lazy list / generator
+x in iter where f x # lazy list / generator
 
 "string owo" # a string
 "" expression # expression as a string /concatenation

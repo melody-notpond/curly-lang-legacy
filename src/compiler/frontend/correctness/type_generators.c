@@ -14,6 +14,7 @@
 
 // generate_type(ast_t*, ir_scope_t*, ast_t*, type_t*) -> type_t*
 // Generates a type from an infix expression.
+// TODO: parametric types (both recursive and nonrecursive)
 type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 {
 	// types:
