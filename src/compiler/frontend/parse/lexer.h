@@ -6,8 +6,8 @@
 // Created on July 27 2020.
 // 
 
-#ifndef lexer_h
-#define lexer_h
+#ifndef LEXER_H
+#define LEXER_H
 
 #include <stdlib.h>
 
@@ -104,4 +104,4 @@ token_t* lex_next(lexer_t* lex);
 // Frees memory associated with the lexer.
 void cleanup_lexer(lexer_t* lex);
 
-#endif /* lexer_h */
+#endif /* LEXER_H */

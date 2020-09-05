@@ -4,8 +4,8 @@
 //  Created by jenra on 9/1/17.
 //
 
-#ifndef hashes_h
-#define hashes_h
+#ifndef HASHES_H
+#define HASHES_H
 
 #include <stdlib.h>
 
@@ -18,4 +18,4 @@
 // This is the default hashing algorithm used.
 size_t one_at_a_time_hash(void* key, size_t length);
 
-#endif /* hashes_h */
+#endif /* HASHES_H */

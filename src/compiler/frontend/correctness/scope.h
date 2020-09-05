@@ -6,8 +6,8 @@
 // Created on August 29 2020.
 //
 
-#ifndef scope_h
-#define scope_h
+#ifndef SCOPE_H
+#define SCOPE_H
 
 #include "../../../utils/hashmap.h"
 #include "../parse/ast.h"
@@ -80,4 +80,4 @@ type_t* scope_lookup_type(ir_scope_t* scope, char* name);
 // Deletes a scope and returns its parent.
 ir_scope_t* pop_scope(ir_scope_t* scope);
 
-#endif /* scope_h */
+#endif /* SCOPE_H */

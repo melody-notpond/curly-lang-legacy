@@ -6,8 +6,8 @@
 // Created on August 28 2020.
 // 
 
-#ifndef parser_h
-#define parser_h
+#ifndef PARSER_H
+#define PARSER_H
 
 #include "ast.h"
 #include "lexer.h"
@@ -17,4 +17,4 @@
 // lang_parser: statement*
 parse_result_t lang_parser(lexer_t* lex);
 
-#endif /* parser_h */
+#endif /* PARSER_H */

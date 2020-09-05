@@ -6,8 +6,8 @@
 // Created on August 29 2020.
 // 
 
-#ifndef check_h
-#define check_h
+#ifndef CHECK_H
+#define CHECK_H
 
 #include "../parse/ast.h"
 #include "scope.h"
@@ -16,4 +16,4 @@
 // Checks the correctness of an ast.
 bool check_correctness(ast_t* ast);
 
-#endif /* check_h */
+#endif /* CHECK_H */

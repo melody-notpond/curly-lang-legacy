@@ -4,8 +4,8 @@
 //  Created by jenra on 9/1/17.
 //
 
-#ifndef hashmap_h
-#define hashmap_h
+#ifndef HASHMAP_H
+#define HASHMAP_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -102,4 +102,4 @@ void map_removen(hashmap_t* map, char* key, size_t key_length);
 // Deletes a hashmap.
 void del_hashmap(hashmap_t* map);
 
-#endif /* hashmap_h */
+#endif /* HASHMAP_H */

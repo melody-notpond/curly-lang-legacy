@@ -6,8 +6,8 @@
 // Created on August 29 2020.
 // 
 
-#ifndef types_h
-#define types_h
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -77,4 +77,4 @@ void print_type(type_t* type);
 // Frees every type created.
 void clean_types();
 
-#endif /* types_h */
+#endif /* TYPES_H */

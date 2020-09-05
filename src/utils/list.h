@@ -6,8 +6,8 @@
 // Created on July 27 2020.
 // 
 
-#ifndef utils_list_h
-#define utils_list_h
+#ifndef UTILS_LIST_H
+#define UTILS_LIST_H
 
 #include <stdlib.h>
 
@@ -21,4 +21,4 @@ do																\
 	(list)[(count)++] = (element);								\
 } while (0)
 
-#endif /* utils_list_h */
+#endif /* UTILS_LIST_H */

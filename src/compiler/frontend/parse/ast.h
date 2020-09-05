@@ -6,8 +6,8 @@
 // Created on August 27 2020.
 // 
 
-#ifndef ast_h
-#define ast_h
+#ifndef AST_H
+#define AST_H
 
 #include <stdbool.h>
 
@@ -76,4 +76,4 @@ void clean_ast(ast_t* ast);
 // Deletes a parse result's data.
 void clean_parse_result(parse_result_t result);
 
-#endif /* ast_h */
+#endif /* AST_H */
