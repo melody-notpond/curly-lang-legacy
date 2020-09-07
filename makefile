@@ -9,7 +9,7 @@
 CC = gcc
 CFLAGS = -Wall -O0 -ggdb3 $(shell llvm-config --cflags)
 LDFLAGS = $(shell llvm-config --ldflags)
-LIBS = $(shell llvm-config --libs) $(shell llvm-config --system-libs) -lreadline
+LIBS = $(shell llvm-config --libs) $(shell llvm-config --system-libs) -ledit #-lreadline
 
 CODE = src/
 
