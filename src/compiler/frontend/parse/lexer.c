@@ -23,6 +23,7 @@ void init_lexer(lexer_t* lex, char* string)
 	lex->size = 16;
 	lex->tokens = calloc(lex->size, sizeof(token_t));
 	lex->count = 0;
+	lex->token_pos = 0;
 }
 
 // lex_type_string(lex_type_t) -> char*
@@ -340,7 +341,7 @@ token_t* lex_next(lexer_t* lex)
 
 	// Copy the value of the token into the token
 	size_t length = i - lex->pos;
-	token.value = malloc(length + 1);
+	token.value = calloc(length + 1, 1);
 	strncpy(token.value, lex->string + lex->pos, length);
 	lex->pos = i;
 

@@ -581,14 +581,14 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 	return false;
 }
 
-// check_correctness(ast_t*) -> void
+// check_correctness(ast_t*, ir_scope_t*) -> void
 // Checks the correctness of an ast.
-bool check_correctness(ast_t* ast)
+bool check_correctness(ast_t* ast, ir_scope_t* scope)
 {
 	// Create global scope
-	ir_scope_t* scope = push_scope(NULL);
-
-	// Add primitives to the global scope
+	bool temp_scope = scope == NULL;
+	if (temp_scope)
+		scope = push_scope(NULL);
 	create_primatives(scope);
 
 	// Check the correctness of child nodes if top node
@@ -598,25 +598,30 @@ bool check_correctness(ast_t* ast)
 		{
 			if (!check_correctness_helper(ast->children[i], scope, false, false))
 			{
-				while (scope != NULL)
+				while (scope->parent != NULL)
 				{
 					scope = pop_scope(scope);
 				}
+				if (temp_scope)
+					pop_scope(scope);
 				return false;
 			}
 		}
 
-		pop_scope(scope);
+		if (temp_scope)
+			pop_scope(scope);
 		return true;
 
 	// Check the correctness of the node itself
 	} else
 	{
 		bool result = check_correctness_helper(ast, scope, false, false);
-		while (scope != NULL)
+		while (scope->parent != NULL)
 		{
 			scope = pop_scope(scope);
 		}
+		if (temp_scope)
+			pop_scope(scope);
 		return result;
 	}
 }
