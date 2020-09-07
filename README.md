@@ -13,7 +13,9 @@ Just type in the following:
 ```bash
 git clone https://github.com/jenra-uwu/curly-lang && cd curly-lang && make
 ```
-Note: This repo has only been tested on macOS, so it may not build on other \*nix operating systems, and it most *definitely* won't build on Windows.
+This project depends on `libedit-dev`/`readline` (for Linux and macOS respectively) and `llvm`, which can each be installed using your favourite package manager (`apt`/`pacman`/`yum` for Linux and Homebrew/MacPorts for macOS).
+
+Note: This repo has been tested on macOS and Ubuntu and as of now, but will not build on Windows. Windows support is coming soon.
 
 ## Progress
 The parser is done, but nothing else is implemented yet. Everything is highly experimental. Be cautious: code may be explosive.
