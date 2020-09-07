@@ -80,7 +80,7 @@ void map_resize(hashmap_t* map, bool grow)
 		map->buckets_size = map->buckets_size HASHMAP_GROWTH_FUNCTION;
 	else
 		map->buckets_size = map->buckets_size HASHMAP_SHRINK_FUNCTION;
-	map->buckets = reallocf(map->buckets, map->buckets_size * sizeof(hash_bucket*));
+	map->buckets = realloc(map->buckets, map->buckets_size * sizeof(hash_bucket*));
 
 	// I didn't want to deal with repeating such a large block of code, so here is a malloc-heavy and free-heavy loop.
 	while (all_buckets != NULL)
