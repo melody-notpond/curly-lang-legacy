@@ -1,14 +1,11 @@
 # Curly
-Curly is a functional programming language designed to be simple and readable. Some of its main implementation features include lazy evaluation, list comprehensions, and quantifiers.
+Curly is a functional programming language that focuses on iterators. Some of its main implementation features include lazy evaluation, list comprehensions, and quantifiers.
 
 ## Example
-```python
-primes = [
-	n in (range 2 nil) where
-		for all p in [p in primes where p*p <= n]
-			n % p != 0
-]
-
+```
+primes: *Int = n in (from 2) where
+    for all p in (p in primes where p*p <= n)
+        n % p != 0
 ```
 
 ## Build
