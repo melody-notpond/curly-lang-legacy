@@ -7,9 +7,9 @@
 ##
 
 CC = gcc
-CFLAGS = -Wall -O0 -ggdb3
-LDFLAGS = 
-LIBS = # -lreadline
+CFLAGS = -Wall -O0 -ggdb3 $(shell llvm-config --cflags)
+LDFLAGS = $(shell llvm-config --ldflags)
+LIBS = $(shell llvm-config --libs) $(shell llvm-config --system-libs) # -lreadline
 
 CODE = src/
 
@@ -40,4 +40,3 @@ vm: $(CODE)vm/*.c
 
 clean:
 	-rm *.o
-	-rm dep/curly-comb/*.o

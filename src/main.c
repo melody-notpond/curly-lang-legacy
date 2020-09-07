@@ -9,6 +9,7 @@
 // #include <editline/readline.h>
 #include <stdio.h>
 #include <string.h>
+#include "llvm-c/Analysis.h"
 
 #include "compiler/frontend/correctness/check.h"
 #include "compiler/frontend/parse/lexer.h"
