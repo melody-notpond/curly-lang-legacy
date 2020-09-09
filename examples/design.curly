@@ -71,10 +71,10 @@ instance.num # 42
 instance.1 # 42
 
 # types: & - intersection type; * - product type; | - union type; >> - function type; *type - generator of type; [type] - list of type
-Complex: Type = rect: (x: float & y: float) | polar: (r: float & theta: float)
-Pair: Type = int * int
-Tree: Type >> type
-Tree t: Type = leaf: t | branch: (tree t) * (tree t)
+Complex: Type = rect: (x: Float & y: Float) | polar: (r: Float & theta: Float)
+Pair: Type = Int * Int
+Tree: Type >> Type
+Tree T: Type = leaf: T | branch: (Tree T) * (Tree T)
 
 z1: Complex = {r = 1, theta = 2}
 p: Pair = {5, 4}

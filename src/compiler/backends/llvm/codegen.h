@@ -6,9 +6,15 @@
 // Created on September 7 2020.
 //
 
-#ifndef CODEGEN_H
-#define CODEGEN_H
+#ifndef LLVM_CODEGEN_H
+#define LLVM_CODEGEN_H
 
+#include <llvm-c/Core.h>
 
+#include "../../frontend/parse/ast.h"
 
-#endif /* CODEGEN_H */
+// generate_code(ast_t*) -> LLVMModuleRef
+// Generates llvm ir code from an ast.
+LLVMModuleRef generate_code(ast_t* ast);
+
+#endif /* LLVM_CODEGEN_H */

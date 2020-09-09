@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "compiler/backends/llvm/codegen.h"
 #include "compiler/frontend/correctness/check.h"
 #include "compiler/frontend/parse/lexer.h"
 #include "compiler/frontend/parse/parser.h"
@@ -42,6 +43,13 @@ int count_groupings(char* string, int p)
 
 int main(int argc, char** argv)
 {
+	// LLVMModuleRef mod = generate_code(NULL);
+	// char* string = LLVMPrintModuleToString(mod);
+	// printf("%s\n", string);
+	// free(string);
+	// LLVMDisposeModule(mod);
+	// return 0;
+
 	switch (argc)
 	{
 		case 1:
@@ -109,10 +117,16 @@ int main(int argc, char** argv)
 				{
 					// Type check
 					print_ast(res.ast);
-					printf("Checking types\n");
+
+					// Build the LLVM IR if it's correct code
 					if (check_correctness(res.ast, scope))
-						printf("Check successful!\n");
-					else printf("Check failed\n");
+					{
+						LLVMModuleRef mod = generate_code(res.ast);
+						char* modstr = LLVMPrintModuleToString(mod);
+						printf("%s\n", modstr);
+						free(modstr);
+						LLVMDisposeModule(mod);
+					} else printf("Check failed\n");
 				} else
 				{
 					// Print out parsing error
@@ -171,10 +185,16 @@ int main(int argc, char** argv)
 			{
 				// Type check
 				print_ast(res.ast);
-				printf("Checking types\n");
+
+				// Build the LLVM IR if it's correct code
 				if (check_correctness(res.ast, NULL))
-					printf("Check successful!\n");
-				else printf("Check failed\n");
+				{
+					LLVMModuleRef mod = generate_code(res.ast);
+					char* string = LLVMPrintModuleToString(mod);
+					printf("%s\n", string);
+					free(string);
+					LLVMDisposeModule(mod);
+				} else printf("Check failed\n");
 			} else
 			{
 				// Print out parsing error

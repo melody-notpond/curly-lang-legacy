@@ -7,19 +7,20 @@
 ##
 
 CC = gcc
+CPPC = g++
 CFLAGS = -Wall -O0 -ggdb3 $(shell llvm-config --cflags)
-LDFLAGS = $(shell llvm-config --ldflags)
-LIBS = $(shell llvm-config --libs) $(shell llvm-config --system-libs) -ledit
+CPPFLAGS = $(shell llvm-config --cxxflags --ldflags --libs --system-libs)
+LIBS = -ledit
 
 CODE = src/
 
 all: *.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
+	$(CPPC) $(CPPFLAGS) $(LIBS) -o curly *.o
 
 debug: *.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o curly *.o $(LIBS)
 
-*.o: main compiler utils # vm
+*.o: main compiler utils
 
 main: $(CODE)*.c
 	$(CC) $(CFLAGS) -c $?
