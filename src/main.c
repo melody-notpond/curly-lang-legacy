@@ -7,6 +7,9 @@
 //
 
 #include <editline/readline.h>
+#include <llvm-c/Analysis.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/OrcBindings.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -59,6 +62,11 @@ int main(int argc, char** argv)
 			ir_scope_t* scope = push_scope(NULL);
 			lexer_t lex;
 			parse_result_t res;
+
+			// Init JIT
+			LLVMInitializeNativeTarget();
+			LLVMInitializeNativeAsmPrinter();
+			LLVMLinkInMCJIT();
 
 			while (true)
 			{
@@ -125,6 +133,30 @@ int main(int argc, char** argv)
 						char* modstr = LLVMPrintModuleToString(mod);
 						printf("%s\n", modstr);
 						free(modstr);
+
+						// Create the execution engine
+						char* error = NULL;
+						LLVMExecutionEngineRef engine = NULL;
+						if (LLVMCreateExecutionEngineForModule(&engine, mod, &error))
+						{
+							fprintf(stderr, "Unable to create execution engine.\n");
+							LLVMDisposeExecutionEngine(engine);
+							return -1;
+						}
+
+						// Print out any errors
+						if (error != NULL)
+						{
+							fprintf(stderr, "engine error: %s\n", error);
+							free(error);
+							LLVMDisposeExecutionEngine(engine);
+							return -1;
+						}
+
+						// Run the code
+						LLVMGenericValueRef ret = LLVMRunFunction(engine, LLVMGetNamedFunction(mod, "main"), 0, (LLVMGenericValueRef[]) {});
+						printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+
 						LLVMDisposeModule(mod);
 					} else printf("Check failed\n");
 				} else
