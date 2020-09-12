@@ -123,6 +123,10 @@ int main(int argc, char** argv)
 
 				if (res.succ)
 				{
+					// Skip if no children
+					if (res.ast->children_count == 0)
+						continue;
+
 					// Type check
 					print_ast(res.ast);
 
@@ -155,7 +159,13 @@ int main(int argc, char** argv)
 
 						// Run the code
 						LLVMGenericValueRef ret = LLVMRunFunction(engine, LLVMGetNamedFunction(mod, "main"), 0, (LLVMGenericValueRef[]) {});
-						printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+
+						// Print the result
+						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
+							printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
+							printf("   = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
 
 						LLVMDisposeModule(mod);
 					} else printf("Check failed\n");

@@ -6,6 +6,8 @@
 // Created on September 7 2020.
 //
 
+#include <string.h>
+
 #include "codegen.h"
 
 // build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef) -> LLVMValueRef
@@ -20,19 +22,38 @@ LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder)
 	LLVMValueRef left = build_expression(ast->children[0], mod, builder);
 	LLVMValueRef right = build_expression(ast->children[1], mod, builder);
 
+	// Cast ints to floats if necessary
+	type_t* ltype = ast->children[0]->type;
+	type_t* rtype = ast->children[1]->type;
+	if (ltype->type_type == IR_TYPES_PRIMITIVE && rtype->type_type == IR_TYPES_PRIMITIVE)
+	{
+		if (!strcmp(ltype->type_name, "Int") && !strcmp(rtype->type_name, "Float"))
+			left = LLVMBuildCast(builder, LLVMSIToFP, left, LLVMDoubleType(), "");
+		else if (!strcmp(ltype->type_name, "Float") && !strcmp(rtype->type_name, "Int"))
+			right = LLVMBuildCast(builder, LLVMSIToFP, right, LLVMDoubleType(), "");
+	}
+
 	// Build the operator
 	switch(ast->value.value[0])
 	{
 		case '*':
-			return LLVMBuildMul(builder, left, right, "");
+			if (ast->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->type->type_name, "Int"))
+				return LLVMBuildMul(builder, left, right, "");
+			else return LLVMBuildFMul(builder, left, right, "");
 		case '/':
-			return LLVMBuildSDiv(builder, left, right, "");
+			if (ast->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->type->type_name, "Int"))
+				return LLVMBuildSDiv(builder, left, right, "");
+			else return LLVMBuildFDiv(builder, left, right, "");
 		case '%':
 			return LLVMBuildSRem(builder, left, right, "");
 		case '+':
-			return LLVMBuildAdd(builder, left, right, "");
+			if (ast->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->type->type_name, "Int"))
+				return LLVMBuildAdd(builder, left, right, "");
+			else return LLVMBuildFAdd(builder, left, right, "");
 		case '-':
-			return LLVMBuildSub(builder, left, right, "");
+			if (ast->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->type->type_name, "Int"))
+				return LLVMBuildSub(builder, left, right, "");
+			else return LLVMBuildFSub(builder, left, right, "");
 		case '<':
 			return LLVMBuildShl(builder, left, right, "");
 		case '>':
@@ -59,6 +80,8 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		{
 			case LEX_TYPE_INT:
 				return LLVMConstInt(LLVMInt64Type(), atoll(ast->value.value), false);
+			case LEX_TYPE_FLOAT:
+				return LLVMConstReal(LLVMDoubleType(), atof(ast->value.value));
 			default:
 				return NULL;
 		}
@@ -69,13 +92,25 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	return NULL;
 }
 
+// get_main_ret_type(ast_t*) -> LLVMTypeRef
+// Gets the return type for the main function.
+LLVMTypeRef get_main_ret_type(ast_t* ast)
+{
+	type_t* type = ast->children[ast->children_count - 1]->type;
+	if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Int"))
+		return LLVMInt64Type();
+	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Float"))
+		return LLVMDoubleType();
+	else return NULL;
+}
+
 // generate_code(ast_t*) -> LLVMModuleRef
 // Generates llvm ir code from an ast.
 LLVMModuleRef generate_code(ast_t* ast)
 {
 	// Create the main function
 	LLVMModuleRef mod = LLVMModuleCreateWithName("curly_main");
-	LLVMTypeRef main_type = LLVMFunctionType(LLVMInt64Type(), (LLVMTypeRef[]) {}, 0, false);
+	LLVMTypeRef main_type = LLVMFunctionType(get_main_ret_type(ast), (LLVMTypeRef[]) {}, 0, false);
 	LLVMValueRef main = LLVMAddFunction(mod, "main", main_type);
 
 	// Create the entry basic block
@@ -85,15 +120,10 @@ LLVMModuleRef generate_code(ast_t* ast)
 
 	// Iterate over every element if the node is the topmost parent
 	LLVMValueRef value = NULL;
-	if (ast->value.value == NULL)
+	for (size_t i = 0; i < ast->children_count; i++)
 	{
-		for (size_t i = 0; i < ast->children_count; i++)
-		{
-			value = build_expression(ast->children[i], mod, builder);
-		}
-
-	// Build the ast node if it's not the topmost parent
-	} else value = build_expression(ast, mod, builder);
+		value = build_expression(ast->children[i], mod, builder);
+	}
 
 	// Create a return instruction
 	LLVMBuildRet(builder, value);
