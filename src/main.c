@@ -57,136 +57,134 @@ int main(int argc, char** argv)
 	{
 		case 1:
 		{
-			// Set up
-			puts("Curly REPL");
-			ir_scope_t* scope = push_scope(NULL);
-			lexer_t lex;
-			parse_result_t res;
+			// // Set up
+			// puts("Curly REPL");
+			// ir_scope_t* scope = push_scope(NULL);
+			// lexer_t lex;
+			// parse_result_t res;
+			// LLVMModuleRef mod = LLVMModuleCreateWithName("stdin");
 
-			// Init JIT
-			LLVMInitializeNativeTarget();
-			LLVMInitializeNativeAsmPrinter();
-			LLVMLinkInMCJIT();
+			// // Init JIT
+			// LLVMInitializeNativeTarget();
+			// LLVMInitializeNativeAsmPrinter();
+			// LLVMLinkInMCJIT();
 
-			while (true)
-			{
-				// Get user input
-				char* input = readline(">>> ");
-				if (input == NULL || !strcmp(input, ":q") || !strcmp(input, ":quit"))
-				{
-					if (input == NULL) puts("");
-					free(input);
-					break;
-				}
-				add_history(input);
+			// // Create the execution engine
+			// char* error = NULL;
+			// LLVMExecutionEngineRef engine = NULL;
+			// if (LLVMCreateJITCompilerForModule(&engine, mod, 0, &error) || error != NULL)
+			// {
+			// 	fprintf(stderr, "engine error: %s\n", error);
+			// 	free(error);
+			// 	LLVMDisposeExecutionEngine(engine);
+			// 	return -1;
+			// }
 
-				// Get next few lines if necessary
-				char c;
-				int p = count_groupings(input, 0);
-				while ((c = input[strlen(input) - 1]) == '\\' || c == ',' || p > 0)
-				{
-					// Read next line
-					char* next_line = readline("... ");
-					if (input == NULL || !strcmp(next_line, ""))
-					{
-						if (input == NULL) puts("");
-						free(input);
-						break;
-					}
-					add_history(next_line);
-					p = count_groupings(next_line, p);
+			// while (true)
+			// {
+			// 	// Get user input
+			// 	char* input = readline(">>> ");
+			// 	if (input == NULL || !strcmp(input, ":q") || !strcmp(input, ":quit"))
+			// 	{
+			// 		if (input == NULL) puts("");
+			// 		free(input);
+			// 		break;
+			// 	}
+			// 	add_history(input);
 
-					// Concatenate
-					char* buffer = calloc(strlen(input) + strlen(next_line) + 6, 1);
-					strcat(buffer, input);
-					strcat(buffer, "\n    ");
-					strcat(buffer, next_line);
-					free(input);
-					free(next_line);
-					input = buffer;
-				}
+			// 	// Get next few lines if necessary
+			// 	char c;
+			// 	int p = count_groupings(input, 0);
+			// 	while ((c = input[strlen(input) - 1]) == '\\' || c == ',' || p > 0)
+			// 	{
+			// 		// Read next line
+			// 		char* next_line = readline("... ");
+			// 		if (input == NULL || !strcmp(next_line, ""))
+			// 		{
+			// 			if (input == NULL) puts("");
+			// 			free(input);
+			// 			break;
+			// 		}
+			// 		add_history(next_line);
+			// 		p = count_groupings(next_line, p);
 
-				// Init lexer
-				init_lexer(&lex, input);
-				free(input);
+			// 		// Concatenate
+			// 		char* buffer = calloc(strlen(input) + strlen(next_line) + 6, 1);
+			// 		strcat(buffer, input);
+			// 		strcat(buffer, "\n    ");
+			// 		strcat(buffer, next_line);
+			// 		free(input);
+			// 		free(next_line);
+			// 		input = buffer;
+			// 	}
 
-				// Print out tokens
-				// token_t* token;
-				// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
-				// {
-				// 	printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
-				// }
-				// lex.token_pos = 0;
+			// 	// Init lexer
+			// 	init_lexer(&lex, input);
+			// 	free(input);
 
-				// Parse
-				res = lang_parser(&lex);
+			// 	// Print out tokens
+			// 	// token_t* token;
+			// 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
+			// 	// {
+			// 	// 	printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
+			// 	// }
+			// 	// lex.token_pos = 0;
 
-				if (res.succ)
-				{
-					// Skip if no children
-					if (res.ast->children_count == 0)
-						continue;
+			// 	// Parse
+			// 	res = lang_parser(&lex);
 
-					// Type check
-					print_ast(res.ast);
+			// 	if (res.succ)
+			// 	{
+			// 		// Skip if no children
+			// 		if (res.ast->children_count == 0)
+			// 			continue;
 
-					// Build the LLVM IR if it's correct code
-					if (check_correctness(res.ast, scope))
-					{
-						LLVMModuleRef mod = generate_code(res.ast);
-						char* modstr = LLVMPrintModuleToString(mod);
-						printf("%s\n", modstr);
-						free(modstr);
+			// 		// Type check
+			// 		print_ast(res.ast);
 
-						// Create the execution engine
-						char* error = NULL;
-						LLVMExecutionEngineRef engine = NULL;
-						if (LLVMCreateExecutionEngineForModule(&engine, mod, &error))
-						{
-							fprintf(stderr, "Unable to create execution engine.\n");
-							LLVMDisposeExecutionEngine(engine);
-							return -1;
-						}
+			// 		// Build the LLVM IR if it's correct code
+			// 		if (check_correctness(res.ast, scope))
+			// 		{
+			// 			LLVMValueRef main = generate_code(res.ast, mod);
+			// 			char* modstr = LLVMPrintModuleToString(mod);
+			// 			printf("%s\n", modstr);
+			// 			free(modstr);
 
-						// Print out any errors
-						if (error != NULL)
-						{
-							fprintf(stderr, "engine error: %s\n", error);
-							free(error);
-							LLVMDisposeExecutionEngine(engine);
-							return -1;
-						}
+			// 			// Run the code
+			// 			char* mainstr = LLVMPrintValueToString(main);
+			// 			printf("%s\n", mainstr);
+			// 			free(mainstr);
+			// 			LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
 
-						// Run the code
-						LLVMGenericValueRef ret = LLVMRunFunction(engine, LLVMGetNamedFunction(mod, "main"), 0, (LLVMGenericValueRef[]) {});
+			// 			// Print the result
+			// 			type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+			// 			if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
+			// 				printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+			// 			else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
+			// 				printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
+			// 			LLVMDisposeGenericValue(ret);
+			// 		} else printf("Check failed\n");
+			// 	} else
+			// 	{
+			// 		// Print out parsing error
+			// 		puts("an error occured");
+			// 		printf("Expected %s, got '%s'\n", res.error->expected, res.error->value.value);
+			// 		printf(" (%i:%i)\n", res.error->value.lino, res.error->value.charpos);
+			// 	}
 
-						// Print the result
-						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
-						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
-							printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
-						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
-							printf("   = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
+			// 	// Clean up
+			// 	cleanup_lexer(&lex);
+			// 	clean_parse_result(res);
+			// }
 
-						LLVMDisposeModule(mod);
-					} else printf("Check failed\n");
-				} else
-				{
-					// Print out parsing error
-					puts("an error occured");
-					printf("Expected %s, got '%s'\n", res.error->expected, res.error->value.value);
-					printf(" (%i:%i)\n", res.error->value.lino, res.error->value.charpos);
-				}
-
-				// Clean up
-				cleanup_lexer(&lex);
-				clean_parse_result(res);
-			}
-
-			// Final clean up
-			clean_types();
-			pop_scope(scope);
-			puts("Leaving Curly REPL");
-			return 0;
+			// // Final clean up
+			// clean_types();
+			// pop_scope(scope);
+			// LLVMDisposeModule(mod);
+			// LLVMDisposeExecutionEngine(engine);
+			// puts("Leaving Curly REPL");
+			puts("REPL is not supported yet.");
+			return -1;
 		}
 		case 2:
 		{
@@ -227,14 +225,43 @@ int main(int argc, char** argv)
 			{
 				// Type check
 				print_ast(res.ast);
-
-				// Build the LLVM IR if it's correct code
 				if (check_correctness(res.ast, NULL))
 				{
-					LLVMModuleRef mod = generate_code(res.ast);
+					// Build the LLVM IR
+					LLVMModuleRef mod = LLVMModuleCreateWithName(argv[1]);
+					LLVMValueRef main = generate_code(res.ast, mod);
 					char* string = LLVMPrintModuleToString(mod);
-					printf("%s\n", string);
+					printf("%s", string);
 					free(string);
+
+					// Init JIT
+					LLVMInitializeNativeTarget();
+					LLVMInitializeNativeAsmPrinter();
+					LLVMLinkInMCJIT();
+
+					// Create the execution engine
+					char* error = NULL;
+					LLVMExecutionEngineRef engine = NULL;
+					if (LLVMCreateJITCompilerForModule(&engine, mod, 0, &error) || error != NULL)
+					{
+						fprintf(stderr, "engine error: %s\n", error);
+						free(error);
+						// LLVMDisposeExecutionEngine(engine);
+						return -1;
+					}
+
+					// Run the code
+					LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
+
+					// Print the result
+					type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+					if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
+						printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+					else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
+						printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
+
+					LLVMDisposeGenericValue(ret);
+					// LLVMDisposeExecutionEngine(engine);
 					LLVMDisposeModule(mod);
 				} else printf("Check failed\n");
 			} else
