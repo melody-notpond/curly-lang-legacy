@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 					{
 						fprintf(stderr, "engine error: %s\n", error);
 						free(error);
-						// LLVMDisposeExecutionEngine(engine);
+						LLVMDisposeExecutionEngine(engine);
 						return -1;
 					}
 
@@ -261,8 +261,7 @@ int main(int argc, char** argv)
 						printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
 
 					LLVMDisposeGenericValue(ret);
-					// LLVMDisposeExecutionEngine(engine);
-					LLVMDisposeModule(mod);
+					LLVMDisposeExecutionEngine(engine);
 				} else printf("Check failed\n");
 			} else
 			{
