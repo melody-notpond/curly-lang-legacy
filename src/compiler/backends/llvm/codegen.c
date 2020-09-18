@@ -112,7 +112,9 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	if (name != NULL)
 	{
 		LLVMValueRef value = build_expression(ast->children[1], mod, builder);
-		LLVMValueRef global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
+		LLVMValueRef global = LLVMGetNamedGlobal(mod, name);
+		if (global == NULL)
+			global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
 		LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
 		LLVMSetLinkage(global, LLVMCommonLinkage);
 		LLVMBuildStore(builder, value, global);
