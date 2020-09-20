@@ -1,8 +1,8 @@
-with a = 10,
+a=with a = 10,
 	 b = 20,
 	a + b
 
-w = with a = 10,
-		 b = 20,
+w = with a = 30,
+		 b = 40,
 	a + b
-w
+a+w
