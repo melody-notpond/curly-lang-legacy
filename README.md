@@ -3,8 +3,8 @@ Curly is a functional programming language that focuses on iterators. Some of it
 
 ## Example
 ```
-primes: *Int = n in (from 2) where
-    for all p in (p in primes where p*p <= n)
+primes = n in (from 2) where
+    for all p in (range 2 n)
         n % p != 0
 ```
 
