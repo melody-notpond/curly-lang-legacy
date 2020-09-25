@@ -745,11 +745,19 @@ parse_result_t assignment(lexer_t* lex)
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast);
 
 		// Consume the type
-		call(type, true, type_func, lex, colon, false);
+		call(type, true, type_func, lex, colon, true);
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+		push_lexer(lex);
 
-		// Consume equal sign
-		consume(assign, true, type, lex, LEX_TYPE_ASSIGN, colon, false);
+		// Consume equal sign (it's optional)
+		consume(assign, false, type, lex, LEX_TYPE_ASSIGN, colon, false);
+		if (!assign.succ)
+		{
+			clean_parse_result(assign);
+			return colon;
+		}
+
+		// Create the tree
 		assign.ast->children_size = 2;
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, colon.ast);
