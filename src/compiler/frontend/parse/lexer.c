@@ -86,6 +86,10 @@ char* lex_type_string(lex_type_t type)
 			return "string";
 		case LEX_TYPE_APPLICATION:
 			return "application";
+		case LEX_TYPE_RIGHT_ARROW:
+			return "->";
+		case LEX_TYPE_THICC_ARROW:
+			return "=>";
 		default:
 			return "type";
 	}
@@ -269,6 +273,11 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_COMPARE;
 					token.tag = LEX_TAG_INFIX_OPERATOR;
+
+				// Thicc arrows
+				} else if (c == '>')
+				{
+					token.type = LEX_TYPE_RIGHT_ARROW;
 				} else iter = false;
 				break;
 			case LEX_TYPE_COMPARE:
@@ -317,6 +326,15 @@ token_t* lex_next(lexer_t* lex)
 					lex->pos++;
 				}
 				break;
+			case LEX_TYPE_ADDSUB:
+				// Right arrows
+				if (lex->string[i - 1] == '-' && c == '>')
+				{
+					token.type = LEX_TYPE_THICC_ARROW;
+					token.tag = LEX_TAG_OPERATOR;
+				} else iter = false;
+				break;
+
 			// These token types are only one character long
 			case LEX_TYPE_LGROUP:
 			case LEX_TYPE_RGROUP:
@@ -324,7 +342,6 @@ token_t* lex_next(lexer_t* lex)
 			case LEX_TYPE_COMMA:
 			case LEX_TYPE_RANGE:
 			case LEX_TYPE_MULDIV:
-			case LEX_TYPE_ADDSUB:
 			case LEX_TYPE_BITSHIFT:
 			default:
 				iter = false;
@@ -357,7 +374,9 @@ token_t* lex_next(lexer_t* lex)
 		 || !strcmp(token.value, "else")
 		 || !strcmp(token.value, "where")
 		 || !strcmp(token.value, "pass")
-		 || !strcmp(token.value, "stop"))
+		 || !strcmp(token.value, "stop")
+		 || !strcmp(token.value, "type")
+		 || !strcmp(token.value, "enum"))
 		{
 			token.type = LEX_TYPE_KEYWORD;
 			token.tag = LEX_TAG_OPERATOR;

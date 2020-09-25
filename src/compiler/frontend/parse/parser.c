@@ -380,7 +380,7 @@ parse_result_t prefix(lexer_t* lex)
 	return value(lex);
 }
 
-#define infix_parser(name, subparser, operator)																						\
+#define infix_parser(name, subparser, type, operator)																						\
 parse_result_t name(lexer_t* lex)																				\
 {																												\
 	/* Push the lexer */																						\
@@ -416,43 +416,41 @@ parse_result_t name(lexer_t* lex)																				\
 }
 
 // attribute: prefix ('.' prefix)*
-infix_parser(attribute, prefix, LEX_TYPE_DOT)
+infix_parser(attribute, prefix, type, LEX_TYPE_DOT)
 
 // muldiv: attribute (('*'|'/') attribute)*
-infix_parser(muldiv, attribute, LEX_TYPE_MULDIV)
+infix_parser(muldiv, attribute, type, LEX_TYPE_MULDIV)
 
 // addsub: muldiv (('+'|'-') muldiv)*
-infix_parser(addsub, muldiv, LEX_TYPE_ADDSUB)
+infix_parser(addsub, muldiv, type, LEX_TYPE_ADDSUB)
 
 // bitshift: addsub (('<<'|'>>') addsub)*
-infix_parser(bitshift, addsub, LEX_TYPE_BITSHIFT)
+infix_parser(bitshift, addsub, type, LEX_TYPE_BITSHIFT)
 
 // typing: bitshift (':' bitshift)*
 // Note that the code correctness checker will assert only one colon pair is present per series
-infix_parser(typing, bitshift, LEX_TYPE_COLON)
+infix_parser(typing, bitshift, type, LEX_TYPE_COLON)
 
 // bitand: bitshift (('&') bitshift)*
-infix_parser(bitand, typing, LEX_TYPE_AMP)
+infix_parser(bitand, typing, type, LEX_TYPE_AMP)
 
 // bitor: bitand (('|') bitand)*
-infix_parser(bitor, bitand, LEX_TYPE_BAR)
+infix_parser(bitor, bitand, type, LEX_TYPE_BAR)
 
 // bitxor: bitor (('^') bitor)*
-infix_parser(bitxor, bitor, LEX_TYPE_CARET)
+infix_parser(bitxor, bitor, type, LEX_TYPE_CARET)
 
 // compare: bitxor (/[=!]=|[><]=?|in/ bitxor)*
-infix_parser(compare, bitxor, LEX_TYPE_COMPARE)
+infix_parser(compare, bitxor, type, LEX_TYPE_COMPARE)
 
 // and: compare (('and') compare)*
-infix_parser(and, compare, LEX_TYPE_AND)
+infix_parser(and, compare, type, LEX_TYPE_AND)
 
 // or: and (('or') and)*
-infix_parser(or, and, LEX_TYPE_OR)
+infix_parser(or, and, type, LEX_TYPE_OR)
 
 // xor: or (('xor') or)*
-infix_parser(xor, or, LEX_TYPE_XOR)
-
-#undef infix_parser
+infix_parser(xor, or, type, LEX_TYPE_XOR)
 
 // assignment: symbol '..' symbol '=' application
 //           | symbol ':' symbol = application
@@ -557,10 +555,149 @@ parse_result_t if_expr(lexer_t* lex)
 	return iffy;
 }
 
+// type_union: type_product ('|' type_product)*
+parse_result_t type_union(lexer_t* lex);
+
+// type_func: type_parameterised ('|' type_parameterised)*
+parse_result_t type_func(lexer_t* lex);
+
+// type_typed: symbol ':' type_union
+parse_result_t type_typed(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume the symbol
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false}, false);
+
+	// Consume a colon
+	consume(colon, true, type, lex, LEX_TYPE_COLON, symbol, false);
+
+	// Create tree
+	colon.ast->children_size = 2;
+	colon.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast);
+
+	// Colon must be followed by a type
+	repush_lexer(lex);
+	consume(type_sym, false, type, lex, LEX_TYPE_SYMBOL, colon, false);
+	if (type_sym.succ)
+	{
+		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type_sym.ast);
+		return colon;
+	} else clean_parse_result(type_sym);
+
+	consume(lparen, true, string, lex, "(", colon, true);
+	clean_parse_result(lparen);
+	call(type, true, type_union, lex, colon, true);
+	list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+	consume(rparen, true, string, lex, ")", colon, true);
+	clean_parse_result(rparen);
+	return colon;
+}
+
+// type_paren: '(' type_func ')'
+parse_result_t type_paren(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume parenthesised type
+	consume(lparen, true, string, lex, "(", (parse_result_t) {false}, false);
+	clean_parse_result(lparen);
+	call(subtype, true, type_func, lex, (parse_result_t) {false}, true);
+	consume(rparen, true, string, lex, ")", subtype, true);
+	clean_parse_result(rparen);
+	return subtype;
+}
+
+// type_application: symbol (symbol | type_paren)*
+parse_result_t type_application(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume the type
+	consume(type, true, type, lex, LEX_TYPE_SYMBOL, (parse_result_t) {false}, false);
+
+	// Consume any arguments if necessary
+	while (true)
+	{
+		// Push lexer
+		push_lexer(lex);
+
+		// Get argument
+		consume(arg, false, type, lex, LEX_TYPE_SYMBOL, type, false);
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+
+			// Get parenthesised type
+			call(paren, false, type_paren, lex, type, false);
+			if (paren.succ)
+				arg = paren;
+			else
+			{
+				clean_parse_result(paren);
+				break;
+			}
+		}
+
+		// Construct tree
+		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), type.ast->value.pos, type.ast->value.lino, type.ast->value.charpos});
+		app->children_size = 2;
+		app->children = calloc(2, sizeof(ast_t*));
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, type.ast);
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
+		type.ast = app;
+	}
+
+	return type;
+}
+
+// type_intersect_arg: typed_type | type_application
+parse_result_t type_intersect_arg(lexer_t* lex)
+{
+	// Push lexer
+	push_lexer(lex);
+
+	// Try to consume a typed result
+	call(typed, false, type_typed, lex, (parse_result_t) {false}, false);
+	if (typed.succ)
+		return typed;
+	else clean_parse_result(typed);
+
+	// Consume a type application
+	call(app, false, type_application, lex, (parse_result_t) {false}, false);
+	if (app.succ)
+		return app;
+	else clean_parse_result(app);
+
+	// Consume a parenthesised type
+	call(subtype, false, type_application, lex, (parse_result_t) {false}, false);
+	return subtype;
+}
+
+// type_intersection: type_intersect_arg ('&' type_intersect_arg)*
+infix_parser(type_intersection, type_intersect_arg, type, LEX_TYPE_AMP)
+
+// type_product: type_intersection ('*' type_intersection)*
+infix_parser(type_product, type_intersection, string, "*")
+
+// type_union: type_product ('|' type_product)*
+infix_parser(type_union, type_product, type, LEX_TYPE_BAR)
+
+// type_parameterised: type_union ('=>' type_union)*
+infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW)
+
+// type_func: type_parameterised ('->' type_parameterised)*
+infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW)
+
 // assignment: symbol '..' symbol '=' application
-//           | symbol ':' expression '=' application
+//           | symbol ':' type_func '=' application
 //           | symbol ('.' value)+ '=' application
-//           | symbol (operand\symbol | symbol ':' expression)* '=' application
+//           | symbol (operand | symbol ':' type_func)* '=' application
+//			 | symbol '=' 'type' type_func
 parse_result_t assignment(lexer_t* lex)
 {
 	// Push the lexer
@@ -607,8 +744,8 @@ parse_result_t assignment(lexer_t* lex)
 		colon.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast);
 
-		// Consume an expression for the type
-		call(type, true, expression, lex, colon, false);
+		// Consume the type
+		call(type, true, type_func, lex, colon, false);
 		list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 
 		// Consume equal sign
@@ -700,17 +837,32 @@ parse_result_t assignment(lexer_t* lex)
 			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, symbol.ast->children[symbol.ast->children_count - 1]);
 			symbol.ast->children[symbol.ast->children_count - 1] = colon.ast;
 
-			// Consume an expression and add it to the colon ast node
-			call(type, true, expression, lex, symbol, false);
+			// Consume the type and add it to the colon ast node
+			call(type, true, type_func, lex, symbol, false);
 			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 		}
 	}
 
 	// Consume equal sign
 	consume(assign, true, type, lex, LEX_TYPE_ASSIGN, symbol, false);
+	repush_lexer(lex);
 	assign.ast->children_size = 2;
 	assign.ast->children = calloc(2, sizeof(ast_t*));
 	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, symbol.ast);
+
+	// Try to consume type keyword
+	consume(type_keyword, false, string, lex, "type", assign, false);
+	if (type_keyword.succ)
+	{
+		// Get the type
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, type_keyword.ast);
+		call(type, true, type_func, lex, assign, true);
+
+		// Build the tree
+		type_keyword.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(type_keyword.ast->children, type_keyword.ast->children_size, type_keyword.ast->children_count, ast_t*, type.ast);
+		return assign;
+	} else clean_parse_result(type_keyword);
 
 	// Get application
 	call(app, true, application, lex, assign, true);
@@ -939,6 +1091,7 @@ parse_result_t lang_parser(lexer_t* lex)
 	return result;
 }
 
+#undef infix_parser
 #undef repush_lexer
 #undef push_lexer
 #undef call
