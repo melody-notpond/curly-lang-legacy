@@ -113,7 +113,26 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		}
 
 		// Build the scope
-		return build_expression(ast->children[ast->children_count - 1], mod, builder, locals);
+		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], mod, builder, locals);
+
+
+		// Remove locals from the local scope
+		for (size_t i = 0; i < ast->children_count - 1; i++)
+		{
+			if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
+			{
+				// var = expr and var: type = expr
+				char* name = NULL;
+				if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count == 0)
+					name = ast->children[0]->value.value;
+				else if (ast->children[0]->value.type == LEX_TYPE_RANGE)
+					name = ast->children[0]->children[0]->value.value;
+
+				map_remove(locals, name);
+			}
+		}
+
+		return value;
 	} else return NULL;
 }
 
@@ -138,7 +157,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 			if (global == NULL)
 				global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
 			LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
-			LLVMSetLinkage(global, LLVMCommonLinkage);
+			LLVMSetLinkage(global, LLVMPrivateLinkage);
 			LLVMBuildStore(builder, value, global);
 			return value;
 		}
@@ -164,21 +183,31 @@ LLVMTypeRef get_main_ret_type(ast_t* ast)
 	else return NULL;
 }
 
-// generate_code(ast_t*, LLVMModuleRef) -> LLVMValueRef
+// generate_code(ast_t*, LLVMModuleRef) -> LLVMModuleRef
 // Generates llvm ir code from an ast.
-LLVMValueRef generate_code(ast_t* ast, LLVMModuleRef mod)
+LLVMModuleRef generate_code(ast_t* ast, LLVMModuleRef mod)
 {
-	// Don't do anything if the module is null
-	if (mod == NULL)
-		return NULL;
+	// Create the main module
+	LLVMContextRef context;
+	LLVMModuleRef main_mod;
+	if (mod != NULL)
+	{
+		context = LLVMGetModuleContext(mod);
+		main_mod = LLVMModuleCreateWithNameInContext("stdin", context);
+	} else
+	{
+		context = LLVMContextCreate();
+		main_mod = LLVMModuleCreateWithNameInContext("file", context);
+		mod = main_mod;
+	}
 
 	// Create the main function
 	LLVMTypeRef main_type = LLVMFunctionType(get_main_ret_type(ast), (LLVMTypeRef[]) {}, 0, false);
-	LLVMValueRef main = LLVMAddFunction(mod, "", main_type);
+	LLVMValueRef main = LLVMAddFunction(main_mod, "main", main_type);
 
 	// Create the entry basic block
 	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(main, "entry");
-	LLVMBuilderRef builder = LLVMCreateBuilder();
+	LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 	LLVMPositionBuilderAtEnd(builder, entry);
 
 	// Create a dictionary for locals
@@ -195,7 +224,8 @@ LLVMValueRef generate_code(ast_t* ast, LLVMModuleRef mod)
 	}
 
 	// Create a return instruction
+	del_hashmap(locals);
 	LLVMBuildRet(builder, value);
 	LLVMDisposeBuilder(builder);
-	return main;
+	return main_mod;
 }

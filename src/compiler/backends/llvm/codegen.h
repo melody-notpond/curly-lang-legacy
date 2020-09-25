@@ -13,8 +13,8 @@
 
 #include "../../frontend/parse/ast.h"
 
-// generate_code(ast_t*, LLVMModuleRef) -> LLVMValueRef
+// generate_code(ast_t*, LLVMModuleRef) -> LLVMModuleRef
 // Generates llvm ir code from an ast.
-LLVMValueRef generate_code(ast_t* ast, LLVMModuleRef mod);
+LLVMModuleRef generate_code(ast_t* ast, LLVMModuleRef mod);
 
 #endif /* LLVM_CODEGEN_H */

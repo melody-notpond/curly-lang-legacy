@@ -46,145 +46,147 @@ int count_groupings(char* string, int p)
 
 int main(int argc, char** argv)
 {
-	// LLVMModuleRef mod = generate_code(NULL);
-	// char* string = LLVMPrintModuleToString(mod);
-	// printf("%s\n", string);
-	// free(string);
-	// LLVMDisposeModule(mod);
-	// return 0;
-
 	switch (argc)
 	{
 		case 1:
 		{
-			// // Set up
-			// puts("Curly REPL");
-			// ir_scope_t* scope = push_scope(NULL);
-			// lexer_t lex;
-			// parse_result_t res;
-			// LLVMModuleRef mod = LLVMModuleCreateWithName("stdin");
+			// Set up
+			puts("Curly REPL");
+			ir_scope_t* scope = push_scope(NULL);
+			lexer_t lex;
+			parse_result_t res;
+			LLVMContextRef context = LLVMContextCreate();
+			LLVMModuleRef mod = LLVMModuleCreateWithNameInContext("repl-globals", context);
 
-			// // Init JIT
-			// LLVMInitializeNativeTarget();
-			// LLVMInitializeNativeAsmPrinter();
-			// LLVMLinkInMCJIT();
+			// Init JIT
+			LLVMInitializeNativeTarget();
+			LLVMInitializeNativeAsmPrinter();
+			LLVMLinkInMCJIT();
 
-			// // Create the execution engine
-			// char* error = NULL;
-			// LLVMExecutionEngineRef engine = NULL;
-			// if (LLVMCreateJITCompilerForModule(&engine, mod, 0, &error) || error != NULL)
-			// {
-			// 	fprintf(stderr, "engine error: %s\n", error);
-			// 	free(error);
-			// 	LLVMDisposeExecutionEngine(engine);
-			// 	return -1;
-			// }
+			while (true)
+			{
+				// Get user input
+				char* input = readline(">>> ");
+				if (input == NULL || !strcmp(input, ":q") || !strcmp(input, ":quit"))
+				{
+					if (input == NULL) puts("");
+					free(input);
+					break;
+				}
+				add_history(input);
 
-			// while (true)
-			// {
-			// 	// Get user input
-			// 	char* input = readline(">>> ");
-			// 	if (input == NULL || !strcmp(input, ":q") || !strcmp(input, ":quit"))
-			// 	{
-			// 		if (input == NULL) puts("");
-			// 		free(input);
-			// 		break;
-			// 	}
-			// 	add_history(input);
+				// Get next few lines if necessary
+				char c;
+				int p = count_groupings(input, 0);
+				while ((c = input[strlen(input) - 1]) == '\\' || c == ',' || p > 0)
+				{
+					// Read next line
+					char* next_line = readline("... ");
+					if (input == NULL || !strcmp(next_line, ""))
+					{
+						if (input == NULL) puts("");
+						free(input);
+						break;
+					}
+					add_history(next_line);
+					p = count_groupings(next_line, p);
 
-			// 	// Get next few lines if necessary
-			// 	char c;
-			// 	int p = count_groupings(input, 0);
-			// 	while ((c = input[strlen(input) - 1]) == '\\' || c == ',' || p > 0)
-			// 	{
-			// 		// Read next line
-			// 		char* next_line = readline("... ");
-			// 		if (input == NULL || !strcmp(next_line, ""))
-			// 		{
-			// 			if (input == NULL) puts("");
-			// 			free(input);
-			// 			break;
-			// 		}
-			// 		add_history(next_line);
-			// 		p = count_groupings(next_line, p);
+					// Concatenate
+					char* buffer = calloc(strlen(input) + strlen(next_line) + 6, 1);
+					strcat(buffer, input);
+					strcat(buffer, "\n    ");
+					strcat(buffer, next_line);
+					free(input);
+					free(next_line);
+					input = buffer;
+				}
 
-			// 		// Concatenate
-			// 		char* buffer = calloc(strlen(input) + strlen(next_line) + 6, 1);
-			// 		strcat(buffer, input);
-			// 		strcat(buffer, "\n    ");
-			// 		strcat(buffer, next_line);
-			// 		free(input);
-			// 		free(next_line);
-			// 		input = buffer;
-			// 	}
+				// Init lexer
+				init_lexer(&lex, input);
+				free(input);
 
-			// 	// Init lexer
-			// 	init_lexer(&lex, input);
-			// 	free(input);
+				// Print out tokens
+				// token_t* token;
+				// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
+				// {
+				// 	printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
+				// }
+				// lex.token_pos = 0;
 
-			// 	// Print out tokens
-			// 	// token_t* token;
-			// 	// while ((token = lex_next(&lex))->type != LEX_TYPE_EOF)
-			// 	// {
-			// 	// 	printf("%s (%i:%i/%i)\n", token->value, token->lino, token->charpos, token->type);
-			// 	// }
-			// 	// lex.token_pos = 0;
+				// Parse
+				res = lang_parser(&lex);
 
-			// 	// Parse
-			// 	res = lang_parser(&lex);
+				if (res.succ)
+				{
+					// Skip if no children
+					if (res.ast->children_count == 0)
+						continue;
 
-			// 	if (res.succ)
-			// 	{
-			// 		// Skip if no children
-			// 		if (res.ast->children_count == 0)
-			// 			continue;
+					// Type check
+					print_ast(res.ast);
 
-			// 		// Type check
-			// 		print_ast(res.ast);
+					// Build the LLVM IR if it's correct code
+					if (check_correctness(res.ast, scope))
+					{
+						LLVMModuleRef main_mod = generate_code(res.ast, mod);
+						char* modstr = LLVMPrintModuleToString(mod);
+						printf("%s\n", modstr);
+						free(modstr);
+						modstr = LLVMPrintModuleToString(main_mod);
+						printf("%s\n", modstr);
+						free(modstr);
 
-			// 		// Build the LLVM IR if it's correct code
-			// 		if (check_correctness(res.ast, scope))
-			// 		{
-			// 			LLVMValueRef main = generate_code(res.ast, mod);
-			// 			char* modstr = LLVMPrintModuleToString(mod);
-			// 			printf("%s\n", modstr);
-			// 			free(modstr);
+						// Create the execution engine
+						char* error = NULL;
+						LLVMExecutionEngineRef engine = NULL;
+						if (LLVMCreateExecutionEngineForModule(&engine, main_mod, &error) || error != NULL)
+						{
+							fprintf(stderr, "engine error: %s\n", error);
+							free(error);
+							LLVMDisposeExecutionEngine(engine);
+							return -1;
+						}
 
-			// 			// Run the code
-			// 			char* mainstr = LLVMPrintValueToString(main);
-			// 			printf("%s\n", mainstr);
-			// 			free(mainstr);
-			// 			LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
+						// Run the code
+						LLVMValueRef main = NULL;
+						LLVMFindFunction(engine, "main", &main);
+						char* mainstr = LLVMPrintValueToString(main);
+						printf("%s\n", mainstr);
+						free(mainstr);
+						LLVMAddModule(engine, mod);
+						LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
 
-			// 			// Print the result
-			// 			type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
-			// 			if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
-			// 				printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
-			// 			else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
-			// 				printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
-			// 			LLVMDisposeGenericValue(ret);
-			// 		} else printf("Check failed\n");
-			// 	} else
-			// 	{
-			// 		// Print out parsing error
-			// 		puts("an error occured");
-			// 		printf("Expected %s, got '%s'\n", res.error->expected, res.error->value.value);
-			// 		printf(" (%i:%i)\n", res.error->value.lino, res.error->value.charpos);
-			// 	}
+						// Print the result
+						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
+							printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
+							printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
 
-			// 	// Clean up
-			// 	cleanup_lexer(&lex);
-			// 	clean_parse_result(res);
-			// }
+						// Clean up
+						LLVMRemoveModule(engine, mod, &mod, &error);
+						LLVMDisposeGenericValue(ret);
+						LLVMDisposeExecutionEngine(engine);
+					} else printf("Check failed\n");
+				} else
+				{
+					// Print out parsing error
+					puts("an error occured");
+					printf("Expected %s, got '%s'\n", res.error->expected, res.error->value.value);
+					printf(" (%i:%i)\n", res.error->value.lino, res.error->value.charpos);
+				}
 
-			// // Final clean up
-			// clean_types();
-			// pop_scope(scope);
-			// LLVMDisposeModule(mod);
-			// LLVMDisposeExecutionEngine(engine);
-			// puts("Leaving Curly REPL");
-			puts("REPL is not supported yet.");
-			return -1;
+				// Clean up
+				cleanup_lexer(&lex);
+				clean_parse_result(res);
+			}
+
+			// Final clean up
+			clean_types();
+			pop_scope(scope);
+			LLVMContextDispose(context);
+			puts("Leaving Curly REPL");
+			return 0;
 		}
 		case 2:
 		{
@@ -228,8 +230,7 @@ int main(int argc, char** argv)
 				if (check_correctness(res.ast, NULL))
 				{
 					// Build the LLVM IR
-					LLVMModuleRef mod = LLVMModuleCreateWithName(argv[1]);
-					LLVMValueRef main = generate_code(res.ast, mod);
+					LLVMModuleRef mod = generate_code(res.ast, NULL);
 					char* string = LLVMPrintModuleToString(mod);
 					printf("%s", string);
 					free(string);
@@ -251,6 +252,8 @@ int main(int argc, char** argv)
 					}
 
 					// Run the code
+					LLVMValueRef main = NULL;
+					LLVMFindFunction(engine, "main", &main);
 					LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
 
 					// Print the result
