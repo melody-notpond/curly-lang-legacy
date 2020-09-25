@@ -544,14 +544,17 @@ parse_result_t if_expr(lexer_t* lex)
 	consume(newline3, false, type, lex, LEX_TYPE_NEWLINE, iffy, false);
 	clean_parse_result(newline3);
 
-	// Consume the else statement if applicable
-	consume(elsy, false, string, lex, "else", iffy, false);
-	if (elsy.succ)
-	{
-		call(else_body, true, statement, lex, iffy, true);
-		list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, else_body.ast);
-	}
+	// Consume else
+	consume(elsy, true, string, lex, "else", iffy, true);
 
+	// Consume a newline
+	repush_lexer(lex);
+	consume(newline4, false, type, lex, LEX_TYPE_NEWLINE, iffy, false);
+	clean_parse_result(newline4);
+
+	// Consume else body
+	call(else_body, true, statement, lex, iffy, true);
+	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, else_body.ast);
 	return iffy;
 }
 
