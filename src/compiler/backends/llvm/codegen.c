@@ -108,7 +108,8 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		// Build all the assignments
 		for (size_t i = 0; i < ast->children_count - 1; i++)
 		{
-			build_assignment(ast->children[i], mod, builder, false, locals);
+			if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
+				build_assignment(ast->children[i], mod, builder, false, locals);
 		}
 
 		// Build the scope
@@ -189,7 +190,8 @@ LLVMValueRef generate_code(ast_t* ast, LLVMModuleRef mod)
 	{
 		if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
 			value = build_assignment(ast->children[i], mod, builder, true, locals);
-		else value = build_expression(ast->children[i], mod, builder, locals);
+		else if (ast->children[i]->value.type != LEX_TYPE_COLON)
+			value = build_expression(ast->children[i], mod, builder, locals);
 	}
 
 	// Create a return instruction
