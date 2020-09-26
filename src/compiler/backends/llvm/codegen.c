@@ -10,21 +10,21 @@
 
 #include "codegen.h"
 
-// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, hashmap_t*) -> LLVMValueRef
+// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
 // Builds an expression to LLVM IR.
-LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, hashmap_t* locals);
+LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals);
 
-// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, bool, hashmap_t*) -> LLVMValueRef
+// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, bool, hashmap_t*) -> LLVMValueRef
 // Builds an assignment to LLVM IR.
-LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, bool global, hashmap_t* locals);
+LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, bool global, hashmap_t* locals);
 
-// build_infix(ast_t*, LLVMModuleRef, LLVMBuilderRef, hashmap_t*) -> LLVMValueRef
+// build_infix(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
 // Builds an infix expression to LLVM IR.
-LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, hashmap_t* locals)
+LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals)
 {
 	// Build the operands
-	LLVMValueRef left = build_expression(ast->children[0], mod, builder, locals);
-	LLVMValueRef right = build_expression(ast->children[1], mod, builder, locals);
+	LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
+	LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
 
 	// Cast ints to floats if necessary
 	type_t* ltype = ast->children[0]->type;
@@ -95,6 +95,7 @@ LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, 
 		case '|':
 			return LLVMBuildOr(builder, left, right, "");
 		case '^':
+		case 'x':
 			return LLVMBuildXor(builder, left, right, "");
 		case '=':
 			if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
@@ -111,9 +112,9 @@ LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, 
 	}
 }
 
-// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, hashmap_t*) -> LLVMValueRef
+// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
 // Builds an expression to LLVM IR.
-LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, hashmap_t* locals)
+LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals)
 {
 	// Build operand
 	if (ast->value.tag == LEX_TAG_OPERAND)
@@ -138,9 +139,59 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 				return NULL;
 		}
 
+	// Build and
+	} else if (!strcmp(ast->value.value, "and"))
+	{
+		// Build the left operand
+		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
+		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
+
+		// Create basic blocks to jump to
+		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
+		LLVMBasicBlockRef post_and = LLVMAppendBasicBlock(func, "and.post");
+
+		// Build the branch and right operand
+		LLVMBuildCondBr(builder, left, right_block, post_and);
+		LLVMPositionBuilderAtEnd(builder, right_block);
+		LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
+
+		// Build phi
+		LLVMBuildBr(builder, post_and);
+		LLVMPositionBuilderAtEnd(builder, post_and);
+		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
+		LLVMValueRef incoming_values[] = {left, right};
+		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
+		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+		return phi;
+
+	// Build or
+	} else if (!strcmp(ast->value.value, "or"))
+	{
+		// Build the left operand
+		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
+		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
+
+		// Create basic blocks to jump to
+		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
+		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(func, "and.post");
+
+		// Build the branch and right operand
+		LLVMBuildCondBr(builder, left, post_or, right_block);
+		LLVMPositionBuilderAtEnd(builder, right_block);
+		LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
+
+		// Build phi
+		LLVMBuildBr(builder, post_or);
+		LLVMPositionBuilderAtEnd(builder, post_or);
+		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
+		LLVMValueRef incoming_values[] = {left, right};
+		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
+		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+		return phi;
+
 	// Build infix expression
 	} else if (ast->value.tag == LEX_TAG_INFIX_OPERATOR)
-		return build_infix(ast, mod, builder, locals);
+		return build_infix(ast, mod, builder, func, locals);
 
 	// Build with expressions
 	else if (!strcmp(ast->value.value, "with"))
@@ -149,11 +200,11 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		for (size_t i = 0; i < ast->children_count - 1; i++)
 		{
 			if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
-				build_assignment(ast->children[i], mod, builder, false, locals);
+				build_assignment(ast->children[i], mod, builder, func, false, locals);
 		}
 
 		// Build the scope
-		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], mod, builder, locals);
+		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], mod, builder, func, locals);
 
 
 		// Remove locals from the local scope
@@ -176,9 +227,9 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else return NULL;
 }
 
-// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, bool, hashmap_t*) -> LLVMValueRef
+// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, bool, hashmap_t*) -> LLVMValueRef
 // Builds an assignment to LLVM IR.
-LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, bool global, hashmap_t* locals)
+LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, bool global, hashmap_t* locals)
 {
 	// var = expr and var: type = expr
 	char* name = NULL;
@@ -192,7 +243,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		// Set the global variable
 		if (name != NULL)
 		{
-			LLVMValueRef value = build_expression(ast->children[1], mod, builder, locals);
+			LLVMValueRef value = build_expression(ast->children[1], mod, builder, func, locals);
 			LLVMValueRef global = LLVMGetNamedGlobal(mod, name);
 			if (global == NULL)
 				global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
@@ -203,7 +254,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		}
 	} else
 	{
-		LLVMValueRef local = build_expression(ast->children[1], mod, builder, locals);
+		LLVMValueRef local = build_expression(ast->children[1], mod, builder, func, locals);
 		map_add(locals, name, local);
 		return local;
 	}
@@ -260,9 +311,9 @@ LLVMModuleRef generate_code(ast_t* ast, LLVMModuleRef mod)
 	for (size_t i = 0; i < ast->children_count; i++)
 	{
 		if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
-			value = build_assignment(ast->children[i], mod, builder, true, locals);
+			value = build_assignment(ast->children[i], mod, builder, main, true, locals);
 		else if (ast->children[i]->value.type != LEX_TYPE_COLON)
-			value = build_expression(ast->children[i], mod, builder, locals);
+			value = build_expression(ast->children[i], mod, builder, main, locals);
 	}
 
 	// Create a return instruction
