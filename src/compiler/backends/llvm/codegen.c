@@ -59,15 +59,53 @@ LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, 
 				return LLVMBuildSub(builder, left, right, "");
 			else return LLVMBuildFSub(builder, left, right, "");
 		case '<':
-			return LLVMBuildShl(builder, left, right, "");
+			if (ast->value.value[1] == '<')
+				return LLVMBuildShl(builder, left, right, "");
+			else if (ast->value.value[1] == '\0')
+			{
+				if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+					return LLVMBuildICmp(builder, LLVMIntSLT, left, right, "");
+				else return LLVMBuildFCmp(builder, LLVMRealOLT, left, right, "");
+			} else if (ast->value.value[1] == '=')
+			{
+				if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+					return LLVMBuildICmp(builder, LLVMIntSLE, left, right, "");
+				else return LLVMBuildFCmp(builder, LLVMRealOLE, left, right, "");
+			} else return NULL;
 		case '>':
-			return LLVMBuildLShr(builder, left, right, "");
+			if (ast->value.value[1] == '>')
+				return LLVMBuildLShr(builder, left, right, "");
+			else if (ast->value.value[1] == '\0')
+			{
+				if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+					return LLVMBuildICmp(builder, LLVMIntSGT, left, right, "");
+				else return LLVMBuildFCmp(builder, LLVMRealOGT, left, right, "");
+			} else if (ast->value.value[1] == '=')
+			{
+				if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+					return LLVMBuildICmp(builder, LLVMIntSGE, left, right, "");
+				else return LLVMBuildFCmp(builder, LLVMRealOGE, left, right, "");
+			} else return NULL;
 		case '&':
 			return LLVMBuildAnd(builder, left, right, "");
 		case '|':
 			return LLVMBuildOr(builder, left, right, "");
 		case '^':
 			return LLVMBuildXor(builder, left, right, "");
+		case '=':
+			if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+				return LLVMBuildICmp(builder, LLVMIntEQ, left, right, "");
+			else return LLVMBuildFCmp(builder, LLVMRealOEQ, left, right, "");
+		case '!':
+			if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int")
+				 && ast->children[1]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[1]->type->type_name, "Int"))
+				return LLVMBuildICmp(builder, LLVMIntNE, left, right, "");
+			else return LLVMBuildFCmp(builder, LLVMRealONE, left, right, "");
 		default:
 			return NULL;
 	}
@@ -86,6 +124,8 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 				return LLVMConstInt(LLVMInt64Type(), atoll(ast->value.value), false);
 			case LEX_TYPE_FLOAT:
 				return LLVMConstReal(LLVMDoubleType(), atof(ast->value.value));
+			case LEX_TYPE_BOOL:
+				return LLVMConstInt(LLVMInt1Type(), !strcmp(ast->value.value, "true"), false);
 			case LEX_TYPE_SYMBOL:
 			{
 				LLVMValueRef local = map_get(locals, ast->value.value);
@@ -180,6 +220,8 @@ LLVMTypeRef get_main_ret_type(ast_t* ast)
 		return LLVMInt64Type();
 	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Float"))
 		return LLVMDoubleType();
+	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Bool"))
+		return LLVMInt1Type();
 	else return NULL;
 }
 

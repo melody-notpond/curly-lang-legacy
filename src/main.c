@@ -162,6 +162,9 @@ int main(int argc, char** argv)
 							printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
 						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
 							printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
+						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Bool"))
+							printf("  = %s\n", LLVMGenericValueToInt(ret, false) ? "true" : "false");
+						else printf("  = unknown value\n");
 
 						// Clean up
 						LLVMRemoveModule(engine, mod, &mod, &error);
