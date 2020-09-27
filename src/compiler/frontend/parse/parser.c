@@ -53,10 +53,7 @@ parse_result_t consume_string(lexer_t* lex, char* string, bool fatal)
 		return err_result(true, *token, string);
 
 	// Return an error
-	else
-	{
-		return err_result(fatal, *token, string);
-	}
+	else return err_result(fatal, *token, string);
 }
 
 // consume_type(lexer_t*, lex_type_t, bool) -> parse_result_t
@@ -75,10 +72,7 @@ parse_result_t consume_type(lexer_t* lex, lex_type_t type, bool fatal)
 		return err_result(true, *token, lex_type_string(type));
 
 	// Return an error
-	else
-	{
-		return err_result(fatal, *token, lex_type_string(type));
-	}
+	else return err_result(fatal, *token, lex_type_string(type));
 }
 
 // consume_tag(lexer_t*, lex_tag_t, bool) -> parse_result_t
@@ -97,10 +91,7 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag, bool fatal)
 		return err_result(true, *token, tag == LEX_TAG_OPERAND ? "operand" : "tag");
 
 	// Return an error
-	else
-	{
-		return err_result(fatal, *token, tag == LEX_TAG_OPERAND ? "operand" : "tag");
-	}
+	else return err_result(fatal, *token, tag == LEX_TAG_OPERAND ? "operand" : "tag");
 }
 
 #define push_lexer(lex) size_t prev_token_pos = lex->token_pos
@@ -139,13 +130,10 @@ parse_result_t consume_tag(lexer_t* lex, lex_tag_t tag, bool fatal)
 // expression: 'pass' | 'stop' | with_expr | if_expr | for_loop | xor
 parse_result_t expression(lexer_t* lex);
 
-// application: expression+
-parse_result_t application(lexer_t* lex);
-
-// statement: assignment | application
+// statement: assignment | expression
 parse_result_t statement(lexer_t* lex);
 
-// list_expr: '[' (for_loop | where_expr | (application (',' application?)*)?) ']'
+// list_expr: '[' (for_loop | where_expr | (expression (',' expression?)*)?) ']'
 parse_result_t list_expr(lexer_t* lex)
 {
 	// Push lexer
@@ -163,11 +151,11 @@ parse_result_t list_expr(lexer_t* lex)
 	repush_lexer(lex);
 
 	// Try to collect items for the list
-	call(app, false, application, lex, lbrack, false);
-	if (app.succ)
+	call(expr, false, expression, lex, lbrack, false);
+	if (expr.succ)
 	{
 		// Collect items
-		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, app.ast);
+		list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, expr.ast);
 		while (true)
 		{
 			// Push lexer
@@ -185,10 +173,10 @@ parse_result_t list_expr(lexer_t* lex)
 			clean_parse_result(newline);
 
 			// Consume item
-			call(app, false, application, lex, lbrack, false);
-			if (app.succ)
-				list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, app.ast);
-			else clean_parse_result(app);
+			call(expr, false, expression, lex, lbrack, false);
+			if (expr.succ)
+				list_append_element(lbrack.ast->children, lbrack.ast->children_size, lbrack.ast->children_count, ast_t*, expr.ast);
+			else clean_parse_result(expr);
 		}
 	}
 
@@ -203,7 +191,7 @@ parse_result_t list_expr(lexer_t* lex)
 	return lbrack;
 }
 
-// dict_item: (symbol '=')? application
+// dict_item: (symbol '=')? expression
 parse_result_t dict_item(lexer_t* lex)
 {
 	// Push the lexer
@@ -231,11 +219,11 @@ parse_result_t dict_item(lexer_t* lex)
 		assign.ast = NULL;
 	}
 
-	// Consume an application
-	call(app, true, application, lex, assign, true);
+	// Consume an expression
+	call(expr, true, expression, lex, assign, true);
 	if (!assign.succ)
-		return app;
-	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+		return expr;
+	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 	return assign;
 }
 
@@ -294,7 +282,7 @@ parse_result_t dict_expr(lexer_t* lex)
 	return lcurly;
 }
 
-// value: operand | '(' application ')' | list_expr | dict_expr
+// value: operand | '(' expression ')' | list_expr | dict_expr
 parse_result_t value(lexer_t* lex)
 {
 	// Push the lexer
@@ -320,7 +308,7 @@ parse_result_t value(lexer_t* lex)
 		return dict;
 	else clean_parse_result(dict);
 
-	// Consume a parenthesised application
+	// Consume a parenthesised expression
 	consume(lparen, true, string, lex, "(", (parse_result_t) {false}, false);
 	clean_parse_result(lparen);
 
@@ -329,17 +317,52 @@ parse_result_t value(lexer_t* lex)
 	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, (parse_result_t) {false}, false);
 	clean_parse_result(newline);
 
-	// Consume application
-	call(app, true, application, lex, (parse_result_t) {false}, true);
+	// Consume expression
+	call(expr, true, expression, lex, (parse_result_t) {false}, true);
 
 	// Consume a newline
 	repush_lexer(lex);
-	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, app, false);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, expr, false);
 	clean_parse_result(newline2);
 
-	consume(rparen, true, string, lex, ")", app, true);
+	consume(rparen, true, string, lex, ")", expr, true);
 	clean_parse_result(rparen);
-	return app;
+	return expr;
+}
+
+// application: value+
+parse_result_t application(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume the function
+	call(func, true, value, lex, (parse_result_t) {false}, false);
+
+	// Consume any arguments if necessary
+	while (true)
+	{
+		// Push lexer
+		push_lexer(lex);
+
+		// Get argument
+		call(arg, false, value, lex, func, false);
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+			break;
+		}
+
+		// Construct tree
+		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
+		app->children_size = 2;
+		app->children = calloc(2, sizeof(ast_t*));
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
+		func.ast = app;
+	}
+
+	return func;
 }
 
 // prefix: ('*' | '-')? value
@@ -353,10 +376,10 @@ parse_result_t prefix(lexer_t* lex)
 	if (curry.succ)
 	{
 		// Append a value to the curry operator
-		call(val, true, value, lex, curry, true);
+		call(app, true, application, lex, curry, true);
 		curry.ast->children_size = 1;
 		curry.ast->children = calloc(1, sizeof(ast_t*));
-		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, val.ast);
+		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, app.ast);
 		curry.ast->value.tag = LEX_TAG_OPERATOR;
 		return curry;
 	}
@@ -367,17 +390,17 @@ parse_result_t prefix(lexer_t* lex)
 	if (negative.succ)
 	{
 		// Append a value to the curry operator
-		call(val, true, value, lex, negative, true);
+		call(app, true, application, lex, negative, true);
 		negative.ast->children_size = 1;
 		negative.ast->children = calloc(1, sizeof(ast_t*));
-		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, val.ast);
+		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, app.ast);
 		negative.ast->value.tag = LEX_TAG_OPERATOR;
 		return negative;
 	}
 
-	// Return the regular value if no prefix was found
+	// Return the regular application if no prefix was found
 	clean_parse_result(negative);
-	return value(lex);
+	return application(lex);
 }
 
 #define infix_parser(name, subparser, type, operator)																						\
@@ -452,12 +475,12 @@ infix_parser(or, and, type, LEX_TYPE_OR)
 // xor: or (('xor') or)*
 infix_parser(xor, or, type, LEX_TYPE_XOR)
 
-// assignment: symbol '..' symbol '=' application
-//           | symbol ':' symbol = application
-//           | symbol (symbol ':' symbol)* '=' application
+// assignment: symbol '..' symbol '=' expression
+//           | symbol ':' symbol = expression
+//           | symbol (symbol ':' symbol)* '=' expression
 parse_result_t assignment(lexer_t* lex);
 
-// with_expr: 'with' (assignment ',')+ application
+// with_expr: 'with' (assignment ',')+ expression
 parse_result_t with_expr(lexer_t* lex)
 {
 	// Push the lexer
@@ -502,13 +525,13 @@ parse_result_t with_expr(lexer_t* lex)
 		clean_parse_result(newline);
 	}
 
-	// Get an application
-	call(app, true, application, lex, with, true);
-	list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, app.ast);
+	// Get an expression
+	call(expr, true, expression, lex, with, true);
+	list_append_element(with.ast->children, with.ast->children_size, with.ast->children_count, ast_t*, expr.ast);
 	return with;
 }
 
-// if_expr: 'if' application 'then' application ('else' application)?
+// if_expr: 'if' expression 'then' expression ('else' expression)?
 parse_result_t if_expr(lexer_t* lex)
 {
 	// Push the lexer
@@ -516,7 +539,7 @@ parse_result_t if_expr(lexer_t* lex)
 
 	// Consume an if condition and form the tree
 	consume(iffy, true, string, lex, "if", (parse_result_t) {false}, false);
-	call(cond, true, application, lex, iffy, true);
+	call(cond, true, expression, lex, iffy, true);
 	iffy.ast->children_size = 3;
 	iffy.ast->children = calloc(3, sizeof(ast_t*));
 	list_append_element(iffy.ast->children, iffy.ast->children_size, iffy.ast->children_count, ast_t*, cond.ast);
@@ -558,9 +581,6 @@ parse_result_t if_expr(lexer_t* lex)
 	return iffy;
 }
 
-// type_union: type_product ('|' type_product)*
-parse_result_t type_union(lexer_t* lex);
-
 // type_func: type_parameterised ('|' type_parameterised)*
 parse_result_t type_func(lexer_t* lex);
 
@@ -592,7 +612,7 @@ parse_result_t type_typed(lexer_t* lex)
 
 	consume(lparen, true, string, lex, "(", colon, true);
 	clean_parse_result(lparen);
-	call(type, true, type_union, lex, colon, true);
+	call(type, true, type_func, lex, colon, true);
 	list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
 	consume(rparen, true, string, lex, ")", colon, true);
 	clean_parse_result(rparen);
@@ -677,7 +697,7 @@ parse_result_t type_intersect_arg(lexer_t* lex)
 	else clean_parse_result(app);
 
 	// Consume a parenthesised type
-	call(subtype, false, type_application, lex, (parse_result_t) {false}, false);
+	call(subtype, false, type_paren, lex, (parse_result_t) {false}, false);
 	return subtype;
 }
 
@@ -696,10 +716,10 @@ infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW)
 // type_func: type_parameterised ('->' type_parameterised)*
 infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW)
 
-// assignment: symbol '..' symbol '=' application
-//           | symbol ':' type_func '=' application
-//           | symbol ('.' value)+ '=' application
-//           | symbol (operand | symbol ':' type_func)* '=' application
+// assignment: symbol '..' symbol '=' expression
+//           | symbol ':' type_func '=' expression
+//           | symbol ('.' value)+ '=' expression
+//           | symbol (operand | symbol ':' type_func)* '=' expression
 //			 | symbol '=' 'type' type_func
 parse_result_t assignment(lexer_t* lex)
 {
@@ -729,11 +749,11 @@ parse_result_t assignment(lexer_t* lex)
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, range.ast);
 
-		// Get application
-		call(app, true, application, lex, assign, true);
+		// Get expression
+		call(expr, true, expression, lex, assign, true);
 
 		// Add the expression to the assignment operator ast node
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 		return assign;
 	}
 
@@ -765,11 +785,11 @@ parse_result_t assignment(lexer_t* lex)
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, colon.ast);
 
-		// Get application
-		call(app, true, application, lex, assign, true);
+		// Get expression
+		call(expr, true, expression, lex, assign, true);
 
-		// Add the application to the assignment operator ast node
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+		// Add the expression to the assignment operator ast node
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 		return assign;
 	}
 
@@ -806,11 +826,11 @@ parse_result_t assignment(lexer_t* lex)
 		assign.ast->children = calloc(2, sizeof(ast_t*));
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, dot.ast);
 
-		// Get application
-		call(app, true, application, lex, assign, true);
+		// Get expression
+		call(expr, true, expression, lex, assign, true);
 
-		// Add the application to the assignment operator ast node
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+		// Add the expression to the assignment operator ast node
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 		return assign;
 	}
 
@@ -875,16 +895,16 @@ parse_result_t assignment(lexer_t* lex)
 		return assign;
 	} else clean_parse_result(type_keyword);
 
-	// Get application
-	call(app, true, application, lex, assign, true);
+	// Get expression
+	call(expr, true, expression, lex, assign, true);
 
 	// Add the expression to the assignment operator ast node
-	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, app.ast);
+	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, expr.ast);
 	return assign;
 }
 
 
-// for_loop: 'for' symbol 'in' expression application
+// for_loop: 'for' symbol 'in' expression expression
 parse_result_t for_loop(lexer_t* lex)
 {
 	// Push the lexer
@@ -932,7 +952,7 @@ parse_result_t for_loop(lexer_t* lex)
 	return fory;
 }
 
-// where_expr: symbol 'in' expression 'where' application
+// where_expr: symbol 'in' expression 'where' expression
 parse_result_t where_expr(lexer_t* lex)
 {
 	// Push the lexer
@@ -963,7 +983,7 @@ parse_result_t where_expr(lexer_t* lex)
 	clean_parse_result(newline);
 
 	// Consume the predicate
-	call(pred, true, application, lex, in, true);
+	call(pred, true, expression, lex, in, true);
 	list_append_element(where.ast->children, where.ast->children_size, where.ast->children_count, ast_t*, pred.ast);
 	return where;
 }
@@ -1014,42 +1034,7 @@ parse_result_t expression(lexer_t* lex)
 	return xor(lex);
 }
 
-// application: expression+
-parse_result_t application(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Consume the function
-	call(func, true, expression, lex, (parse_result_t) {false}, false);
-
-	// Consume any arguments if necessary
-	while (true)
-	{
-		// Push lexer
-		push_lexer(lex);
-
-		// Get argument
-		call(arg, false, expression, lex, func, false);
-		if (!arg.succ)
-		{
-			clean_parse_result(arg);
-			break;
-		}
-
-		// Construct tree
-		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
-		app->children_size = 2;
-		app->children = calloc(2, sizeof(ast_t*));
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
-		func.ast = app;
-	}
-
-	return func;
-}
-
-// statement: assignment | application
+// statement: assignment | expression
 parse_result_t statement(lexer_t* lex)
 {
 	// Push the lexer
@@ -1060,10 +1045,10 @@ parse_result_t statement(lexer_t* lex)
 	if (assign.succ)
 		return assign;
 
-	// Call application if assignment is not applicable
+	// Call expression if assignment is not applicable
 	clean_parse_result(assign);
-	call(app, false, application, lex, (parse_result_t) {false}, false);
-	return app;
+	call(expr, false, expression, lex, (parse_result_t) {false}, false);
+	return expr;
 }
 
 // lang_parser(lexer_t*) -> parse_result_t
