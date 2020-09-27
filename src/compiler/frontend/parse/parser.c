@@ -403,77 +403,95 @@ parse_result_t prefix(lexer_t* lex)
 	return application(lex);
 }
 
-#define infix_parser(name, subparser, type, operator)																						\
-parse_result_t name(lexer_t* lex)																				\
-{																												\
-	/* Push the lexer */																						\
-	push_lexer(lex);																							\
-																												\
-	/* Get left operand */																						\
-	call(left, true, subparser, lex, (parse_result_t) {false}, false);											\
-																												\
-	while (true)																								\
-	{																											\
-		/* Push the lexer */																					\
-		push_lexer(lex);																						\
-																												\
-		/* Get operator */																						\
-		consume(op, false, type, lex, operator, left, false);													\
-		if (!op.succ) { clean_parse_result(op); break; }														\
-																												\
-		/* Add left operand to the operator ast node */															\
-		op.ast->children_size = 2;																				\
-		op.ast->children = calloc(2, sizeof(ast_t*));															\
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, left.ast);	\
-																												\
-		/* Get right operand */																					\
-		call(right, true, subparser, lex, op, true);															\
-		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t, right.ast);	\
-																												\
-		/* Set left to the current operator */																	\
-		left = op;																								\
-	}																											\
-																												\
-	/* Return the parsed expression */																			\
-	return left;																								\
+#define infix_parser(name, subparser, type, operator, left_assoc)																\
+parse_result_t name(lexer_t* lex)																								\
+{																																\
+	/* Push the lexer */																										\
+	push_lexer(lex);																											\
+																																\
+	/* Get left operand */																										\
+	call(top, true, subparser, lex, (parse_result_t) {false}, false);															\
+	parse_result_t right_acc = top;																								\
+	parse_result_t right_operand = top;																							\
+																																\
+	while (true)																												\
+	{																															\
+		/* Push the lexer */																									\
+		push_lexer(lex);																										\
+																																\
+		/* Get operator */																										\
+		consume(op, false, type, lex, operator, top, false);																	\
+		if (!op.succ) { clean_parse_result(op); break; }																		\
+																																\
+		if (left_assoc)																											\
+		{																														\
+			/* Add left operand to the operator ast node */																		\
+			op.ast->children_size = 2;																							\
+			op.ast->children = calloc(2, sizeof(ast_t*));																		\
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, top.ast);				\
+			top = op;																											\
+		} else																													\
+		{																														\
+			/* Add operator to right operand */																					\
+			op.ast->children_size = 2;																							\
+			op.ast->children = calloc(2, sizeof(ast_t*));																		\
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, right_operand.ast);	\
+			if (right_operand.ast == top.ast)																					\
+			{																													\
+				top = op;																										\
+				right_acc = top;																								\
+				right_operand.ast = top.ast->children[1];																		\
+			}																													\
+			right_acc.ast->children[1] = op.ast;																				\
+			right_acc = op;																										\
+		}																														\
+																																\
+		/* Get right operand */																									\
+		call(right, true, subparser, lex, top, true);																			\
+		list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, right.ast);				\
+		right_operand = right;																									\
+	}																															\
+																																\
+	/* Return the parsed expression */																							\
+	return top;																													\
 }
 
 // attribute: prefix ('.' prefix)*
-infix_parser(attribute, prefix, type, LEX_TYPE_DOT)
+infix_parser(attribute, prefix, type, LEX_TYPE_DOT, true)
 
 // muldiv: attribute (('*'|'/') attribute)*
-infix_parser(muldiv, attribute, type, LEX_TYPE_MULDIV)
+infix_parser(muldiv, attribute, type, LEX_TYPE_MULDIV, true)
 
 // addsub: muldiv (('+'|'-') muldiv)*
-infix_parser(addsub, muldiv, type, LEX_TYPE_ADDSUB)
+infix_parser(addsub, muldiv, type, LEX_TYPE_ADDSUB, true)
 
 // bitshift: addsub (('<<'|'>>') addsub)*
-infix_parser(bitshift, addsub, type, LEX_TYPE_BITSHIFT)
+infix_parser(bitshift, addsub, type, LEX_TYPE_BITSHIFT, true)
 
 // typing: bitshift (':' bitshift)*
 // Note that the code correctness checker will assert only one colon pair is present per series
-infix_parser(typing, bitshift, type, LEX_TYPE_COLON)
+infix_parser(typing, bitshift, type, LEX_TYPE_COLON, true)
 
 // bitand: bitshift (('&') bitshift)*
-infix_parser(bitand, typing, type, LEX_TYPE_AMP)
+infix_parser(bitand, typing, type, LEX_TYPE_AMP, true)
 
 // bitor: bitand (('|') bitand)*
-infix_parser(bitor, bitand, type, LEX_TYPE_BAR)
+infix_parser(bitor, bitand, type, LEX_TYPE_BAR, true)
 
 // bitxor: bitor (('^') bitor)*
-infix_parser(bitxor, bitor, type, LEX_TYPE_CARET)
+infix_parser(bitxor, bitor, type, LEX_TYPE_CARET, true)
 
 // compare: bitxor (/[=!]=|[><]=?|in/ bitxor)*
-infix_parser(compare, bitxor, type, LEX_TYPE_COMPARE)
+infix_parser(compare, bitxor, type, LEX_TYPE_COMPARE, true)
 
 // and: compare (('and') compare)*
-infix_parser(and, compare, type, LEX_TYPE_AND)
+infix_parser(and, compare, type, LEX_TYPE_AND, true)
 
 // or: and (('or') and)*
-infix_parser(or, and, type, LEX_TYPE_OR)
+infix_parser(or, and, type, LEX_TYPE_OR, true)
 
 // xor: or (('xor') or)*
-infix_parser(xor, or, type, LEX_TYPE_XOR)
+infix_parser(xor, or, type, LEX_TYPE_XOR, true)
 
 // assignment: symbol '..' symbol '=' expression
 //           | symbol ':' symbol = expression
@@ -702,25 +720,28 @@ parse_result_t type_intersect_arg(lexer_t* lex)
 }
 
 // type_intersection: type_intersect_arg ('&' type_intersect_arg)*
-infix_parser(type_intersection, type_intersect_arg, type, LEX_TYPE_AMP)
+infix_parser(type_intersection, type_intersect_arg, type, LEX_TYPE_AMP, true)
 
 // type_product: type_intersection ('*' type_intersection)*
-infix_parser(type_product, type_intersection, string, "*")
+infix_parser(type_product, type_intersection, string, "*", true)
 
 // type_union: type_product ('|' type_product)*
-infix_parser(type_union, type_product, type, LEX_TYPE_BAR)
+infix_parser(type_union, type_product, type, LEX_TYPE_BAR, true)
 
 // type_parameterised: type_union ('=>' type_union)*
-infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW)
+infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW, false)
 
 // type_func: type_parameterised ('->' type_parameterised)*
-infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW)
+infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW, false)
 
 // assignment: symbol '..' symbol '=' expression
 //           | symbol ':' type_func '=' expression
 //           | symbol ('.' value)+ '=' expression
-//           | symbol (operand | symbol ':' type_func)* '=' expression
+//           | symbol (operand | symbol ':' (symbol | type_func))* '=' expression
 //			 | symbol '=' 'type' type_func
+//			; | symbol '=' 'enum' enum_parser
+//			; | symbol '=' 'class' class
+//			 | symbol '=' expression
 parse_result_t assignment(lexer_t* lex)
 {
 	// Push the lexer
@@ -854,7 +875,7 @@ parse_result_t assignment(lexer_t* lex)
 		if (arg.ast->value.type == LEX_TYPE_SYMBOL)
 		{
 			// Consume a colon if able
-			repush_lexer(lex);
+			push_lexer(lex);
 			consume(colon, false, type, lex, LEX_TYPE_COLON, symbol, false);
 			if (!colon.succ)
 			{
@@ -869,8 +890,19 @@ parse_result_t assignment(lexer_t* lex)
 			symbol.ast->children[symbol.ast->children_count - 1] = colon.ast;
 
 			// Consume the type and add it to the colon ast node
-			call(type, true, type_func, lex, symbol, false);
-			list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+			repush_lexer(lex);
+			consume(lparen, false, string, lex, "(", symbol, false);
+			clean_parse_result(lparen);
+			if (lparen.succ)
+			{
+				call(type, true, type_func, lex, symbol, true);
+				consume(rparen, true, string, lex, ")", symbol, true);
+				list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+			} else
+			{
+				consume(type, true, type, lex, LEX_TYPE_SYMBOL, symbol, true);
+				list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+			}
 		}
 	}
 
