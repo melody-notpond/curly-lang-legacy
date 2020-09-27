@@ -168,10 +168,10 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else if (!strcmp(ast->value.value, "or"))
 	{
 		// Build the left operand
-		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
 		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
 
 		// Create basic blocks to jump to
+		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
 		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
 		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(func, "and.post");
 
