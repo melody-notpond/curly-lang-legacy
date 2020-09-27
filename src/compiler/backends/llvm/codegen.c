@@ -172,8 +172,8 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 
 		// Create basic blocks to jump to
 		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
-		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
-		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(func, "and.post");
+		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "or.rhs");
+		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(func, "or.post");
 
 		// Build the branch and right operand
 		LLVMBuildCondBr(builder, left, post_or, right_block);
@@ -205,7 +205,6 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 
 		// Build the scope
 		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], mod, builder, func, locals);
-
 
 		// Remove locals from the local scope
 		for (size_t i = 0; i < ast->children_count - 1; i++)
