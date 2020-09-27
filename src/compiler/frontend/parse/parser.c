@@ -494,8 +494,13 @@ infix_parser(or, and, type, LEX_TYPE_OR, true)
 infix_parser(xor, or, type, LEX_TYPE_XOR, true)
 
 // assignment: symbol '..' symbol '=' expression
-//           | symbol ':' symbol = expression
-//           | symbol (symbol ':' symbol)* '=' expression
+//           | symbol ':' type_func '=' expression
+//           | symbol ('.' value)+ '=' expression
+//           | symbol (operand | symbol ':' (symbol | type_func))* '=' expression
+//			 | symbol '=' 'type' type_func
+//			; | symbol '=' 'enum' enum_parser
+//			; | symbol '=' 'class' class
+//			 | symbol '=' expression
 parse_result_t assignment(lexer_t* lex);
 
 // with_expr: 'with' (assignment ',')+ expression
