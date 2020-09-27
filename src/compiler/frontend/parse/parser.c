@@ -739,6 +739,37 @@ infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW, false)
 // type_func: type_parameterised ('->' type_parameterised)*
 infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW, false)
 
+// enum_parser: 'enum' symbol ('|' symbol)*
+parse_result_t enum_parser(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume enum keyword
+	consume(top, true, string, lex, "enum", (parse_result_t) {false}, false);
+
+	// Consume first symbol
+	consume(item, true, type, lex, LEX_TYPE_SYMBOL, top, true);
+	list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, item.ast);
+
+	// Consume the rest of the symbols
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume a bar
+		consume(bar, false, type, lex, LEX_TYPE_BAR, top, false);
+		clean_parse_result(bar);
+		if (!bar.succ) break;
+
+		// Consume a new item
+		consume(item, true, type, lex, LEX_TYPE_SYMBOL, top, true);
+		list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, item.ast);
+	}
+
+	return top;
+}
+
 // assignment: symbol '..' symbol '=' expression
 //           | symbol ':' type_func '=' expression
 //           | symbol ('.' value)+ '=' expression
@@ -931,6 +962,14 @@ parse_result_t assignment(lexer_t* lex)
 		list_append_element(type_keyword.ast->children, type_keyword.ast->children_size, type_keyword.ast->children_count, ast_t*, type.ast);
 		return assign;
 	} else clean_parse_result(type_keyword);
+
+	// Try to consume enum
+	call(enumy, false, enum_parser, lex, assign, false);
+	if (enumy.succ)
+	{
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, enumy.ast);
+		return assign;
+	} else clean_parse_result(enumy);
 
 	// Get expression
 	call(expr, true, expression, lex, assign, true);

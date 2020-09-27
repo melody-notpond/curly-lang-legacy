@@ -1,10 +1,10 @@
-// 
+//
 // utils
 // list.h: Header file for list.c.
-// 
+//
 // Created by jenra.
 // Created on July 27 2020.
-// 
+//
 
 #ifndef UTILS_LIST_H
 #define UTILS_LIST_H
