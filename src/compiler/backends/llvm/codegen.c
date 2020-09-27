@@ -143,10 +143,10 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else if (!strcmp(ast->value.value, "and"))
 	{
 		// Build the left operand
-		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
 		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
 
 		// Create basic blocks to jump to
+		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
 		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
 		LLVMBasicBlockRef post_and = LLVMAppendBasicBlock(func, "and.post");
 
@@ -224,6 +224,34 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		}
 
 		return value;
+	} else if (!strcmp(ast->value.value, "if"))
+	{
+		// Build condition
+		LLVMValueRef cond = build_expression(ast->children[0], mod, builder, func, locals);
+
+		// Create basic blocks to jump to
+		LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(func, "if.then");
+		LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(func, "if.else");
+		LLVMBasicBlockRef post_if = LLVMAppendBasicBlock(func, "if.post");
+
+		// Build the branch and then body
+		LLVMBuildCondBr(builder, cond, then_block, else_block);
+		LLVMPositionBuilderAtEnd(builder, then_block);
+		LLVMValueRef then_val = build_expression(ast->children[1], mod, builder, func, locals);
+
+		// Build the branch and else body
+		LLVMBuildBr(builder, post_if);
+		LLVMPositionBuilderAtEnd(builder, else_block);
+		LLVMValueRef else_val = build_expression(ast->children[2], mod, builder, func, locals);
+
+		// Build phi
+		LLVMBuildBr(builder, post_if);
+		LLVMPositionBuilderAtEnd(builder, post_if);
+		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
+		LLVMValueRef incoming_values[] = {then_val, else_val};
+		LLVMBasicBlockRef incoming_blocks[] = {then_block, else_block};
+		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+		return phi;
 	} else return NULL;
 }
 
