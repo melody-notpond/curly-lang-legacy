@@ -770,6 +770,45 @@ parse_result_t enum_parser(lexer_t* lex)
 	return top;
 }
 
+// class: 'class' symbol* 'where' ('true' | class_comp ('and' class_comp)*)
+parse_result_t class(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume class keyword
+	consume(top, true, string, lex, "class", (parse_result_t) {false}, false);
+
+	// Consume type class name
+	consume(symbol, true, type, lex, LEX_TYPE_SYMBOL, top, true);
+	list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, symbol.ast);
+
+	// Consume parameters to type class
+	while (true)
+	{
+		push_lexer(lex);
+		consume(arg, false, type, lex, LEX_TYPE_SYMBOL, top, false);
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+			break;
+		}
+
+		// Add parameter to symbol
+		list_append_element(symbol.ast->children, symbol.ast->children_size, symbol.ast->children_count, ast_t*, arg.ast);
+	}
+
+	// Consume where
+	consume(where, true, string, lex, "where", top, true);
+	clean_parse_result(where);
+
+	// Consume true
+	// TODO: More type class stuff
+	consume(truthy, true, string, lex, "true", top, true);
+	list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, truthy.ast);
+	return top;
+}
+
 // assignment: symbol '..' symbol '=' expression
 //           | symbol ':' type_func '=' expression
 //           | symbol ('.' value)+ '=' expression
@@ -970,6 +1009,14 @@ parse_result_t assignment(lexer_t* lex)
 		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, enumy.ast);
 		return assign;
 	} else clean_parse_result(enumy);
+
+	// Try to consume class
+	call(classy, false, class, lex, assign, false);
+	if (classy.succ)
+	{
+		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, classy.ast);
+		return assign;
+	} else clean_parse_result(classy);
 
 	// Get expression
 	call(expr, true, expression, lex, assign, true);

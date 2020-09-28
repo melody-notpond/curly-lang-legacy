@@ -376,7 +376,8 @@ token_t* lex_next(lexer_t* lex)
 		 || !strcmp(token.value, "pass")
 		 || !strcmp(token.value, "stop")
 		 || !strcmp(token.value, "type")
-		 || !strcmp(token.value, "enum"))
+		 || !strcmp(token.value, "enum")
+		 || !strcmp(token.value, "class"))
 		{
 			token.type = LEX_TYPE_KEYWORD;
 			token.tag = LEX_TAG_OPERATOR;
