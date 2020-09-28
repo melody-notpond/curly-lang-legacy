@@ -193,8 +193,14 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else if (ast->value.tag == LEX_TAG_INFIX_OPERATOR)
 		return build_infix(ast, mod, builder, func, locals);
 
+	// Build unary minus
+	else if (!strcmp(ast->value.value, "-"))
+	{
+		LLVMValueRef operand = build_expression(ast->children[0], mod, builder, func, locals);
+		return LLVMBuildNeg(builder, operand, "");
+
 	// Build with expressions
-	else if (!strcmp(ast->value.value, "with"))
+	} else if (!strcmp(ast->value.value, "with"))
 	{
 		// Build all the assignments
 		for (size_t i = 0; i < ast->children_count - 1; i++)

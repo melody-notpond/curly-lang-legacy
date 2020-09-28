@@ -220,7 +220,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		if (type == NULL) return false;
 		var_ast->type = type;
 		ast->type = type;
-		print_type(type);
 		map_add(scope->var_types, var_ast->value.value, type);
 		return true;
 
@@ -259,7 +258,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 							found = true;
 							ast->type = ast->children[0]->type->field_types[i];
 							ast->children[1]->type = ast->children[0]->type->field_types[i];
-							print_type(ast->type);
 						}
 					}
 				}
@@ -398,7 +396,6 @@ bool check_correctness_helper(ast_t* ast, ir_scope_t* scope, bool get_real_type,
 		// Update the type of the loop and return success
 		ast->type = init_type(IR_TYPES_GENERATOR, NULL, 1);
 		ast->type->field_types[0] = body->type;
-		print_type(ast->type);
 		return true;
 
 	// If expressions

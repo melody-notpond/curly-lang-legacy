@@ -54,7 +54,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 					type_t* type = generate_type(val_ast, scope, var_ast, NULL);
 					if (type == NULL) return false;
 					type->type_name = strdup(var_ast->value.value);
-					print_type(type);
 					map_add(scope->types, var_ast->value.value, type);
 					return true;
 				}
@@ -71,7 +70,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 		// Check if the type is correct
 		} else if (type_subtype(var_type, type, true))
 		{
-			print_type(type);
 			map_add(scope->var_types, var_ast->value.value, type);
 			map_add(scope->var_vals, var_ast->value.value, val_ast);
 			ast->type = type;
@@ -110,7 +108,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 		// Construct a type
 		type_t* type = generate_type(type_ast, scope, NULL, NULL);
 		if (type == NULL) return false;
-		print_type(type);
 		var_ast->type = type;
 		ast->type = type;
 
@@ -141,7 +138,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 				type_t* type = generate_type(val_ast, scope, var_ast, NULL);
 				if (type == NULL) return false;
 				type->type_name = strdup(var_ast->value.value);
-				print_type(type);
 				map_add(scope->types, var_ast->value.value, type);
 				return true;
 			}
@@ -160,7 +156,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 				type_t* type = generate_enum(val_ast, scope, NULL);
 				if (type == NULL) return false;
 				type->type_name = strdup(var_ast->value.value);
-				print_type(type);
 				map_add(scope->types, var_ast->value.value, type);
 				return true;
 			}
@@ -177,7 +172,6 @@ bool check_assign(ast_t* ast, ir_scope_t* scope, bool get_real_type, bool disabl
 			}
 
 			// Add variable value to the scope
-			print_type(val_ast->type);
 			map_add(scope->var_vals, var_ast->value.value, val_ast);
 			return true;
 		}
