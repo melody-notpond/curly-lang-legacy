@@ -1143,7 +1143,7 @@ parse_result_t for_loop(lexer_t* lex)
 	// Consume the iterator
 	consume(in, true, string, lex, "in", fory, true);
 	clean_parse_result(in);
-	call(iter, true, expression, lex, fory, true);
+	call(iter, true, value, lex, fory, true);
 	list_append_element(fory.ast->children, fory.ast->children_size, fory.ast->children_count, ast_t*, iter.ast);
 
 	// Consume a newline
