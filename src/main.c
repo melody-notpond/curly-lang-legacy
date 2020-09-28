@@ -17,6 +17,7 @@
 #include "compiler/frontend/correctness/check.h"
 #include "compiler/frontend/parse/lexer.h"
 #include "compiler/frontend/parse/parser.h"
+#include "utils/list.h"
 
 // count_groupings(char*, int) -> int
 // Counts the number of unmatched grouping symbols and returns the result.
@@ -57,6 +58,9 @@ int main(int argc, char** argv)
 			parse_result_t res;
 			LLVMContextRef context = LLVMContextCreate();
 			LLVMModuleRef mod = LLVMModuleCreateWithNameInContext("repl-globals", context);
+			size_t globals_size = 0;
+			size_t globals_count = 0;
+			int64_t* global_vals = calloc(globals_size, sizeof(int64_t*));
 
 			// Init JIT
 			LLVMInitializeNativeTarget();
@@ -145,6 +149,16 @@ int main(int argc, char** argv)
 							free(error);
 							LLVMDisposeExecutionEngine(engine);
 							return -1;
+						}
+
+						LLVMValueRef global = LLVMGetFirstGlobal(mod);
+						size_t i = 0;
+						while (global != NULL)
+						{
+							if (i < globals_count)
+								list_append_element(global_vals, globals_size, globals_count, int64_t, 0);
+							LLVMAddGlobalMapping(engine, global, global_vals + i++);
+							global = LLVMGetNextGlobal(global);
 						}
 
 						// Run the code

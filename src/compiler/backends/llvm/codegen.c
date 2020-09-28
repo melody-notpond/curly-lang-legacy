@@ -215,7 +215,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 				char* name = NULL;
 				if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count == 0)
 					name = ast->children[0]->value.value;
-				else if (ast->children[0]->value.type == LEX_TYPE_RANGE)
+				else if (ast->children[0]->value.type == LEX_TYPE_COLON)
 					name = ast->children[0]->children[0]->value.value;
 
 				map_remove(locals, name);
@@ -262,7 +262,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	char* name = NULL;
 	if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count == 0)
 		name = ast->children[0]->value.value;
-	else if (ast->children[0]->value.type == LEX_TYPE_RANGE)
+	else if (ast->children[0]->value.type == LEX_TYPE_COLON)
 		name = ast->children[0]->children[0]->value.value;
 
 	if (global)
@@ -270,12 +270,25 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 		// Set the global variable
 		if (name != NULL)
 		{
+			// Get expression and global
 			LLVMValueRef value = build_expression(ast->children[1], mod, builder, func, locals);
 			LLVMValueRef global = LLVMGetNamedGlobal(mod, name);
+			size_t length = 0;
+
+			// Create missing global
 			if (global == NULL)
+			{
 				global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
-			LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
-			LLVMSetLinkage(global, LLVMPrivateLinkage);
+				if (!strcmp(LLVMGetModuleIdentifier(mod, &length), "repl-globals"))
+					LLVMSetLinkage(global, LLVMExternalWeakLinkage);
+				else
+				{
+					LLVMSetLinkage(global, LLVMCommonLinkage);
+					LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
+				}
+			}
+
+			// Build store instruction
 			LLVMBuildStore(builder, value, global);
 			return value;
 		}
