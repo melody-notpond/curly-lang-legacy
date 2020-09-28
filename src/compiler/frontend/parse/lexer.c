@@ -277,7 +277,7 @@ token_t* lex_next(lexer_t* lex)
 				// Thicc arrows
 				} else if (c == '>')
 				{
-					token.type = LEX_TYPE_RIGHT_ARROW;
+					token.type = LEX_TYPE_THICC_ARROW;
 				} else iter = false;
 				break;
 			case LEX_TYPE_COMPARE:
@@ -330,7 +330,7 @@ token_t* lex_next(lexer_t* lex)
 				// Right arrows
 				if (lex->string[i - 1] == '-' && c == '>')
 				{
-					token.type = LEX_TYPE_THICC_ARROW;
+					token.type = LEX_TYPE_RIGHT_ARROW;
 					token.tag = LEX_TAG_OPERATOR;
 				} else iter = false;
 				break;
@@ -377,7 +377,9 @@ token_t* lex_next(lexer_t* lex)
 		 || !strcmp(token.value, "stop")
 		 || !strcmp(token.value, "type")
 		 || !strcmp(token.value, "enum")
-		 || !strcmp(token.value, "class"))
+		 || !strcmp(token.value, "class")
+		 || !strcmp(token.value, "match")
+		 || !strcmp(token.value, "to"))
 		{
 			token.type = LEX_TYPE_KEYWORD;
 			token.tag = LEX_TAG_OPERATOR;

@@ -554,6 +554,88 @@ parse_result_t with_expr(lexer_t* lex)
 	return with;
 }
 
+// match: 'match' expression 'to' value '=>' expression ('or' value '=>' expression)* ('else' expression)?
+parse_result_t match(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume the initial expression and form the tree
+	consume(match, true, string, lex, "match", (parse_result_t) {false}, false);
+	call(expr, true, expression, lex, match, true);
+	list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, expr.ast);
+
+	// Consume to
+	repush_lexer(lex);
+	consume(newline, false, type, lex, LEX_TYPE_NEWLINE, match, false);
+	clean_parse_result(newline);
+	consume(to, true, string, lex, "to", match, true);
+	repush_lexer(lex);
+	consume(newline1, false, type, lex, LEX_TYPE_NEWLINE, match, false);
+	clean_parse_result(newline1);
+
+	// Consume first match
+	call(val, true, value, lex, match, true);
+	list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, val.ast);
+	consume(arrow, true, type, lex, LEX_TYPE_THICC_ARROW, match, true);
+
+	// Form tree for arrow
+	arrow.ast->children_size = 2;
+	arrow.ast->children = calloc(2, sizeof(ast_t*));
+	list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, val.ast);
+	match.ast->children[match.ast->children_count - 1] = arrow.ast;
+
+	// Consume first value
+	call(expr1, true, value, lex, match, true);
+	list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr1.ast);
+
+	// Consume more matches
+	while (true)
+	{
+		// Push lexer
+		push_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, match, false);
+		repush_lexer(lex);
+
+		// Consume or
+		consume(or, false, string, lex, "or", match, false);
+		clean_parse_result(or);
+		if (!or.succ) break;
+
+		// Consume match
+		call(val, true, value, lex, match, true);
+		list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, val.ast);
+		consume(arrow, true, type, lex, LEX_TYPE_THICC_ARROW, match, true);
+
+		// Form tree for arrow
+		arrow.ast->children_size = 2;
+		arrow.ast->children = calloc(2, sizeof(ast_t*));
+		list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, val.ast);
+		match.ast->children[match.ast->children_count - 1] = arrow.ast;
+
+		// Consume value
+		call(expr, true, value, lex, match, true);
+		list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr.ast);
+	}
+
+	// Consume else
+	repush_lexer(lex);
+	consume(newline2, false, type, lex, LEX_TYPE_NEWLINE, match, false);
+	consume(elsey, false, string, lex, "else", match, false);
+	if (elsey.succ)
+	{
+		// Form tree for else
+		elsey.ast->children_size = 1;
+		elsey.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, elsey.ast);
+
+		// Consume value
+		call(expr, true, value, lex, match, true);
+		list_append_element(elsey.ast->children, elsey.ast->children_size, elsey.ast->children_count, ast_t*, expr.ast);
+	} else clean_parse_result(elsey);
+	return match;
+}
+
 // if_expr: 'if' expression 'then' expression ('else' expression)?
 parse_result_t if_expr(lexer_t* lex)
 {
@@ -1152,8 +1234,14 @@ parse_result_t expression(lexer_t* lex)
 	if (fory.succ)
 		return fory;
 
-	// Call xor if for loop is not applicable
+	// Call pattern matching if for loop is not applicable
 	clean_parse_result(fory);
+	call(matchy, false, match, lex, (parse_result_t) {false}, false);
+	if (matchy.succ)
+		return matchy;
+
+	// Call xor if pattern matching is not applicable
+	clean_parse_result(matchy);
 	return xor(lex);
 }
 
