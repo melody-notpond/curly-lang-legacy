@@ -330,79 +330,6 @@ parse_result_t value(lexer_t* lex)
 	return expr;
 }
 
-// application: value+
-parse_result_t application(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Consume the function
-	call(func, true, value, lex, (parse_result_t) {false}, false);
-
-	// Consume any arguments if necessary
-	while (true)
-	{
-		// Push lexer
-		push_lexer(lex);
-
-		// Get argument
-		call(arg, false, value, lex, func, false);
-		if (!arg.succ)
-		{
-			clean_parse_result(arg);
-			break;
-		}
-
-		// Construct tree
-		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
-		app->children_size = 2;
-		app->children = calloc(2, sizeof(ast_t*));
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
-		func.ast = app;
-	}
-
-	return func;
-}
-
-// prefix: ('*' | '-')? value
-parse_result_t prefix(lexer_t* lex)
-{
-	// Push the lexer
-	push_lexer(lex);
-
-	// Try to consume curry operator
-	consume(curry, false, string, lex, "*", (parse_result_t) {false}, false);
-	if (curry.succ)
-	{
-		// Append a value to the curry operator
-		call(app, true, application, lex, curry, true);
-		curry.ast->children_size = 1;
-		curry.ast->children = calloc(1, sizeof(ast_t*));
-		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, app.ast);
-		curry.ast->value.tag = LEX_TAG_OPERATOR;
-		return curry;
-	}
-
-	// Try to consume negative operator
-	clean_parse_result(curry);
-	consume(negative, false, string, lex, "-", (parse_result_t) {false}, false);
-	if (negative.succ)
-	{
-		// Append a value to the curry operator
-		call(app, true, application, lex, negative, true);
-		negative.ast->children_size = 1;
-		negative.ast->children = calloc(1, sizeof(ast_t*));
-		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, app.ast);
-		negative.ast->value.tag = LEX_TAG_OPERATOR;
-		return negative;
-	}
-
-	// Return the regular application if no prefix was found
-	clean_parse_result(negative);
-	return application(lex);
-}
-
 #define infix_parser(name, subparser, type, operator, left_assoc)																\
 parse_result_t name(lexer_t* lex)																								\
 {																																\
@@ -457,10 +384,83 @@ parse_result_t name(lexer_t* lex)																								\
 }
 
 // attribute: prefix ('.' prefix)*
-infix_parser(attribute, prefix, type, LEX_TYPE_DOT, true)
+infix_parser(attribute, value, type, LEX_TYPE_DOT, true)
 
-// muldiv: attribute (('*'|'/') attribute)*
-infix_parser(muldiv, attribute, type, LEX_TYPE_MULDIV, true)
+// application: attribute+
+parse_result_t application(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume the function
+	call(func, true, attribute, lex, (parse_result_t) {false}, false);
+
+	// Consume any arguments if necessary
+	while (true)
+	{
+		// Push lexer
+		push_lexer(lex);
+
+		// Get argument
+		call(arg, false, attribute, lex, func, false);
+		if (!arg.succ)
+		{
+			clean_parse_result(arg);
+			break;
+		}
+
+		// Construct tree
+		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), func.ast->value.pos, func.ast->value.lino, func.ast->value.charpos});
+		app->children_size = 2;
+		app->children = calloc(2, sizeof(ast_t*));
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, func.ast);
+		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
+		func.ast = app;
+	}
+
+	return func;
+}
+
+// prefix: ('*' | '-')? application
+parse_result_t prefix(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Try to consume curry operator
+	consume(curry, false, string, lex, "*", (parse_result_t) {false}, false);
+	if (curry.succ)
+	{
+		// Append a value to the curry operator
+		call(app, true, application, lex, curry, true);
+		curry.ast->children_size = 1;
+		curry.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(curry.ast->children, curry.ast->children_size, curry.ast->children_count, ast_t*, app.ast);
+		curry.ast->value.tag = LEX_TAG_OPERATOR;
+		return curry;
+	}
+
+	// Try to consume negative operator
+	clean_parse_result(curry);
+	consume(negative, false, string, lex, "-", (parse_result_t) {false}, false);
+	if (negative.succ)
+	{
+		// Append a value to the curry operator
+		call(app, true, application, lex, negative, true);
+		negative.ast->children_size = 1;
+		negative.ast->children = calloc(1, sizeof(ast_t*));
+		list_append_element(negative.ast->children, negative.ast->children_size, negative.ast->children_count, ast_t*, app.ast);
+		negative.ast->value.tag = LEX_TAG_OPERATOR;
+		return negative;
+	}
+
+	// Return the regular application if no prefix was found
+	clean_parse_result(negative);
+	return application(lex);
+}
+
+// muldiv: prefix (('*'|'/') prefix)*
+infix_parser(muldiv, prefix, type, LEX_TYPE_MULDIV, true)
 
 // addsub: muldiv (('+'|'-') muldiv)*
 infix_parser(addsub, muldiv, type, LEX_TYPE_ADDSUB, true)
@@ -554,7 +554,7 @@ parse_result_t with_expr(lexer_t* lex)
 	return with;
 }
 
-// match: 'match' expression 'to' value '=>' expression ('or' value '=>' expression)* ('else' expression)?
+// match: 'match' expression 'to' value '=>' bitxor ('or' value '=>' bitxor)* ('else' bitxor)?
 parse_result_t match(lexer_t* lex)
 {
 	// Push the lexer
@@ -586,7 +586,7 @@ parse_result_t match(lexer_t* lex)
 	match.ast->children[match.ast->children_count - 1] = arrow.ast;
 
 	// Consume first value
-	call(expr1, true, value, lex, match, true);
+	call(expr1, true, bitxor, lex, match, true);
 	list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr1.ast);
 
 	// Consume more matches
@@ -614,7 +614,7 @@ parse_result_t match(lexer_t* lex)
 		match.ast->children[match.ast->children_count - 1] = arrow.ast;
 
 		// Consume value
-		call(expr, true, value, lex, match, true);
+		call(expr, true, bitxor, lex, match, true);
 		list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr.ast);
 	}
 
@@ -630,7 +630,7 @@ parse_result_t match(lexer_t* lex)
 		list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, elsey.ast);
 
 		// Consume value
-		call(expr, true, value, lex, match, true);
+		call(expr, true, bitxor, lex, match, true);
 		list_append_element(elsey.ast->children, elsey.ast->children_size, elsey.ast->children_count, ast_t*, expr.ast);
 	} else clean_parse_result(elsey);
 	return match;
