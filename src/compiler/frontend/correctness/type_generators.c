@@ -1,10 +1,10 @@
-// 
+//
 // correctness
 // type_generators.c: Provides functions for generating types.
-// 
+//
 // Created by jenra.
 // Created on September 5 2020.
-// 
+//
 
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +21,7 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 	// & - intersection type
 	// * - product type
 	// | - union type
-	// >> - function type
+	// -> - function type
 	// *type - generator of type
 	// [type] - list of type
 
@@ -246,37 +246,15 @@ type_t* generate_type(ast_t* ast, ir_scope_t* scope, ast_t* self, type_t* head)
 		return type;
 
 	// Function types
-	} else if (!strcmp(ast->value.value, ">>"))
+	} else if (ast->value.type == LEX_TYPE_RIGHT_ARROW)
 	{
-		// Fill final return type
+		// Fill argument and return type
 		type_t* type = init_type(IR_TYPES_FUNC, NULL, 2);
 		if (head == NULL) head = type;
+		type->field_types[0] = generate_type(ast->children[0], scope, self, head);
+		if (type->field_types[0] == NULL) return NULL;
 		type->field_types[1] = generate_type(ast->children[1], scope, self, head);
-		if (type->field_types[1] == NULL)
-			return NULL;
-
-		while (true)
-		{
-			// Get next ast node
-			ast = ast->children[0];
-			if (strcmp(ast->value.value, ">>"))
-				break;
-
-			// Fill argument
-			type->field_types[0] = generate_type(ast->children[1], scope, self, head);
-			if (type->field_types[0] == NULL)
-				return NULL;
-
-			// Generate the function returning the current function
-			type_t* t = init_type(IR_TYPES_FUNC, NULL, 2);
-			t->field_types[1] = type;
-			type = t;
-		}
-
-		// Fill argument
-		type->field_types[0] = generate_type(ast, scope, self, head);
-		if (type->field_types[0] == NULL)
-			return NULL;
+		if (type->field_types[1] == NULL) return NULL;
 		return type;
 
 	// List types

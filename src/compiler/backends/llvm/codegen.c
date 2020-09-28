@@ -313,7 +313,7 @@ LLVMTypeRef get_main_ret_type(ast_t* ast)
 		return LLVMDoubleType();
 	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Bool"))
 		return LLVMInt1Type();
-	else return NULL;
+	else return LLVMVoidType();
 }
 
 // generate_code(ast_t*, LLVMModuleRef) -> LLVMModuleRef

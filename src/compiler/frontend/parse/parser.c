@@ -772,12 +772,7 @@ parse_result_t type_application(lexer_t* lex)
 		}
 
 		// Construct tree
-		ast_t* app = init_ast((token_t) {LEX_TYPE_APPLICATION, LEX_TAG_OPERATOR, strdup("app"), type.ast->value.pos, type.ast->value.lino, type.ast->value.charpos});
-		app->children_size = 2;
-		app->children = calloc(2, sizeof(ast_t*));
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, type.ast);
-		list_append_element(app->children, app->children_size, app->children_count, ast_t*, arg.ast);
-		type.ast = app;
+		list_append_element(type.ast->children, type.ast->children_size, type.ast->children_count, ast_t*, arg.ast);
 	}
 
 	return type;
@@ -807,16 +802,162 @@ parse_result_t type_intersect_arg(lexer_t* lex)
 }
 
 // type_intersection: type_intersect_arg ('&' type_intersect_arg)*
-infix_parser(type_intersection, type_intersect_arg, type, LEX_TYPE_AMP, true)
+parse_result_t type_intersection(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume first argument
+	call(arg, true, type_intersect_arg, lex, (parse_result_t) {false}, false);
+	parse_result_t top = arg;
+	bool second = true;
+
+	// Consume the rest of the arguments
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume the operator
+		consume(op, false, type, lex, LEX_TYPE_AMP, top, false);
+		if (!op.succ)
+		{
+			clean_parse_result(op);
+			break;
+		} else if (second)
+		{
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, top.ast);
+			top = op;
+			second = false;
+		} else clean_parse_result(op);
+
+		// Consume a new item
+		call(arg, true, type_intersect_arg, lex, (parse_result_t) {false}, false);
+		list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, arg.ast);
+	}
+
+	return top;
+}
 
 // type_product: type_intersection ('*' type_intersection)*
-infix_parser(type_product, type_intersection, string, "*", true)
+parse_result_t type_product(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume first argument
+	call(arg, true, type_intersection, lex, (parse_result_t) {false}, false);
+	parse_result_t top = arg;
+	bool second = true;
+
+	// Consume the rest of the arguments
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume the operator
+		consume(op, false, string, lex, "*", top, false);
+		if (!op.succ)
+		{
+			clean_parse_result(op);
+			break;
+		} else if (second)
+		{
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, top.ast);
+			top = op;
+			second = false;
+		} else clean_parse_result(op);
+
+		// Consume a new item
+		call(arg, true, type_intersection, lex, (parse_result_t) {false}, false);
+		list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, arg.ast);
+	}
+
+	return top;
+}
 
 // type_union: type_product ('|' type_product)*
-infix_parser(type_union, type_product, type, LEX_TYPE_BAR, true)
+parse_result_t type_union(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume first argument
+	call(arg, true, type_product, lex, (parse_result_t) {false}, false);
+	parse_result_t top = arg;
+	bool second = true;
+
+	// Consume the rest of the arguments
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume the operator
+		consume(op, false, type, lex, LEX_TYPE_BAR, top, false);
+		if (!op.succ)
+		{
+			clean_parse_result(op);
+			break;
+		} else if (second)
+		{
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, top.ast);
+			top = op;
+			second = false;
+		} else clean_parse_result(op);
+
+		// Consume a new item
+		call(arg, true, type_product, lex, (parse_result_t) {false}, false);
+		list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, arg.ast);
+	}
+
+	return top;
+}
 
 // type_parameterised: type_union ('=>' type_union)*
-infix_parser(type_parameterised, type_union, type, LEX_TYPE_THICC_ARROW, false)
+parse_result_t type_parameterised(lexer_t* lex)
+{
+	// Push the lexer
+	push_lexer(lex);
+
+	// Consume parameters
+	parse_result_t top = {false};
+	bool first = true;
+	while (true)
+	{
+		push_lexer(lex);
+
+		// Consume parameter
+		consume(param, false, type, lex, LEX_TYPE_SYMBOL, top, false);
+		if (param.succ && first)
+			top = param;
+		else if (!param.succ)
+		{
+			clean_parse_result(param);
+			break;
+		} else if (!first)
+			list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, param.ast);
+
+		// Consume the operator
+		consume(op, false, type, lex, LEX_TYPE_THICC_ARROW, top, false);
+		if (!op.succ)
+		{
+			clean_parse_result(op);
+			top.ast->children[--top.ast->children_count] = NULL;
+			break;
+		} else if (first)
+		{
+			list_append_element(op.ast->children, op.ast->children_size, op.ast->children_count, ast_t*, top.ast);
+			top = op;
+			first = false;
+		} else clean_parse_result(op);
+	}
+
+	// Consume type
+	call(arg, true, type_union, lex, top, false);
+	if (first)
+		top = arg;
+	else list_append_element(top.ast->children, top.ast->children_size, top.ast->children_count, ast_t*, arg.ast);
+	return top;
+}
 
 // type_func: type_parameterised ('->' type_parameterised)*
 infix_parser(type_func, type_parameterised, type, LEX_TYPE_RIGHT_ARROW, false)
