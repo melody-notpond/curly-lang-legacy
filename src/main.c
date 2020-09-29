@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 			lexer_t lex;
 			parse_result_t res;
 			LLVMContextRef context = LLVMContextCreate();
-			LLVMModuleRef mod = LLVMModuleCreateWithNameInContext("repl-globals", context);
+			llvm_codegen_env_t* env = create_llvm_codegen_environment(LLVMModuleCreateWithNameInContext("repl-header", context));
 			size_t globals_size = 0;
 			size_t globals_count = 0;
 			int64_t* global_vals = calloc(globals_size, sizeof(int64_t*));
@@ -132,18 +132,18 @@ int main(int argc, char** argv)
 					// Build the LLVM IR if it's correct code
 					if (check_correctness(res.ast, scope))
 					{
-						LLVMModuleRef main_mod = generate_code(res.ast, mod);
-						char* modstr = LLVMPrintModuleToString(mod);
+						generate_code(res.ast, env);
+						char* modstr = LLVMPrintModuleToString(env->header_mod);
 						printf("%s\n", modstr);
 						free(modstr);
-						modstr = LLVMPrintModuleToString(main_mod);
+						modstr = LLVMPrintModuleToString(env->body_mod);
 						printf("%s\n", modstr);
 						free(modstr);
 
 						// Create the execution engine
 						char* error = NULL;
 						LLVMExecutionEngineRef engine = NULL;
-						if (LLVMCreateExecutionEngineForModule(&engine, main_mod, &error) || error != NULL)
+						if (LLVMCreateExecutionEngineForModule(&engine, env->body_mod, &error) || error != NULL)
 						{
 							fprintf(stderr, "engine error: %s\n", error);
 							free(error);
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 							return -1;
 						}
 
-						LLVMValueRef global = LLVMGetFirstGlobal(mod);
+						LLVMValueRef global = LLVMGetFirstGlobal(env->header_mod);
 						size_t i = 0;
 						while (global != NULL)
 						{
@@ -162,13 +162,8 @@ int main(int argc, char** argv)
 						}
 
 						// Run the code
-						LLVMValueRef main = NULL;
-						LLVMFindFunction(engine, "main", &main);
-						char* mainstr = LLVMPrintValueToString(main);
-						printf("%s\n", mainstr);
-						free(mainstr);
-						LLVMAddModule(engine, mod);
-						LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
+						LLVMAddModule(engine, env->header_mod);
+						LLVMGenericValueRef ret = LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {});
 
 						// Print the result
 						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
@@ -181,7 +176,8 @@ int main(int argc, char** argv)
 						else printf("  = unknown value\n");
 
 						// Clean up
-						LLVMRemoveModule(engine, mod, &mod, &error);
+						LLVMRemoveModule(engine, env->header_mod, &env->header_mod, &error);
+						empty_llvm_codegen_environment(env);
 						LLVMDisposeGenericValue(ret);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
@@ -201,6 +197,7 @@ int main(int argc, char** argv)
 			// Final clean up
 			clean_types();
 			pop_scope(scope);
+			clean_llvm_codegen_environment(env);
 			LLVMContextDispose(context);
 			puts("Leaving Curly REPL");
 			return 0;
@@ -248,8 +245,8 @@ int main(int argc, char** argv)
 				if (check_correctness(res.ast, NULL))
 				{
 					// Build the LLVM IR
-					LLVMModuleRef mod = generate_code(res.ast, NULL);
-					char* string = LLVMPrintModuleToString(mod);
+					llvm_codegen_env_t* env = generate_code(res.ast, NULL);
+					char* string = LLVMPrintModuleToString(env->body_mod);
 					printf("%s", string);
 					free(string);
 
@@ -261,7 +258,7 @@ int main(int argc, char** argv)
 					// Create the execution engine
 					char* error = NULL;
 					LLVMExecutionEngineRef engine = NULL;
-					if (LLVMCreateJITCompilerForModule(&engine, mod, 0, &error) || error != NULL)
+					if (LLVMCreateJITCompilerForModule(&engine, env->body_mod, 0, &error) || error != NULL)
 					{
 						fprintf(stderr, "engine error: %s\n", error);
 						free(error);
@@ -270,9 +267,7 @@ int main(int argc, char** argv)
 					}
 
 					// Run the code
-					LLVMValueRef main = NULL;
-					LLVMFindFunction(engine, "main", &main);
-					LLVMGenericValueRef ret = LLVMRunFunction(engine, main, 0, (LLVMGenericValueRef[]) {});
+					LLVMGenericValueRef ret = LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {});
 
 					// Print the result
 					type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
@@ -286,6 +281,7 @@ int main(int argc, char** argv)
 
 					LLVMDisposeGenericValue(ret);
 					LLVMDisposeExecutionEngine(engine);
+					clean_llvm_codegen_environment(env);
 				} else printf("Check failed\n");
 			} else
 			{

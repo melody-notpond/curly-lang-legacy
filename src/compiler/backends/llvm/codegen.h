@@ -11,10 +11,11 @@
 
 #include <llvm-c/Core.h>
 
+#include "environment.h"
 #include "../../frontend/parse/ast.h"
 
-// generate_code(ast_t*, LLVMModuleRef) -> LLVMModuleRef
+// generate_code(ast_t*, llvm_codegen_env_t*) -> llvm_codegen_env_t*
 // Generates llvm ir code from an ast.
-LLVMModuleRef generate_code(ast_t* ast, LLVMModuleRef mod);
+llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env);
 
 #endif /* LLVM_CODEGEN_H */

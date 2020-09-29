@@ -10,21 +10,21 @@
 
 #include "codegen.h"
 
-// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
+// build_expression(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an expression to LLVM IR.
-LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals);
+LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env);
 
-// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, bool, hashmap_t*) -> LLVMValueRef
+// build_assignment(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an assignment to LLVM IR.
-LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, bool global, hashmap_t* locals);
+LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env);
 
-// build_infix(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
+// build_infix(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an infix expression to LLVM IR.
-LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals)
+LLVMValueRef build_infix(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env)
 {
 	// Build the operands
-	LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
-	LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
+	LLVMValueRef left = build_expression(ast->children[0], builder, env);
+	LLVMValueRef right = build_expression(ast->children[1], builder, env);
 
 	// Cast ints to floats if necessary
 	type_t* ltype = ast->children[0]->type;
@@ -112,9 +112,9 @@ LLVMValueRef build_infix(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, 
 	}
 }
 
-// build_expression(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, hashmap_t*) -> LLVMValueRef
+// build_expression(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an expression to LLVM IR.
-LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, hashmap_t* locals)
+LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env)
 {
 	// Build operand
 	if (ast->value.tag == LEX_TAG_OPERAND)
@@ -129,10 +129,10 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 				return LLVMConstInt(LLVMInt1Type(), !strcmp(ast->value.value, "true"), false);
 			case LEX_TYPE_SYMBOL:
 			{
-				LLVMValueRef local = map_get(locals, ast->value.value);
+				LLVMValueRef local = lookup_llvm_local(env, ast->value.value);
 				if (local != NULL)
 					return local;
-				LLVMValueRef global = LLVMGetNamedGlobal(mod, ast->value.value);
+				LLVMValueRef global = LLVMGetNamedGlobal(env->header_mod, ast->value.value);
 				return LLVMBuildLoad(builder, global, "");
 			}
 			default:
@@ -143,24 +143,28 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else if (!strcmp(ast->value.value, "and"))
 	{
 		// Build the left operand
-		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
+		LLVMValueRef left = build_expression(ast->children[0], builder, env);
 
 		// Create basic blocks to jump to
-		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
-		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "and.rhs");
-		LLVMBasicBlockRef post_and = LLVMAppendBasicBlock(func, "and.post");
+		LLVMBasicBlockRef from = env->current_block;
+		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(env->current_func, "and.rhs");
+		LLVMMoveBasicBlockAfter(right_block, from);
+		LLVMBasicBlockRef post_and = LLVMAppendBasicBlock(env->current_func, "and.post");
+		LLVMMoveBasicBlockAfter(post_and, right_block);
 
 		// Build the branch and right operand
 		LLVMBuildCondBr(builder, left, right_block, post_and);
 		LLVMPositionBuilderAtEnd(builder, right_block);
-		LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
+		env->current_block = right_block;
+		LLVMValueRef right = build_expression(ast->children[1], builder, env);
 
 		// Build phi
 		LLVMBuildBr(builder, post_and);
 		LLVMPositionBuilderAtEnd(builder, post_and);
+		env->current_block = post_and;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
 		LLVMValueRef incoming_values[] = {left, right};
-		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
+		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(right_block), LLVMGetPreviousBasicBlock(post_and)};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 
@@ -168,101 +172,100 @@ LLVMValueRef build_expression(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	} else if (!strcmp(ast->value.value, "or"))
 	{
 		// Build the left operand
-		LLVMValueRef left = build_expression(ast->children[0], mod, builder, func, locals);
+		LLVMValueRef left = build_expression(ast->children[0], builder, env);
 
 		// Create basic blocks to jump to
-		LLVMBasicBlockRef from = LLVMGetLastBasicBlock(func);
-		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(func, "or.rhs");
-		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(func, "or.post");
+		LLVMBasicBlockRef from = env->current_block;
+		LLVMBasicBlockRef right_block = LLVMAppendBasicBlock(env->current_func, "or.rhs");
+		LLVMMoveBasicBlockAfter(right_block, from);
+		LLVMBasicBlockRef post_or = LLVMAppendBasicBlock(env->current_func, "or.post");
+		LLVMMoveBasicBlockAfter(post_or, right_block);
 
 		// Build the branch and right operand
 		LLVMBuildCondBr(builder, left, post_or, right_block);
 		LLVMPositionBuilderAtEnd(builder, right_block);
-		LLVMValueRef right = build_expression(ast->children[1], mod, builder, func, locals);
+		env->current_block = right_block;
+		LLVMValueRef right = build_expression(ast->children[1], builder, env);
 
 		// Build phi
 		LLVMBuildBr(builder, post_or);
 		LLVMPositionBuilderAtEnd(builder, post_or);
+		env->current_block = post_or;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
 		LLVMValueRef incoming_values[] = {left, right};
-		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
+		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(right_block), LLVMGetPreviousBasicBlock(post_or)};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 
 	// Build infix expression
 	} else if (ast->value.tag == LEX_TAG_INFIX_OPERATOR)
-		return build_infix(ast, mod, builder, func, locals);
+		return build_infix(ast, builder, env);
 
 	// Build unary minus
 	else if (!strcmp(ast->value.value, "-"))
 	{
-		LLVMValueRef operand = build_expression(ast->children[0], mod, builder, func, locals);
+		LLVMValueRef operand = build_expression(ast->children[0], builder, env);
 		return LLVMBuildNeg(builder, operand, "");
 
 	// Build with expressions
 	} else if (!strcmp(ast->value.value, "with"))
 	{
+		// Push local scope
+		env->local = push_llvm_scope(env->local);
+
 		// Build all the assignments
 		for (size_t i = 0; i < ast->children_count - 1; i++)
 		{
 			if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
-				build_assignment(ast->children[i], mod, builder, func, false, locals);
+				build_assignment(ast->children[i], builder, env);
 		}
 
 		// Build the scope
-		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], mod, builder, func, locals);
+		LLVMValueRef value = build_expression(ast->children[ast->children_count - 1], builder, env);
 
-		// Remove locals from the local scope
-		for (size_t i = 0; i < ast->children_count - 1; i++)
-		{
-			if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
-			{
-				// var = expr and var: type = expr
-				char* name = NULL;
-				if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count == 0)
-					name = ast->children[0]->value.value;
-				else if (ast->children[0]->value.type == LEX_TYPE_COLON)
-					name = ast->children[0]->children[0]->value.value;
-
-				map_remove(locals, name);
-			}
-		}
-
+		// Pop local scope
+		env->local = pop_llvm_scope(env->local);
 		return value;
 	} else if (!strcmp(ast->value.value, "if"))
 	{
 		// Build condition
-		LLVMValueRef cond = build_expression(ast->children[0], mod, builder, func, locals);
+		LLVMValueRef cond = build_expression(ast->children[0], builder, env);
 
 		// Create basic blocks to jump to
-		LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(func, "if.then");
-		LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(func, "if.else");
-		LLVMBasicBlockRef post_if = LLVMAppendBasicBlock(func, "if.post");
+		LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(env->current_func, "if.then");
+		LLVMMoveBasicBlockAfter(then_block, env->current_block);
+		LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(env->current_func, "if.else");
+		LLVMMoveBasicBlockAfter(else_block, then_block);
+		LLVMBasicBlockRef post_if = LLVMAppendBasicBlock(env->current_func, "if.post");
+		LLVMMoveBasicBlockAfter(post_if, else_block);
 
 		// Build the branch and then body
 		LLVMBuildCondBr(builder, cond, then_block, else_block);
 		LLVMPositionBuilderAtEnd(builder, then_block);
-		LLVMValueRef then_val = build_expression(ast->children[1], mod, builder, func, locals);
+		env->current_block = then_block;
+		LLVMValueRef then_val = build_expression(ast->children[1], builder, env);
 
 		// Build the branch and else body
 		LLVMBuildBr(builder, post_if);
 		LLVMPositionBuilderAtEnd(builder, else_block);
-		LLVMValueRef else_val = build_expression(ast->children[2], mod, builder, func, locals);
+		env->current_block = else_block;
+		LLVMValueRef else_val = build_expression(ast->children[2], builder, env);
 
 		// Build phi
 		LLVMBuildBr(builder, post_if);
 		LLVMPositionBuilderAtEnd(builder, post_if);
+		env->current_block = post_if;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
 		LLVMValueRef incoming_values[] = {then_val, else_val};
-		LLVMBasicBlockRef incoming_blocks[] = {then_block, else_block};
+		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(else_block), LLVMGetPreviousBasicBlock(post_if)};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 	} else return NULL;
 }
 
-// build_assignment(ast_t*, LLVMModuleRef, LLVMBuilderRef, LLVMValueRef, bool, hashmap_t*) -> LLVMValueRef
+// build_assignment(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an assignment to LLVM IR.
-LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef builder, LLVMValueRef func, bool global, hashmap_t* locals)
+LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env)
 {
 	// var = expr and var: type = expr
 	char* name = NULL;
@@ -271,21 +274,22 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 	else if (ast->children[0]->value.type == LEX_TYPE_COLON)
 		name = ast->children[0]->children[0]->value.value;
 
-	if (global)
+	// New variable (typed or untyped)
+	if (name != NULL)
 	{
 		// Set the global variable
-		if (name != NULL)
+		if (env->local == NULL)
 		{
 			// Get expression and global
-			LLVMValueRef value = build_expression(ast->children[1], mod, builder, func, locals);
-			LLVMValueRef global = LLVMGetNamedGlobal(mod, name);
+			LLVMValueRef value = build_expression(ast->children[1], builder, env);
+			LLVMValueRef global = LLVMGetNamedGlobal(env->header_mod, name);
 			size_t length = 0;
 
 			// Create missing global
 			if (global == NULL)
 			{
-				global = LLVMAddGlobal(mod, LLVMTypeOf(value), name);
-				if (!strcmp(LLVMGetModuleIdentifier(mod, &length), "repl-globals"))
+				global = LLVMAddGlobal(env->header_mod, LLVMTypeOf(value), name);
+				if (!strcmp(LLVMGetModuleIdentifier(env->header_mod, &length), "repl-header"))
 					LLVMSetLinkage(global, LLVMExternalWeakLinkage);
 				else
 				{
@@ -297,12 +301,17 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMModuleRef mod, LLVMBuilderRef buil
 			// Build store instruction
 			LLVMBuildStore(builder, value, global);
 			return value;
+		} else
+		{
+			LLVMValueRef local = build_expression(ast->children[1], builder, env);
+			map_add(env->local->variables, name, local);
+			return local;
 		}
-	} else
+
+	// Functions
+	} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count > 0)
 	{
-		LLVMValueRef local = build_expression(ast->children[1], mod, builder, func, locals);
-		map_add(locals, name, local);
-		return local;
+		LLVMValueRef ret = build_expression(ast->children[1], builder, env);
 	}
 
 	return NULL;
@@ -322,49 +331,46 @@ LLVMTypeRef get_main_ret_type(ast_t* ast)
 	else return LLVMVoidType();
 }
 
-// generate_code(ast_t*, LLVMModuleRef) -> LLVMModuleRef
+// generate_code(ast_t*, llvm_codegen_env_t*) -> llvm_codegen_env_t*
 // Generates llvm ir code from an ast.
-LLVMModuleRef generate_code(ast_t* ast, LLVMModuleRef mod)
+llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env)
 {
-	// Create the main module
 	LLVMContextRef context;
-	LLVMModuleRef main_mod;
-	if (mod != NULL)
+	if (env == NULL)
 	{
-		context = LLVMGetModuleContext(mod);
-		main_mod = LLVMModuleCreateWithNameInContext("stdin", context);
+		// Create the main module
+		context = LLVMContextCreate();
+		LLVMModuleRef main_mod = LLVMModuleCreateWithNameInContext("file", context);
+		env = create_llvm_codegen_environment(main_mod);
+		env->body_mod = main_mod;
 	} else
 	{
-		context = LLVMContextCreate();
-		main_mod = LLVMModuleCreateWithNameInContext("file", context);
-		mod = main_mod;
+		context = LLVMGetModuleContext(env->header_mod);
+		env->body_mod = LLVMModuleCreateWithNameInContext("stdin", context);
 	}
 
 	// Create the main function
 	LLVMTypeRef main_type = LLVMFunctionType(get_main_ret_type(ast), (LLVMTypeRef[]) {}, 0, false);
-	LLVMValueRef main = LLVMAddFunction(main_mod, "main", main_type);
+	env->main_func = LLVMAddFunction(env->body_mod, "main", main_type);
+	env->current_func = env->main_func;
 
 	// Create the entry basic block
-	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(main, "entry");
+	env->current_block = LLVMAppendBasicBlock(env->current_func, "entry");
 	LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
-	LLVMPositionBuilderAtEnd(builder, entry);
-
-	// Create a dictionary for locals
-	hashmap_t* locals = init_hashmap();
+	LLVMPositionBuilderAtEnd(builder, env->current_block);
 
 	// Iterate over every element of the topmost parent and build
 	LLVMValueRef value = NULL;
 	for (size_t i = 0; i < ast->children_count; i++)
 	{
 		if (ast->children[i]->value.type == LEX_TYPE_ASSIGN)
-			value = build_assignment(ast->children[i], mod, builder, main, true, locals);
+			value = build_assignment(ast->children[i], builder, env);
 		else if (ast->children[i]->value.type != LEX_TYPE_COLON)
-			value = build_expression(ast->children[i], mod, builder, main, locals);
+			value = build_expression(ast->children[i], builder, env);
 	}
 
 	// Create a return instruction
-	del_hashmap(locals);
 	LLVMBuildRet(builder, value);
 	LLVMDisposeBuilder(builder);
-	return main_mod;
+	return env;
 }
