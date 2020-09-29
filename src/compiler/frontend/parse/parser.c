@@ -498,8 +498,8 @@ infix_parser(xor, or, type, LEX_TYPE_XOR, true)
 //           | symbol ('.' value)+ '=' expression
 //           | symbol (operand | symbol ':' (symbol | type_func))* '=' expression
 //			 | symbol '=' 'type' type_func
-//			; | symbol '=' 'enum' enum_parser
-//			; | symbol '=' 'class' class
+//			 | symbol '=' 'enum' enum_parser
+//			 | symbol '=' 'class' class
 //			 | symbol '=' expression
 parse_result_t assignment(lexer_t* lex);
 
@@ -941,7 +941,8 @@ parse_result_t type_parameterised(lexer_t* lex)
 		if (!op.succ)
 		{
 			clean_parse_result(op);
-			top.ast->children[--top.ast->children_count] = NULL;
+			if (!first)
+				top.ast->children[--top.ast->children_count] = NULL;
 			break;
 		} else if (first)
 		{
@@ -1037,8 +1038,8 @@ parse_result_t class(lexer_t* lex)
 //           | symbol ('.' value)+ '=' expression
 //           | symbol (operand | symbol ':' (symbol | type_func))* '=' expression
 //			 | symbol '=' 'type' type_func
-//			; | symbol '=' 'enum' enum_parser
-//			; | symbol '=' 'class' class
+//			 | symbol '=' 'enum' enum_parser
+//			 | symbol '=' 'class' class
 //			 | symbol '=' expression
 parse_result_t assignment(lexer_t* lex)
 {
@@ -1200,6 +1201,19 @@ parse_result_t assignment(lexer_t* lex)
 			{
 				consume(type, true, type, lex, LEX_TYPE_SYMBOL, symbol, true);
 				list_append_element(colon.ast->children, colon.ast->children_size, colon.ast->children_count, ast_t*, type.ast);
+
+				// Consume attribute if applicable
+				push_lexer(lex);
+				consume(dot, false, type, lex, LEX_TYPE_DOT, symbol, false);
+				if (dot.succ)
+				{
+					dot.ast->children_count = 2;
+					dot.ast->children = calloc(2, sizeof(ast_t*));
+					list_append_element(dot.ast->children, dot.ast->children_size, dot.ast->children_count, ast_t*, type.ast);
+					colon.ast->children[1] = dot.ast;
+					consume(attr, true, type, lex, LEX_TYPE_SYMBOL, symbol, true);
+					list_append_element(dot.ast->children, dot.ast->children_size, dot.ast->children_count, ast_t*, attr.ast);
+				} else clean_parse_result(dot);
 			}
 		}
 	}
@@ -1211,35 +1225,38 @@ parse_result_t assignment(lexer_t* lex)
 	assign.ast->children = calloc(2, sizeof(ast_t*));
 	list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, symbol.ast);
 
-	// Try to consume type keyword
-	consume(type_keyword, false, string, lex, "type", assign, false);
-	if (type_keyword.succ)
+	if (symbol.ast->children_count == 0)
 	{
-		// Get the type
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, type_keyword.ast);
-		call(type, true, type_func, lex, assign, true);
+		// Try to consume type keyword
+		consume(type_keyword, false, string, lex, "type", assign, false);
+		if (type_keyword.succ)
+		{
+			// Get the type
+			list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, type_keyword.ast);
+			call(type, true, type_func, lex, assign, true);
 
-		// Build the tree
-		type_keyword.ast->children = calloc(1, sizeof(ast_t*));
-		list_append_element(type_keyword.ast->children, type_keyword.ast->children_size, type_keyword.ast->children_count, ast_t*, type.ast);
-		return assign;
-	} else clean_parse_result(type_keyword);
+			// Build the tree
+			type_keyword.ast->children = calloc(1, sizeof(ast_t*));
+			list_append_element(type_keyword.ast->children, type_keyword.ast->children_size, type_keyword.ast->children_count, ast_t*, type.ast);
+			return assign;
+		} else clean_parse_result(type_keyword);
 
-	// Try to consume enum
-	call(enumy, false, enum_parser, lex, assign, false);
-	if (enumy.succ)
-	{
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, enumy.ast);
-		return assign;
-	} else clean_parse_result(enumy);
+		// Try to consume enum
+		call(enumy, false, enum_parser, lex, assign, false);
+		if (enumy.succ)
+		{
+			list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, enumy.ast);
+			return assign;
+		} else clean_parse_result(enumy);
 
-	// Try to consume class
-	call(classy, false, class, lex, assign, false);
-	if (classy.succ)
-	{
-		list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, classy.ast);
-		return assign;
-	} else clean_parse_result(classy);
+		// Try to consume class
+		call(classy, false, class, lex, assign, false);
+		if (classy.succ)
+		{
+			list_append_element(assign.ast->children, assign.ast->children_size, assign.ast->children_count, ast_t*, classy.ast);
+			return assign;
+		} else clean_parse_result(classy);
+	}
 
 	// Get expression
 	call(expr, true, expression, lex, assign, true);

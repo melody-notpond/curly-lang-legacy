@@ -209,16 +209,17 @@ int main(int argc, char** argv)
 		{
 			// Set up
 			FILE* file = fopen(argv[1], "r");
-			size_t size = 129;
-			char* string = malloc(size);
+			size_t size = 128;
+			char* string = malloc(size + 1);
 			string[0] = '\0';
 
 			// Read file
 			while (!feof(file))
 			{
-				fgets(string + strlen(string), 64, file);
-				if (strlen(string) > size - 2)
-					string = realloc(string, (size <<= 1));
+				size_t max = size - strlen(string);
+				fgets(string + strlen(string), max < 64 ? max : 64, file);
+				if (strlen(string) + 1 >= size)
+					string = realloc(string, (size <<= 1) + 1);
 			}
 
 			// Close file
