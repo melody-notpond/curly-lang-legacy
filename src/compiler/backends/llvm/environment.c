@@ -60,6 +60,14 @@ llvm_codegen_env_t* create_llvm_codegen_environment(LLVMModuleRef header_mod)
 	return env;
 }
 
+// set_llvm_local(llvm_codegen_env_t*, char*, LLVMValueRef) -> void
+// Sets a local to the scope.
+void set_llvm_local(llvm_codegen_env_t* env, char* local, LLVMValueRef value)
+{
+	if (env->local != NULL)
+		map_add(env->local->variables, local, value);
+}
+
 // lookup_llvm_local(llvm_codegen_env_t*, char*) -> LLVMValueRef
 // Looks up a local and return its LLVMValueRef if available.
 LLVMValueRef lookup_llvm_local(llvm_codegen_env_t* env, char* local)

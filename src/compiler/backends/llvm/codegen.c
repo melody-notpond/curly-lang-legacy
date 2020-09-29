@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "codegen.h"
+#include "llvm_types.h"
 
 // build_expression(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an expression to LLVM IR.
@@ -311,24 +312,54 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	// Functions
 	} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count > 0)
 	{
+		// Create the arguments
+		size_t param_types_count = ast->children[0]->children_count + 1;
+		LLVMTypeRef param_types[param_types_count];
+		for (size_t i = 0; i < param_types_count; i++)
+		{
+			param_types[i] = LLVMInt64Type();
+		}
+
+		// Create the function
+		char* func_name = malloc(strlen(ast->children[0]->value.value) + 5 + 1);
+		strcpy(func_name, ast->children[0]->value.value);
+		strcat(func_name, ".func");
+		LLVMTypeRef func_type = LLVMFunctionType(internal_type_to_llvm(ast->children[1]), param_types, param_types_count, false);
+		LLVMValueRef func = LLVMAddFunction(env->header_mod, func_name, func_type);
+		free(func_name);
+
+		// Save current state
+		LLVMValueRef last_func = env->current_func;
+		LLVMBasicBlockRef last_block = env->current_block;
+		env->current_func = func;
+		env->current_block = LLVMAppendBasicBlock(env->current_func, "entry");
+
+		// Save parameters in a new scope
+		env->local = push_llvm_scope(env->local);
+		LLVMValueRef bitmap = LLVMGetParam(func, 0);
+		LLVMSetValueName2(bitmap, "thunk.bitmap", 12);
+		for (size_t i = 1; i < param_types_count; i++)
+		{
+			LLVMValueRef arg = LLVMGetParam(func, i);
+			char* arg_name = ast->children[0]->children[i - 1]->children[0]->value.value;
+			set_llvm_local(env, arg_name, arg);
+			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
+		}
+
+		// Create the function
+		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		LLVMValueRef ret = build_expression(ast->children[1], builder, env);
+
+		// Return from function
+		LLVMBuildRet(builder, ret);
+		env->current_func = last_func;
+		env->current_block = last_block;
+		LLVMPositionBuilderAtEnd(builder, env->current_block);
+		env->local = pop_llvm_scope(env->local);
+		return func;
 	}
 
 	return NULL;
-}
-
-// get_main_ret_type(ast_t*) -> LLVMTypeRef
-// Gets the return type for the main function.
-LLVMTypeRef get_main_ret_type(ast_t* ast)
-{
-	type_t* type = ast->children[ast->children_count - 1]->type;
-	if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Int"))
-		return LLVMInt64Type();
-	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Float"))
-		return LLVMDoubleType();
-	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Bool"))
-		return LLVMInt1Type();
-	else return LLVMVoidType();
 }
 
 // generate_code(ast_t*, llvm_codegen_env_t*) -> llvm_codegen_env_t*
@@ -350,7 +381,7 @@ llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env)
 	}
 
 	// Create the main function
-	LLVMTypeRef main_type = LLVMFunctionType(get_main_ret_type(ast), (LLVMTypeRef[]) {}, 0, false);
+	LLVMTypeRef main_type = LLVMFunctionType(internal_type_to_llvm(ast->children[ast->children_count - 1]), (LLVMTypeRef[]) {}, 0, false);
 	env->main_func = LLVMAddFunction(env->body_mod, "main", main_type);
 	env->current_func = env->main_func;
 
