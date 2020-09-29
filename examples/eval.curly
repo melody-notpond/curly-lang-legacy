@@ -1,10 +1,10 @@
-Expr = type value: Int                 \
+Expr = type value: Int
      | bin: (op: String * Expr * Expr)
 
 eval: Expr -> Int
 eval n: Expr.value = n
 eval bin: Expr.bin = match bin.op
-	to "*" => (eval bin.1 * eval bin.2)
-	or "/" => (eval bin.1 / eval bin.2)
-	or "+" => (eval bin.1 + eval bin.2)
-	or "-" => (eval bin.1 - eval bin.2)
+	to "*" => eval bin.1 * eval bin.2
+	or "/" => eval bin.1 / eval bin.2
+	or "+" => eval bin.1 + eval bin.2
+	or "-" => eval bin.1 - eval bin.2

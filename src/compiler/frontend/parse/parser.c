@@ -689,7 +689,7 @@ parse_result_t if_expr(lexer_t* lex)
 // type_func: type_parameterised ('|' type_parameterised)*
 parse_result_t type_func(lexer_t* lex);
 
-// type_typed: symbol ':' type_union
+// type_typed: symbol ':' type_func
 parse_result_t type_typed(lexer_t* lex)
 {
 	// Push the lexer
@@ -890,6 +890,7 @@ parse_result_t type_union(lexer_t* lex)
 	while (true)
 	{
 		push_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, top, false);
 
 		// Consume the operator
 		consume(op, false, type, lex, LEX_TYPE_BAR, top, false);
@@ -980,6 +981,7 @@ parse_result_t enum_parser(lexer_t* lex)
 	while (true)
 	{
 		push_lexer(lex);
+		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, top, false);
 
 		// Consume a bar
 		consume(bar, false, type, lex, LEX_TYPE_BAR, top, false);
