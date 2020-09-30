@@ -96,9 +96,9 @@ int main(int argc, char** argv)
 					p = count_groupings(next_line, p);
 
 					// Concatenate
-					char* buffer = calloc(strlen(input) + strlen(next_line) + 6, 1);
+					char* buffer = calloc(strlen(input) + strlen(next_line) + 2, 1);
 					strcat(buffer, input);
-					strcat(buffer, "\n    ");
+					strcat(buffer, "\n");
 					strcat(buffer, next_line);
 					free(input);
 					free(next_line);
