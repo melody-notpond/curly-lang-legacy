@@ -8,18 +8,10 @@
 
 #include "hashes.h"
 #include "hashmap.h"
-
-// The initial size of a hashmap.
-#define INITIAL_HASHMAP_SIZE 16
+#include "list.h"
 
 // The maximum number of collisions in a hashmap before a resize occurs.
 #define HASHMAP_MAX_COLLISIONS 5 // TODO: Adjust.
-
-// The infix function used to make the hashmap grow.
-#define HASHMAP_GROWTH_FUNCTION << 1
-
-// The infix function used to make the hashmap shrink.
-#define HASHMAP_SHRINK_FUNCTION >> 1
 
 // init_hash_bucket(char*, size_t, void*) -> hash_bucket*
 // Initialises a hashmap bucket.
@@ -49,11 +41,11 @@ hash_bucket* del_hash_bucket(hash_bucket* bucket)
 hashmap_t* init_hashmap()
 {
 	hashmap_t* map = malloc(sizeof(hashmap_t));
-	map->buckets = calloc(INITIAL_HASHMAP_SIZE, sizeof(hash_bucket*));
+	map->buckets = calloc(16, sizeof(hash_bucket*));
 	map->item_count = 0;
 	map->bucket_count = 0;
 	map->collision_count = 0;
-	map->buckets_size = INITIAL_HASHMAP_SIZE;
+	map->buckets_size = 16;
 	map->function = hashing_function;
 	map->resizing = false;
 	return map;
@@ -77,9 +69,9 @@ void map_resize(hashmap_t* map, bool grow)
 		}
 	}
 	if (grow)
-		map->buckets_size = map->buckets_size HASHMAP_GROWTH_FUNCTION;
+		map->buckets_size = map->buckets_size << 1;
 	else
-		map->buckets_size = map->buckets_size HASHMAP_SHRINK_FUNCTION;
+		map->buckets_size = map->buckets_size >> 1;
 	map->buckets = realloc(map->buckets, map->buckets_size * sizeof(hash_bucket*));
 
 	// I didn't want to deal with repeating such a large block of code, so here is a malloc-heavy and free-heavy loop.
@@ -107,7 +99,7 @@ void map_addn(hashmap_t* map, char* key, size_t key_length, void* value)
 
 	if (!map->resizing && map->collision_count > HASHMAP_MAX_COLLISIONS)
 		map_resize(map, true);
-	size_t index = map->function(key, key_length) % map->buckets_size;
+	size_t index = map->function(key, key_length) & (map->buckets_size - 1);
 	if (map->buckets[index] == NULL)
 	{
 		map->buckets[index] = init_hash_bucket(key, key_length, value);
@@ -150,7 +142,7 @@ bool map_containsn(hashmap_t* map, char* key, size_t key_length)
 	if (key == NULL)
 		return false;
 
-	size_t index = map->function(key, key_length) % map->buckets_size;
+	size_t index = map->function(key, key_length) & (map->buckets_size - 1);
 	hash_bucket* current = map->buckets[index];
 	while (current != NULL)
 	{
@@ -161,6 +153,39 @@ bool map_containsn(hashmap_t* map, char* key, size_t key_length)
 		current = current->next;
 	}
 	return false;
+}
+
+// map_keys(hashmap_t*, size_t*, size_t*) -> char**
+// Returns a list of keys in the hashmap, updating the length and size parameters accordingly.
+char** map_keys(hashmap_t* map, size_t* length, size_t* size)
+{
+	// Set up
+	size_t _length = 0;
+	size_t _size = 0;
+	char** keys = NULL;
+
+	// Iterate over the buckets
+	for (size_t i = 0; i < map->buckets_size; i++)
+	{
+		// Get every bucket in the bucket linked list for the current hash
+		hash_bucket* current = map->buckets[i];
+		while (current != NULL)
+		{
+			list_append_element(keys, _size, _length, char*, current->key);
+			current = current->next;
+		}
+	}
+
+	// Update length and size
+	if (length != NULL)
+	{
+		*length = _length;
+	}
+	if (size != NULL)
+	{
+		*size = _size;
+	}
+	return keys;
 }
 
 // map_get(hashmap_t*, char*) -> void*
@@ -177,7 +202,7 @@ void* map_getn(hashmap_t* map, char* key, size_t key_length)
 	if (key == NULL)
 		return NULL;
 
-	size_t index = map->function(key, key_length) % map->buckets_size;
+	size_t index = map->function(key, key_length) & (map->buckets_size - 1);
 	hash_bucket* current = map->buckets[index];
 	while (current != NULL)
 	{
@@ -206,7 +231,7 @@ void map_removen(hashmap_t* map, char* key, size_t key_length)
 
 	if (!map->resizing && map->item_count < map->buckets_size >> 5) // 16 seems like a good absolute minimum
 		map_resize(map, false);
-	size_t index = map->function(key, key_length) % map->buckets_size;
+	size_t index = map->function(key, key_length) & (map->buckets_size - 1);
 	hash_bucket* first = map->buckets[index];
 	hash_bucket* current = first;
 	hash_bucket* previous = NULL;

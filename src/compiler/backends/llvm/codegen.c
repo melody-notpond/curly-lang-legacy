@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "codegen.h"
+#include "functions.h"
 #include "llvm_types.h"
 
 // build_expression(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
@@ -375,13 +376,26 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	// Functions
 	} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count > 0)
 	{
+		// Find all closed locals
+		hashmap_t* closed_locals = init_hashmap();
+		if (env->local != NULL)
+		{
+			find_llvm_closure_locals(env, ast->children[1], closed_locals);
+		}
+		size_t closed_count = 0;
+		char** closed_keys = map_keys(closed_locals, &closed_count, NULL);
+
 		// Create the arguments
-		size_t param_types_count = ast->children[0]->children_count + 1;
+		size_t param_types_count = ast->children[0]->children_count + closed_count + 1;
 		LLVMTypeRef param_types[param_types_count];
 		param_types[0] = LLVMInt64Type();
-		for (size_t i = 1; i < param_types_count; i++)
+		for (size_t i = 1; i < closed_count + 1; i++)
 		{
-			param_types[i] = internal_type_to_llvm(ast->children[0]->children[i - 1]);
+			param_types[i] = LLVMTypeOf(lookup_llvm_local(env, closed_keys[i - 1]));
+		}
+		for (size_t i = 1 + closed_count; i < param_types_count; i++)
+		{
+			param_types[i] = internal_type_to_llvm(ast->children[0]->children[i - 1 - closed_count]);
 		}
 
 		// Create the function
@@ -407,11 +421,23 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMBuildStore(builder, bitmap, bitmap_alloca);
 		set_llvm_local(env, "thunk.bitmap", bitmap_alloca);
 
-		// Save parameters in a new scope
-		for (size_t i = 1; i < param_types_count; i++)
+		// Save closed over locals in a new scope
+		for (size_t i = 1; i <= closed_count; i++)
 		{
 			LLVMValueRef arg = LLVMGetParam(func, i);
-			char* arg_name = ast->children[0]->children[i - 1]->children[0]->value.value;
+			char* arg_name = closed_keys[i - 1];
+			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
+
+			LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
+			LLVMBuildStore(builder, arg, arg_alloca);
+			set_llvm_param(env, arg_name, arg_alloca, i - 1);
+		}
+
+		// Save parameters in the new scope
+		for (size_t i = 1 + closed_count; i < param_types_count; i++)
+		{
+			LLVMValueRef arg = LLVMGetParam(func, i);
+			char* arg_name = ast->children[0]->children[i - 1 - closed_count]->children[0]->value.value;
 			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
 
 			LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
@@ -428,6 +454,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = last_block;
 		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		env->local = pop_llvm_scope(env->local);
+		del_hashmap(closed_locals);
 		return func;
 	}
 

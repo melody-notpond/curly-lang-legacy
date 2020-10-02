@@ -82,6 +82,10 @@ bool map_contains(hashmap_t* map, char* key);
 // Returns true if the hashmap contains a given key.
 bool map_containsn(hashmap_t* map, char* key, size_t key_length);
 
+// map_keys(hashmap_t*, size_t*, size_t*) -> char**
+// Returns a list of keys in the hashmap, updating the length and size parameters accordingly.
+char** map_keys(hashmap_t* map, size_t* length, size_t* size);
+
 // map_get(hashmap_t*, char*) -> void*
 // Returns the value associated with the given key or NULL if it does not exist.
 void* map_get(hashmap_t* map, char* key);

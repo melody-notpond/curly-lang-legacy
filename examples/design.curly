@@ -51,7 +51,7 @@ fib 0 = 1
 fib 1 = 1
 fib n: Int = (fib n - 1) + (fib n - 2)
 
-ExType = type isFloat: (bool & (num: int | num: float))
+ExType = type isFloat: bool & (num: int | num: float)
 
 instance: ExType = {
     isFloat = false,
