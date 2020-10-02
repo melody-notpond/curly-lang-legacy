@@ -151,6 +151,7 @@ int main(int argc, char** argv)
 							return -1;
 						}
 
+						// Set global mappings
 						LLVMValueRef global = LLVMGetFirstGlobal(env->header_mod);
 						size_t i = 0;
 						while (global != NULL)

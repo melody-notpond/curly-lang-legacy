@@ -9,7 +9,7 @@
 CC = gcc
 CPPC = g++
 CFLAGS = -Wall -O0 -ggdb3 $(shell llvm-config --cflags)
-CPPFLAGS = $(shell llvm-config --cxxflags --ldflags --libs all --system-libs)
+CPPFLAGS = $(shell llvm-config --cxxflags --ldflags --libs all) -lm -lz -lcurses -lxml2
 LIBS = -ledit
 
 CODE = src/

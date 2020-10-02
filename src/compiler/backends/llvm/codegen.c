@@ -135,42 +135,51 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 				if (local != NULL)
 				{
 					// Local is definitely not a thunk
-					if ((int) local > 64)
+					uint64_t param_index = lookup_llvm_param(env, ast->value.value);
+					if (param_index >= 64)
 						return local;
 
 					// Local is a parameter that has not been checked for thunkiness
-					int8_t param_index = (int8_t) local;
-					LLVMValueRef thunk_bitmap = LLVMGetParam(env->current_func, 0);
-					LLVMValueRef arg = LLVMGetParam(env->current_func, param_index);
-					LLVMTypeRef arg_type = LLVMTypeOf(arg);
-					uint64_t mask = 1 << (param_index - 1);
+					LLVMValueRef thunk_bitmap_ptr = lookup_llvm_local(env, "thunk.bitmap");
+					LLVMValueRef thunk_bitmap = LLVMBuildLoad2(builder, LLVMInt64Type(), thunk_bitmap_ptr, "thunk.bitmap.deref");
+					LLVMValueRef arg_ptr = local;
+					LLVMTypeRef arg_type = LLVMGetElementType(LLVMTypeOf(arg_ptr));
+					uint64_t mask = ((uint64_t) 1) << param_index;
 					LLVMValueRef cond_pre = LLVMBuildAnd(builder, thunk_bitmap, LLVMConstInt(LLVMInt64Type(), mask, false), "");
 					LLVMValueRef cond = LLVMBuildIsNotNull(builder, cond_pre, "");
 
 					// Create the blocks
 					LLVMBasicBlockRef thunk_unwrap = LLVMAppendBasicBlock(env->current_func, "thunk.unwrap");
 					LLVMMoveBasicBlockAfter(thunk_unwrap, env->current_block);
+					LLVMBasicBlockRef load_arg = LLVMAppendBasicBlock(env->current_func, "thunk.load");
+					LLVMMoveBasicBlockAfter(load_arg, thunk_unwrap);
 					LLVMBasicBlockRef post_thunk = LLVMAppendBasicBlock(env->current_func, "thunk.post");
-					LLVMMoveBasicBlockAfter(post_thunk, thunk_unwrap);
+					LLVMMoveBasicBlockAfter(post_thunk, load_arg);
+
+					// Load the argument
+					LLVMBuildCondBr(builder, cond, load_arg, thunk_unwrap);
+					LLVMPositionBuilderAtEnd(builder, load_arg);
+					LLVMValueRef loaded_arg = LLVMBuildLoad2(builder, arg_type, arg_ptr, "loaded");
+					LLVMBuildBr(builder, post_thunk);
 
 					// Unwrap the thunk
-					LLVMBuildCondBr(builder, cond, post_thunk, thunk_unwrap);
 					LLVMPositionBuilderAtEnd(builder, thunk_unwrap);
 					LLVMTypeRef func_type = LLVMFunctionType(arg_type, (LLVMTypeRef[]) {}, 0, false);
-					LLVMValueRef bitcasted = LLVMBuildBitCast(builder, arg, LLVMInt64Type(), "");
-					LLVMValueRef thunk = LLVMBuildIntToPtr(builder, bitcasted, LLVMPointerType(func_type, 0), "thunk");
+					LLVMValueRef thunk = LLVMBuildBitCast(builder, arg_ptr, LLVMPointerType(func_type, 0), "thunk");
 					LLVMValueRef evaled = LLVMBuildCall2(builder, func_type, thunk, (LLVMValueRef[]) {}, 0, "evaled");
+					LLVMBuildStore(builder, evaled, arg_ptr);
 					LLVMBuildBr(builder, post_thunk);
 
 					// Build phi instruction
-					LLVMValueRef phi_vals[] = {arg, evaled};
-					LLVMBasicBlockRef phi_blocks[] = {env->current_block, thunk_unwrap};
+					LLVMValueRef phi_vals[] = {loaded_arg, evaled};
+					LLVMBasicBlockRef phi_blocks[] = {load_arg, thunk_unwrap};
 					LLVMPositionBuilderAtEnd(builder, post_thunk);
 					LLVMValueRef phi = LLVMBuildPhi(builder, arg_type, "");
 					LLVMAddIncoming(phi, phi_vals, phi_blocks, 2);
-					size_t length = 0;
-					set_llvm_local(env, (char*) LLVMGetValueName2(arg, &length), phi);
 					env->current_block = post_thunk;
+
+					// Save the evaluated thunk for future usage
+					set_llvm_param(env, ast->value.value, phi, 255);
 					return phi;
 				}
 
@@ -201,7 +210,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->local = push_llvm_scope(env->local);
 		env->current_block = right_block;
 		LLVMValueRef right = build_expression(ast->children[1], builder, env);
-		right_block = LLVMGetPreviousBasicBlock(post_and);
+		right_block = env->current_block;
 		env->local = pop_llvm_scope(env->local);
 
 		// Build phi
@@ -210,7 +219,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = post_and;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
 		LLVMValueRef incoming_values[] = {left, right};
-		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(right_block), LLVMGetPreviousBasicBlock(post_and)};
+		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 
@@ -233,7 +242,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = right_block;
 		env->local = push_llvm_scope(env->local);
 		LLVMValueRef right = build_expression(ast->children[1], builder, env);
-		right_block = LLVMGetPreviousBasicBlock(post_or);
+		right_block = env->current_block;
 		env->local = pop_llvm_scope(env->local);
 
 		// Build phi
@@ -242,7 +251,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = post_or;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt1Type(), "");
 		LLVMValueRef incoming_values[] = {left, right};
-		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(right_block), LLVMGetPreviousBasicBlock(post_or)};
+		LLVMBasicBlockRef incoming_blocks[] = {from, right_block};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 
@@ -294,7 +303,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = then_block;
 		env->local = push_llvm_scope(env->local);
 		LLVMValueRef then_val = build_expression(ast->children[1], builder, env);
-		then_block = LLVMGetPreviousBasicBlock(else_block);
+		then_block = env->current_block;
 		env->local = pop_llvm_scope(env->local);
 
 		// Build the branch and else body
@@ -303,7 +312,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = else_block;
 		env->local = push_llvm_scope(env->local);
 		LLVMValueRef else_val = build_expression(ast->children[2], builder, env);
-		else_block = LLVMGetPreviousBasicBlock(post_if);
+		else_block = env->current_block;
 		env->local = pop_llvm_scope(env->local);
 
 		// Build phi
@@ -312,7 +321,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = post_if;
 		LLVMValueRef phi = LLVMBuildPhi(builder, LLVMTypeOf(then_val), "");
 		LLVMValueRef incoming_values[] = {then_val, else_val};
-		LLVMBasicBlockRef incoming_blocks[] = {LLVMGetPreviousBasicBlock(else_block), LLVMGetPreviousBasicBlock(post_if)};
+		LLVMBasicBlockRef incoming_blocks[] = {then_block, else_block};
 		LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
 		return phi;
 	} else return NULL;
@@ -388,21 +397,29 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMBasicBlockRef last_block = env->current_block;
 		env->current_func = func;
 		env->current_block = LLVMAppendBasicBlock(env->current_func, "entry");
-
-		// Save parameters in a new scope
+		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		env->local = push_llvm_scope(env->local);
+
+		// Allocate bitmap
 		LLVMValueRef bitmap = LLVMGetParam(func, 0);
 		LLVMSetValueName2(bitmap, "thunk.bitmap", 12);
+		LLVMValueRef bitmap_alloca = LLVMBuildAlloca(builder, LLVMInt64Type(), "thunk.bitmap");
+		LLVMBuildStore(builder, bitmap, bitmap_alloca);
+		set_llvm_local(env, "thunk.bitmap", bitmap_alloca);
+
+		// Save parameters in a new scope
 		for (size_t i = 1; i < param_types_count; i++)
 		{
 			LLVMValueRef arg = LLVMGetParam(func, i);
 			char* arg_name = ast->children[0]->children[i - 1]->children[0]->value.value;
 			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
-			set_llvm_local(env, arg_name, (LLVMValueRef) i);
+
+			LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
+			LLVMBuildStore(builder, arg, arg_alloca);
+			set_llvm_param(env, arg_name, arg_alloca, i - 1);
 		}
 
 		// Create the function
-		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		LLVMValueRef ret = build_expression(ast->children[1], builder, env);
 
 		// Return from function

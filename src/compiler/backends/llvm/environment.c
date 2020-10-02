@@ -15,6 +15,7 @@ llvm_scope_t* push_llvm_scope(llvm_scope_t* parent)
 	llvm_scope_t* scope = malloc(sizeof(llvm_scope_t));
 	scope->parent = parent;
 	scope->variables = init_hashmap();
+	scope->parameters = init_hashmap();
 	return scope;
 }
 
@@ -24,6 +25,7 @@ llvm_scope_t* pop_llvm_scope(llvm_scope_t* scope)
 {
 	llvm_scope_t* parent = scope->parent;
 	del_hashmap(scope->variables);
+	del_hashmap(scope->parameters);
 	return parent;
 }
 
@@ -68,8 +70,19 @@ void set_llvm_local(llvm_codegen_env_t* env, char* local, LLVMValueRef value)
 		map_add(env->local->variables, local, value);
 }
 
+// set_llvm_param(llvm_codegen_env_t*, char*, LLVMValueRef) -> void
+// Sets a parameter to the scope.
+void set_llvm_param(llvm_codegen_env_t* env, char* local, LLVMValueRef value, uint8_t param_index)
+{
+	if (env->local != NULL)
+	{
+		map_add(env->local->variables, local, value);
+		map_add(env->local->parameters, local, (void*) (uint64_t) param_index);
+	}
+}
+
 // lookup_llvm_local(llvm_codegen_env_t*, char*) -> LLVMValueRef
-// Looks up a local and return its LLVMValueRef if available.
+// Looks up a local and returns its LLVMValueRef if available.
 LLVMValueRef lookup_llvm_local(llvm_codegen_env_t* env, char* local)
 {
 	// Get most local scope
@@ -89,6 +102,28 @@ LLVMValueRef lookup_llvm_local(llvm_codegen_env_t* env, char* local)
 
 	// Local not found
 	return NULL;
+}
+
+// lookup_llvm_param(llvm_codegen_env_t*, char*) -> uint64_t
+// Looks up a parameter and returns its parameter index if available.
+uint64_t lookup_llvm_param(llvm_codegen_env_t* env, char* local)
+{
+	// Get most local scope
+	llvm_scope_t* scope = env->local;
+
+	// Iterate over all scopes in the linked list
+	while (scope != NULL)
+	{
+		// Get the parameter index
+		if (map_contains(scope->parameters, local))
+			return (uint64_t) map_get(scope->parameters, local);
+
+		// Parent scope
+		scope = scope->parent;
+	}
+
+	// Parameter not found
+	return (uint64_t) -1;
 }
 
 // empty_llvm_codegen_environment(llvm_codegen_env_t*) -> void

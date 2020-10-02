@@ -18,6 +18,8 @@ typedef struct s_llvm_scope
 {
 	hashmap_t* variables;
 
+	hashmap_t* parameters;
+
 	struct s_llvm_scope* parent;
 } llvm_scope_t;
 
@@ -52,9 +54,17 @@ llvm_codegen_env_t* create_llvm_codegen_environment(LLVMModuleRef header_mod);
 // Sets a local to the scope.
 void set_llvm_local(llvm_codegen_env_t* env, char* local, LLVMValueRef value);
 
+// set_llvm_param(llvm_codegen_env_t*, char*, LLVMValueRef) -> void
+// Sets a parameter to the scope.
+void set_llvm_param(llvm_codegen_env_t* env, char* local, LLVMValueRef value, uint8_t param_index);
+
 // lookup_llvm_local(llvm_codegen_env_t*, char*) -> LLVMValueRef
-// Looks up a local and return its LLVMValueRef if available.
+// Looks up a local and returns its LLVMValueRef if available.
 LLVMValueRef lookup_llvm_local(llvm_codegen_env_t* env, char* local);
+
+// lookup_llvm_param(llvm_codegen_env_t*, char*) -> uint64_t
+// Looks up a parameter and returns its parameter index if available.
+uint64_t lookup_llvm_param(llvm_codegen_env_t* env, char* local);
 
 // empty_llvm_codegen_environment(llvm_codegen_env_t*) -> void
 // Emptys an LLVM codegen environment for reuse.
