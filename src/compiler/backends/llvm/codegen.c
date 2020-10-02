@@ -141,7 +141,7 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 						return local;
 
 					// Local is a parameter that has not been checked for thunkiness
-					LLVMValueRef thunk_bitmap_ptr = lookup_llvm_local(env, "thunk.bitmap");
+					LLVMValueRef thunk_bitmap_ptr = LLVMGetParam(env->current_func, 0);
 					LLVMValueRef thunk_bitmap = LLVMBuildLoad2(builder, LLVMInt64Type(), thunk_bitmap_ptr, "thunk.bitmap.deref");
 					LLVMValueRef arg_ptr = local;
 					LLVMTypeRef arg_type = LLVMGetElementType(LLVMTypeOf(arg_ptr));
@@ -388,7 +388,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		// Create the arguments
 		size_t param_types_count = ast->children[0]->children_count + closed_count + 1;
 		LLVMTypeRef param_types[param_types_count];
-		param_types[0] = LLVMInt64Type();
+		param_types[0] = LLVMPointerType(LLVMInt64Type(), 0);
 		for (size_t i = 1; i < closed_count + 1; i++)
 		{
 			param_types[i] = LLVMTypeOf(lookup_llvm_local(env, closed_keys[i - 1]));
@@ -414,12 +414,9 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		env->local = push_llvm_scope(env->local);
 
-		// Allocate bitmap
+		// Set name of bitmap
 		LLVMValueRef bitmap = LLVMGetParam(func, 0);
 		LLVMSetValueName2(bitmap, "thunk.bitmap", 12);
-		LLVMValueRef bitmap_alloca = LLVMBuildAlloca(builder, LLVMInt64Type(), "thunk.bitmap");
-		LLVMBuildStore(builder, bitmap, bitmap_alloca);
-		set_llvm_local(env, "thunk.bitmap", bitmap_alloca);
 
 		// Save closed over locals in a new scope
 		for (size_t i = 1; i <= closed_count; i++)
@@ -428,9 +425,12 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 			char* arg_name = closed_keys[i - 1];
 			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
 
-			LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
-			LLVMBuildStore(builder, arg, arg_alloca);
-			set_llvm_param(env, arg_name, arg_alloca, i - 1);
+			if (lookup_llvm_param(env, arg_name) >= 64)
+			{
+				LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
+				LLVMBuildStore(builder, arg, arg_alloca);
+				set_llvm_param(env, arg_name, arg_alloca, i - 1);
+			} else set_llvm_param(env, arg_name, arg, i - 1);
 		}
 
 		// Save parameters in the new scope
