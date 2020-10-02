@@ -17,7 +17,7 @@ This project depends on `libedit-dev`/`libedit-devel`/`readline` (for Linux and 
 
 Note: On Fedora, you also need to install `llvm-devel`.
 
-Note: This repo has been tested on macOS and Ubuntu as of now, but will not build on Windows. Windows support is coming soon.
+Note: This repo has been tested on macOS, Ubuntu, and Fedora as of now, but will not build on Windows. Windows support is coming soon.
 
 ## Progress
 The parser is done, and the type checker is mostly done. Current effort is focused on the LLVM backend. Everything is highly experimental. Be cautious: code may be explosive.
