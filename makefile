@@ -9,7 +9,12 @@
 CC = gcc
 CPPC = g++
 CFLAGS = -Wall -O0 -ggdb3 $(shell llvm-config --cflags)
-CPPFLAGS = $(shell llvm-config --cxxflags --ldflags --libs all) -lm -lz -lcurses -lxml2
+CPPFLAGS = $(shell llvm-config --cxxflags --ldflags --libs all)
+ifeq ($(shell uname), Darwin)
+	CPPFLAGS += -lm -lz -lcurses -lxml2
+else
+	CPPFLAGS += $(shell llvm-config --system-libs)
+endif
 LIBS = -ledit
 
 CODE = src/
