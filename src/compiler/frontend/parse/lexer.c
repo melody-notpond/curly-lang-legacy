@@ -199,7 +199,7 @@ token_t* lex_next(lexer_t* lex)
 				{
 					token.type = LEX_TYPE_COMMA;
 					token.tag = LEX_TAG_OPERATOR;
-				} else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_' || c == '@')
+				} else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_' || c == '@' || c == '$')
 				{
 					token.type = LEX_TYPE_SYMBOL;
 					token.tag = LEX_TAG_OPERAND;

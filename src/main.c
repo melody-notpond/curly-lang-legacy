@@ -45,6 +45,22 @@ int count_groupings(char* string, int p)
 	return p;
 }
 
+typedef union
+{
+	int64_t i64;
+	double f64;
+	bool i1;
+	struct
+	{
+		int32_t reference_count;
+		void* func;
+		int8_t count;
+		int8_t arity;
+		int64_t thunk_bitmap;
+		int64_t* args;
+	} func_app;
+} repl_value_t;
+
 int main(int argc, char** argv)
 {
 	switch (argc)
@@ -60,7 +76,8 @@ int main(int argc, char** argv)
 			llvm_codegen_env_t* env = create_llvm_codegen_environment(LLVMModuleCreateWithNameInContext("repl-header", context));
 			size_t globals_size = 0;
 			size_t globals_count = 0;
-			int64_t* global_vals = calloc(globals_size, sizeof(int64_t*));
+			repl_value_t* global_vals = calloc(globals_size, sizeof(repl_value_t));
+			repl_value_t last_repl_val = {0};
 
 			// Init JIT
 			LLVMInitializeNativeTarget();
@@ -156,30 +173,40 @@ int main(int argc, char** argv)
 						size_t i = 0;
 						while (global != NULL)
 						{
-							if (i < globals_count)
-								list_append_element(global_vals, globals_size, globals_count, int64_t, 0);
-							LLVMAddGlobalMapping(engine, global, global_vals + i++);
+							size_t length = 0;
+							if (strcmp(LLVMGetValueName2(global, &length), "repl.last"))
+							{
+								if (i < globals_count)
+									list_append_element(global_vals, globals_size, globals_count, repl_value_t, (repl_value_t) {0});
+								LLVMAddGlobalMapping(engine, global, global_vals + i++);
+
+							// The repl value global has its own special global value
+							} else LLVMAddGlobalMapping(engine, global, &last_repl_val);
+
 							global = LLVMGetNextGlobal(global);
 						}
 
 						// Run the code
 						LLVMAddModule(engine, env->header_mod);
-						LLVMGenericValueRef ret = LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {});
+						LLVMDisposeGenericValue(LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {}));
 
 						// Print the result
 						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+						printf("  = ");
 						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
-							printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
+							printf("%lli", last_repl_val.i64);
 						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
-							printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
+							printf("%.5f", last_repl_val.f64);
 						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Bool"))
-							printf("  = %s\n", LLVMGenericValueToInt(ret, false) ? "true" : "false");
-						else printf("  = unknown value\n");
+							printf("%s", last_repl_val.i1 ? "true" : "false");
+						else if (ret_type->type_type == IR_TYPES_FUNC)
+							printf("(%i) %p: %i/%i args, bitmap = %lli, args => %p", last_repl_val.func_app.reference_count, last_repl_val.func_app.func, last_repl_val.func_app.count, last_repl_val.func_app.arity, last_repl_val.func_app.thunk_bitmap, last_repl_val.func_app.args);
+						else printf("unknown value");
+						puts("");
 
 						// Clean up
 						LLVMRemoveModule(engine, env->header_mod, &env->header_mod, &error);
 						empty_llvm_codegen_environment(env);
-						LLVMDisposeGenericValue(ret);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
 				} else
@@ -268,19 +295,9 @@ int main(int argc, char** argv)
 					}
 
 					// Run the code
-					LLVMGenericValueRef ret = LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {});
+					LLVMDisposeGenericValue(LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {}));
 
-					// Print the result
-					type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
-					if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
-						printf("  = %lli\n", LLVMGenericValueToInt(ret, true));
-					else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
-						printf("  = %.5f\n", LLVMGenericValueToFloat(LLVMDoubleType(), ret));
-					else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Bool"))
-						printf("  = %s\n", LLVMGenericValueToInt(ret, false) ? "true" : "false");
-					else printf("  = unknown value\n");
-
-					LLVMDisposeGenericValue(ret);
+					// Clean up
 					LLVMDisposeExecutionEngine(engine);
 					clean_llvm_codegen_environment(env);
 				} else printf("Check failed\n");

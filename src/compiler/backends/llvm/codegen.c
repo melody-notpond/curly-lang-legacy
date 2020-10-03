@@ -328,6 +328,40 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	} else return NULL;
 }
 
+// llvm_save_value(llvm_codegen_env_t*, char*, LLVMValueRef, LLVMBuilderRef) -> LLVMValueRef
+// Saves a value as a global value, or a local if a local scope is present.
+LLVMValueRef llvm_save_value(llvm_codegen_env_t* env, char* name, LLVMValueRef value, LLVMBuilderRef builder)
+{
+	// Set the global variable
+	if (env->local == NULL)
+	{
+		// Get expression and global
+		LLVMValueRef global = LLVMGetNamedGlobal(env->header_mod, name);
+		size_t length = 0;
+
+		// Create missing global
+		if (global == NULL)
+		{
+			global = LLVMAddGlobal(env->header_mod, LLVMTypeOf(value), name);
+			if (!strcmp(LLVMGetModuleIdentifier(env->header_mod, &length), "repl-header"))
+				LLVMSetLinkage(global, LLVMExternalWeakLinkage);
+			else
+			{
+				LLVMSetLinkage(global, LLVMCommonLinkage);
+				LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
+			}
+		}
+
+		// Build store instruction
+		LLVMBuildStore(builder, value, global);
+		return value;
+	} else
+	{
+		map_add(env->local->variables, name, value);
+		return value;
+	}
+}
+
 // build_assignment(ast_t*, LLVMBuilderRef, llvm_codegen_env_t*) -> LLVMValueRef
 // Builds an assignment to LLVM IR.
 LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_env_t* env)
@@ -342,41 +376,14 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	// New variable (typed or untyped)
 	if (name != NULL)
 	{
-		// Set the global variable
-		if (env->local == NULL)
-		{
-			// Get expression and global
-			LLVMValueRef value = build_expression(ast->children[1], builder, env);
-			LLVMValueRef global = LLVMGetNamedGlobal(env->header_mod, name);
-			size_t length = 0;
-
-			// Create missing global
-			if (global == NULL)
-			{
-				global = LLVMAddGlobal(env->header_mod, LLVMTypeOf(value), name);
-				if (!strcmp(LLVMGetModuleIdentifier(env->header_mod, &length), "repl-header"))
-					LLVMSetLinkage(global, LLVMExternalWeakLinkage);
-				else
-				{
-					LLVMSetLinkage(global, LLVMCommonLinkage);
-					LLVMSetInitializer(global, LLVMConstInt(LLVMInt64Type(), 0, false));
-				}
-			}
-
-			// Build store instruction
-			LLVMBuildStore(builder, value, global);
-			return value;
-		} else
-		{
-			LLVMValueRef local = build_expression(ast->children[1], builder, env);
-			map_add(env->local->variables, name, local);
-			return local;
-		}
+		LLVMValueRef value = build_expression(ast->children[1], builder, env);
+		llvm_save_value(env, name, value, builder);
 
 	// Functions
 	} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count > 0)
 	{
 		// Find all closed locals
+		name = ast->children[0]->value.value;
 		hashmap_t* closed_locals = init_hashmap();
 		if (env->local != NULL)
 		{
@@ -395,14 +402,14 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		}
 		for (size_t i = 1 + closed_count; i < param_types_count; i++)
 		{
-			param_types[i] = internal_type_to_llvm(ast->children[0]->children[i - 1 - closed_count]);
+			param_types[i] = internal_type_to_llvm(env, ast->children[0]->children[i - 1 - closed_count]);
 		}
 
 		// Create the function
 		char* func_name = malloc(strlen(ast->children[0]->value.value) + 5 + 1);
 		strcpy(func_name, ast->children[0]->value.value);
 		strcat(func_name, ".func");
-		LLVMTypeRef func_type = LLVMFunctionType(internal_type_to_llvm(ast->children[1]), param_types, param_types_count, false);
+		LLVMTypeRef func_type = LLVMFunctionType(internal_type_to_llvm(env, ast->children[1]), param_types, param_types_count, false);
 		LLVMValueRef func = LLVMAddFunction(env->header_mod, func_name, func_type);
 		free(func_name);
 
@@ -454,8 +461,28 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		env->current_block = last_block;
 		LLVMPositionBuilderAtEnd(builder, env->current_block);
 		env->local = pop_llvm_scope(env->local);
+
+		// Build a function application structure
+		LLVMTypeRef func_app_type = LLVMGetTypeByName(env->header_mod, "func.app.type");
+		LLVMValueRef func_alloca = LLVMBuildAlloca(builder, func_app_type, "");
+		LLVMValueRef ref_count = LLVMBuildStructGEP(builder, func_alloca, 0, ".ref.count");
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt32Type(), 1, false), ref_count);
+		LLVMValueRef func_ptr = LLVMBuildStructGEP(builder, func_alloca, 1, ".func");
+		LLVMBuildStore(builder, func, func_ptr);
+		LLVMValueRef count_ptr = LLVMBuildStructGEP(builder, func_alloca, 2, ".arg.count");
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), 0, false), count_ptr);
+		LLVMValueRef arity_ptr = LLVMBuildStructGEP(builder, func_alloca, 3, ".arity");
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), param_types_count - 1, false), arity_ptr);
+		LLVMValueRef thunk_bitmap_ptr = LLVMBuildStructGEP(builder, func_alloca, 4, ".thunk.bitmap");
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), thunk_bitmap_ptr);
+		LLVMValueRef args_ptr_ptr = LLVMBuildStructGEP(builder, func_alloca, 5, ".args");
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), args_ptr_ptr);
+
+		// Save the function application
+		LLVMValueRef func_val = LLVMBuildLoad2(builder, func_app_type, func_alloca, "");
+		llvm_save_value(env, ast->children[0]->value.value, func_val, builder);
 		del_hashmap(closed_locals);
-		return func;
+		return func_val;
 	}
 
 	return NULL;
@@ -466,7 +493,8 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env)
 {
 	LLVMContextRef context;
-	if (env == NULL)
+	bool repl_mode = env != NULL;
+	if (!repl_mode)
 	{
 		// Create the main module
 		context = LLVMContextCreate();
@@ -475,12 +503,20 @@ llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env)
 		env->body_mod = main_mod;
 	} else
 	{
+		// Create the executed module for repl
 		context = LLVMGetModuleContext(env->header_mod);
 		env->body_mod = LLVMModuleCreateWithNameInContext("stdin", context);
+
+		// Create the repl variable
+		LLVMValueRef repl_last = LLVMGetNamedGlobal(env->header_mod, "repl.last");
+		if (repl_last != NULL) LLVMDeleteGlobal(repl_last);
+		LLVMTypeRef repl_last_type = internal_type_to_llvm(env, ast->children[ast->children_count - 1]);
+		repl_last = LLVMAddGlobal(env->header_mod, repl_last_type, "repl.last");
+		LLVMSetLinkage(repl_last, LLVMExternalWeakLinkage);
 	}
 
 	// Create the main function
-	LLVMTypeRef main_type = LLVMFunctionType(internal_type_to_llvm(ast->children[ast->children_count - 1]), (LLVMTypeRef[]) {}, 0, false);
+	LLVMTypeRef main_type = LLVMFunctionType(LLVMVoidType(), (LLVMTypeRef[]) {}, 0, false);
 	env->main_func = LLVMAddFunction(env->body_mod, "main", main_type);
 	env->current_func = env->main_func;
 
@@ -499,8 +535,12 @@ llvm_codegen_env_t* generate_code(ast_t* ast, llvm_codegen_env_t* env)
 			value = build_expression(ast->children[i], builder, env);
 	}
 
+	// If in repl mode, save the last value
+	if (repl_mode)
+		LLVMBuildStore(builder, value, LLVMGetNamedGlobal(env->header_mod, "repl.last"));
+
 	// Create a return instruction
-	LLVMBuildRet(builder, value);
+	LLVMBuildRetVoid(builder);
 	LLVMDisposeBuilder(builder);
 	return env;
 }

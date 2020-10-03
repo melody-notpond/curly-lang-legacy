@@ -42,7 +42,7 @@ llvm_codegen_env_t* create_llvm_codegen_environment(LLVMModuleRef header_mod)
 	env->current_block = NULL;
 
 	// Create necessary types
-	if (LLVMGetTypeByName(header_mod, "func.app.type"))
+	if (LLVMGetTypeByName(header_mod, "func.app.type") == NULL)
 	{
 		// Function application structure
 		// typedef struct
@@ -51,7 +51,7 @@ llvm_codegen_env_t* create_llvm_codegen_environment(LLVMModuleRef header_mod)
 		// 	void* func;
 		// 	int8_t count;
 		// 	int8_t arity;
-		// 	int64_t thunk_bitmask;
+		// 	int64_t thunk_bitmap;
 		// 	int64_t* args;
 		// } func_app_t;
 		LLVMContextRef context = LLVMGetModuleContext(header_mod);
