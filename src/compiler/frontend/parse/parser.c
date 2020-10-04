@@ -585,8 +585,8 @@ parse_result_t match(lexer_t* lex)
 	list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, val.ast);
 	match.ast->children[match.ast->children_count - 1] = arrow.ast;
 
-	// Consume first value
-	call(expr1, true, bitxor, lex, match, true);
+	// Consume first expression
+	call(expr1, true, expression, lex, match, true);
 	list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr1.ast);
 
 	// Consume more matches
@@ -597,8 +597,8 @@ parse_result_t match(lexer_t* lex)
 		consume(newline, false, type, lex, LEX_TYPE_NEWLINE, match, false);
 		repush_lexer(lex);
 
-		// Consume or
-		consume(or, false, string, lex, "or", match, false);
+		// Consume to
+		consume(or, false, string, lex, "to", match, false);
 		clean_parse_result(or);
 		if (!or.succ) break;
 
@@ -613,8 +613,8 @@ parse_result_t match(lexer_t* lex)
 		list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, val.ast);
 		match.ast->children[match.ast->children_count - 1] = arrow.ast;
 
-		// Consume value
-		call(expr, true, bitxor, lex, match, true);
+		// Consume expression
+		call(expr, true, expression, lex, match, true);
 		list_append_element(arrow.ast->children, arrow.ast->children_size, arrow.ast->children_count, ast_t*, expr.ast);
 	}
 
@@ -629,8 +629,8 @@ parse_result_t match(lexer_t* lex)
 		elsey.ast->children = calloc(1, sizeof(ast_t*));
 		list_append_element(match.ast->children, match.ast->children_size, match.ast->children_count, ast_t*, elsey.ast);
 
-		// Consume value
-		call(expr, true, bitxor, lex, match, true);
+		// Consume expression
+		call(expr, true, expression, lex, match, true);
 		list_append_element(elsey.ast->children, elsey.ast->children_size, elsey.ast->children_count, ast_t*, expr.ast);
 	} else clean_parse_result(elsey);
 	return match;

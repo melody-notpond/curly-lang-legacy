@@ -470,13 +470,29 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMValueRef func_ptr = LLVMBuildStructGEP(builder, func_alloca, 1, ".func");
 		LLVMBuildStore(builder, func, func_ptr);
 		LLVMValueRef count_ptr = LLVMBuildStructGEP(builder, func_alloca, 2, ".arg.count");
-		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), 0, false), count_ptr);
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), closed_count, false), count_ptr);
 		LLVMValueRef arity_ptr = LLVMBuildStructGEP(builder, func_alloca, 3, ".arity");
 		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), param_types_count - 1, false), arity_ptr);
 		LLVMValueRef thunk_bitmap_ptr = LLVMBuildStructGEP(builder, func_alloca, 4, ".thunk.bitmap");
 		LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), thunk_bitmap_ptr);
 		LLVMValueRef args_ptr_ptr = LLVMBuildStructGEP(builder, func_alloca, 5, ".args");
-		LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), args_ptr_ptr);
+
+		// Create the list of arguments if necessary
+		if (closed_count > 0)
+		{
+			LLVMValueRef args_malloc = LLVMBuildArrayMalloc(builder, LLVMInt64Type(), LLVMConstInt(LLVMInt32Type(), 64, false), ".args.malloc");
+			LLVMBuildStore(builder, args_malloc, args_ptr_ptr);
+			LLVMValueRef args_ptr = LLVMBuildLoad2(builder, LLVMPointerType(LLVMInt64Type(), 0), args_ptr_ptr, "");
+
+			// Save each argument
+			for (size_t i = 1; i <= closed_count; i++)
+			{
+				char* closed_name = closed_keys[i - 1];
+				LLVMValueRef closed = lookup_llvm_local(env, closed_name);
+				LLVMValueRef gep = LLVMBuildGEP2(builder, LLVMInt64Type(), args_ptr, (LLVMValueRef[]) {LLVMConstInt(LLVMInt64Type(), i - 1, false)}, 1, "");
+				LLVMBuildStore(builder, closed, gep);
+			}
+		} else LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), args_ptr_ptr);
 
 		// Save the function application
 		LLVMValueRef func_val = LLVMBuildLoad2(builder, func_app_type, func_alloca, "");
