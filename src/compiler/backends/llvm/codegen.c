@@ -8,6 +8,7 @@
 
 #include <string.h>
 
+#include "../../../utils/list.h"
 #include "codegen.h"
 #include "functions.h"
 #include "llvm_types.h"
@@ -383,26 +384,26 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	} else if (ast->children[0]->value.type == LEX_TYPE_SYMBOL && ast->children[0]->children_count > 0)
 	{
 		// Find all closed locals
-		name = ast->children[0]->value.value;
-		hashmap_t* closed_locals = init_hashmap();
-		if (env->local != NULL)
-		{
-			find_llvm_closure_locals(env, ast->children[1], closed_locals);
-		}
-		size_t closed_count = 0;
-		char** closed_keys = map_keys(closed_locals, &closed_count, NULL);
+		// name = ast->children[0]->value.value;
+		// hashmap_t* closed_locals = init_hashmap();
+		// if (env->local != NULL)
+		// {
+		// 	find_llvm_closure_locals(env, ast->children[1], closed_locals);
+		// }
+		// size_t closed_count = 0;
+		// char** closed_keys = map_keys(closed_locals, &closed_count, NULL);
 
 		// Create the arguments
-		size_t param_types_count = ast->children[0]->children_count + closed_count + 1;
+		size_t param_types_count = ast->children[0]->children_count /*+ closed_count*/ + 1;
 		LLVMTypeRef param_types[param_types_count];
 		param_types[0] = LLVMPointerType(LLVMInt64Type(), 0);
-		for (size_t i = 1; i < closed_count + 1; i++)
+		// for (size_t i = 1; i < closed_count + 1; i++)
+		// {
+		// 	param_types[i] = LLVMTypeOf(lookup_llvm_local(env, closed_keys[i - 1]));
+		// }
+		for (size_t i = 1 /*+ closed_count*/; i < param_types_count; i++)
 		{
-			param_types[i] = LLVMTypeOf(lookup_llvm_local(env, closed_keys[i - 1]));
-		}
-		for (size_t i = 1 + closed_count; i < param_types_count; i++)
-		{
-			param_types[i] = internal_type_to_llvm(env, ast->children[0]->children[i - 1 - closed_count]);
+			param_types[i] = internal_type_to_llvm(env, ast->children[0]->children[i - 1 /*- closed_count*/]);
 		}
 
 		// Create the function
@@ -426,25 +427,25 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMSetValueName2(bitmap, "thunk.bitmap", 12);
 
 		// Save closed over locals in a new scope
-		for (size_t i = 1; i <= closed_count; i++)
-		{
-			LLVMValueRef arg = LLVMGetParam(func, i);
-			char* arg_name = closed_keys[i - 1];
-			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
+		// for (size_t i = 1; i <= closed_count; i++)
+		// {
+		// 	LLVMValueRef arg = LLVMGetParam(func, i);
+		// 	char* arg_name = closed_keys[i - 1];
+		// 	LLVMSetValueName2(arg, arg_name, strlen(arg_name));
 
-			if (lookup_llvm_param(env, arg_name) >= 64)
-			{
-				LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
-				LLVMBuildStore(builder, arg, arg_alloca);
-				set_llvm_param(env, arg_name, arg_alloca, i - 1);
-			} else set_llvm_param(env, arg_name, arg, i - 1);
-		}
+		// 	if (lookup_llvm_param(env, arg_name) >= 64)
+		// 	{
+		// 		LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
+		// 		LLVMBuildStore(builder, arg, arg_alloca);
+		// 		set_llvm_param(env, arg_name, arg_alloca, i - 1);
+		// 	} else set_llvm_param(env, arg_name, arg, i - 1);
+		// }
 
 		// Save parameters in the new scope
-		for (size_t i = 1 + closed_count; i < param_types_count; i++)
+		for (size_t i = 1 /*+ closed_count*/; i < param_types_count; i++)
 		{
 			LLVMValueRef arg = LLVMGetParam(func, i);
-			char* arg_name = ast->children[0]->children[i - 1 - closed_count]->children[0]->value.value;
+			char* arg_name = ast->children[0]->children[i - 1/* - closed_count*/]->children[0]->value.value;
 			LLVMSetValueName2(arg, arg_name, strlen(arg_name));
 
 			LLVMValueRef arg_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg), arg_name);
@@ -470,7 +471,7 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMValueRef func_ptr = LLVMBuildStructGEP(builder, func_alloca, 1, ".func");
 		LLVMBuildStore(builder, func, func_ptr);
 		LLVMValueRef count_ptr = LLVMBuildStructGEP(builder, func_alloca, 2, ".arg.count");
-		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), closed_count, false), count_ptr);
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), /*closed_count*/0, false), count_ptr);
 		LLVMValueRef arity_ptr = LLVMBuildStructGEP(builder, func_alloca, 3, ".arity");
 		LLVMBuildStore(builder, LLVMConstInt(LLVMInt8Type(), param_types_count - 1, false), arity_ptr);
 		LLVMValueRef thunk_bitmap_ptr = LLVMBuildStructGEP(builder, func_alloca, 4, ".thunk.bitmap");
@@ -478,26 +479,27 @@ LLVMValueRef build_assignment(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 		LLVMValueRef args_ptr_ptr = LLVMBuildStructGEP(builder, func_alloca, 5, ".args");
 
 		// Create the list of arguments if necessary
-		if (closed_count > 0)
-		{
-			LLVMValueRef args_malloc = LLVMBuildArrayMalloc(builder, LLVMInt64Type(), LLVMConstInt(LLVMInt32Type(), 64, false), ".args.malloc");
-			LLVMBuildStore(builder, args_malloc, args_ptr_ptr);
-			LLVMValueRef args_ptr = LLVMBuildLoad2(builder, LLVMPointerType(LLVMInt64Type(), 0), args_ptr_ptr, "");
+		// if (closed_count > 0)
+		// {
+		// 	LLVMValueRef args_malloc = LLVMBuildArrayMalloc(builder, LLVMInt64Type(), LLVMConstInt(LLVMInt32Type(), 64, false), ".args.malloc");
+		// 	LLVMBuildStore(builder, args_malloc, args_ptr_ptr);
+		// 	LLVMValueRef args_ptr = LLVMBuildLoad2(builder, LLVMPointerType(LLVMInt64Type(), 0), args_ptr_ptr, "");
 
-			// Save each argument
-			for (size_t i = 1; i <= closed_count; i++)
-			{
-				char* closed_name = closed_keys[i - 1];
-				LLVMValueRef closed = lookup_llvm_local(env, closed_name);
-				LLVMValueRef gep = LLVMBuildGEP2(builder, LLVMInt64Type(), args_ptr, (LLVMValueRef[]) {LLVMConstInt(LLVMInt64Type(), i - 1, false)}, 1, "");
-				LLVMBuildStore(builder, closed, gep);
-			}
-		} else LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), args_ptr_ptr);
+		// 	// Save each argument
+		// 	for (size_t i = 1; i <= closed_count; i++)
+		// 	{
+		// 		char* closed_name = closed_keys[i - 1];
+		// 		LLVMValueRef closed = lookup_llvm_local(env, closed_name);
+		// 		LLVMValueRef gep = LLVMBuildGEP2(builder, LLVMInt64Type(), args_ptr, (LLVMValueRef[]) {LLVMConstInt(LLVMInt64Type(), i - 1, false)}, 1, "");
+		// 		LLVMBuildStore(builder, closed, gep);
+		// 	}
+		// } else
+		LLVMBuildStore(builder, LLVMConstInt(LLVMInt64Type(), 0, false), args_ptr_ptr);
 
 		// Save the function application
 		LLVMValueRef func_val = LLVMBuildLoad2(builder, func_app_type, func_alloca, "");
 		llvm_save_value(env, ast->children[0]->value.value, func_val, builder);
-		del_hashmap(closed_locals);
+		// del_hashmap(closed_locals);
 		return func_val;
 	}
 
