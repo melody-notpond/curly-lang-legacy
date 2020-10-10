@@ -2,11 +2,11 @@
 Curly is a functional programming language that focuses on iterators. Some of its main implementation features include lazy evaluation, list comprehensions, and quantifiers.
 
 ## Example
-```
-primes = n in (from 2) where
-    for all p in (range 2 n)
-        n % p != 0
-```
+<pre>
+primes = n <span class="hljs-keyword">in</span> (from <span class="hljs-number">2</span>) <span class="hljs-keyword">where</span>
+	<span class="hljs-keyword">for</span> <span class="hljs-keyword">all</span> p <span class="hljs-keyword">in</span> (range <span class="hljs-number">2</span> n)
+		n % p != <span class="hljs-number">0</span>
+</pre>
 
 ## Build
 Just type in the following:
