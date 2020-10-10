@@ -45,18 +45,23 @@ llvm_codegen_env_t* create_llvm_codegen_environment(LLVMModuleRef header_mod)
 	if (LLVMGetTypeByName(header_mod, "func.app.type") == NULL)
 	{
 		// Function application structure
-		// typedef struct
+		// typedef struct s_func_app
 		// {
-		// 	int32_t reference_count;
+		//	union
+		//	{
+		//		int32_t reference_count;
+		//		int64_t i64;
+		//		double f64;
+		//	};
+		//
 		// 	void* func;
 		// 	int8_t count;
-		// 	int8_t arity;
 		// 	int64_t thunk_bitmap;
-		// 	int64_t* args;
+		// 	struct s_func_app* args;
 		// } func_app_t;
 		LLVMContextRef context = LLVMGetModuleContext(header_mod);
 		LLVMTypeRef func_app = LLVMStructCreateNamed(context, "func.app.type");
-		LLVMTypeRef func_app_body[] = {LLVMInt32Type(), LLVMPointerType(LLVMInt64Type(), 0), LLVMInt8Type(), LLVMInt8Type(), LLVMInt64Type(), LLVMPointerType(LLVMInt64Type(), 0)};
+		LLVMTypeRef func_app_body[] = {LLVMInt32Type(), LLVMPointerType(LLVMInt64Type(), 0), LLVMInt8Type(), LLVMInt8Type(), LLVMInt64Type(), LLVMPointerType(func_app, 0)};
 		LLVMStructSetBody(func_app, func_app_body, 6, false);
 	}
 	return env;
