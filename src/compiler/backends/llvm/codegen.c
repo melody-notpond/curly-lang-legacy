@@ -265,7 +265,9 @@ LLVMValueRef build_expression(ast_t* ast, LLVMBuilderRef builder, llvm_codegen_e
 	else if (!strcmp(ast->value.value, "-"))
 	{
 		LLVMValueRef operand = build_expression(ast->children[0], builder, env);
-		return LLVMBuildNeg(builder, operand, "");
+		if (ast->children[0]->type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ast->children[0]->type->type_name, "Int"))
+			return LLVMBuildNeg(builder, operand, "");
+		else return LLVMBuildFNeg(builder, operand, "");
 
 	// Build with expressions
 	} else if (!strcmp(ast->value.value, "with"))
