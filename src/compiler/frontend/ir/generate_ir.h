@@ -12,19 +12,22 @@
 #include "../correctness/types.h"
 #include "../parse/ast.h"
 
-// Represents the type of an ir line
+// Represents the tag of an IR S expression.
 typedef enum
 {
-	CURLY_IR_TYPES_INT,
-	CURLY_IR_TYPES_DOUBLE,
-	CURLY_IR_TYPES_SYMBOL,
-	CURLY_IR_TYPES_INFIX,
-	CURLY_IR_TYPES_ASSIGN,
-	CURLY_IR_TYPES_DECLARE,
-	CURLY_IR_TYPES_LOCAL_SCOPE
+	CURLY_IR_TAGS_INT,
+	CURLY_IR_TAGS_DOUBLE,
+	CURLY_IR_TAGS_BOOL,
+	CURLY_IR_TAGS_SYMBOL,
+	CURLY_IR_TAGS_INFIX,
+	CURLY_IR_TAGS_PREFIX,
+	CURLY_IR_TAGS_ASSIGN,
+	CURLY_IR_TAGS_DECLARE,
+	CURLY_IR_TAGS_LOCAL_SCOPE,
+	CURLY_IR_TAGS_IF
 } ir_types_t;
 
-// Represents an infix operation
+// Represents an infix operation.
 typedef enum
 {
 	IR_BINOPS_MUL,
@@ -51,77 +54,84 @@ typedef enum
 	IR_BINOPS_SPAN
 } ir_binops_t;
 
-// A piece of ir code
-typedef struct s_ir_expr
+// An S expression in IR code.
+typedef struct s_ir_sexpr
 {
-	// The type of the ir
-	ir_types_t type;
+	// The type of the expression.
+	type_t* type;
 
-	// The position in the string the expression was found at
+	// The position in the string the expression was found at.
 	size_t pos;
 	int lino;
 	int charpos;
+	// The tag for the tagged union.
+	ir_types_t tag;
 
-	// The value of the expression
+	// The value of the expression.
 	union
 	{
 		int i64;
 		double f64;
+		bool i1;
 		char* symbol;
 
-		// Infix expressions
+		// Infix expressions.
 		struct
 		{
 			ir_binops_t op;
-			struct s_ir_expr* left;
-			struct s_ir_expr* right;
+			struct s_ir_sexpr* left;
+			struct s_ir_sexpr* right;
 		} infix;
 
-		// Prefix expressions
+		// Prefix expressions.
 		struct
 		{
 			ir_binops_t op;
-			struct s_ir_expr* operand;
+			struct s_ir_sexpr* operand;
 		} prefix;
 
-		// Assignments
+		// Assignments.
 		struct
 		{
 			char* name;
-			struct s_ir_expr* value;
+			struct s_ir_sexpr* value;
 		} assign;
 
-		// Declarations
+		// Declarations.
 		struct
 		{
 			char* name;
 		} declare;
 
-		// Local scopes
+		// Local scopes.
 		struct
 		{
-			struct s_ir_expr** assigns;
+			struct s_ir_sexpr** assigns;
 			size_t assign_count;
 
-			struct s_ir_expr* value;
+			struct s_ir_sexpr* value;
 		} local_scope;
 
-		// If expressions
+		// If expressions.
 		struct
 		{
-			struct s_ir_expr* cond;
-			struct s_ir_expr* then;
-			struct s_ir_expr* elsy;
+			struct s_ir_sexpr* cond;
+			struct s_ir_sexpr* then;
+			struct s_ir_sexpr* elsy;
 		} if_expr;
 	};
-} ir_expr_t;
+} ir_sexpr_t;
 
-// Represents the ir.
+// Represents the IR.
 typedef struct
 {
-	// The list of all expressions
-	ir_expr_t** expr;
+	// The list of all expressions.
+	ir_sexpr_t** expr;
 	size_t expr_count;
 } curly_ir_t;
+
+// convert_ast_to_ir(ast_t*) -> curly_ir_t
+// Converts a given ast root to IR.
+curly_ir_t convert_ast_to_ir(ast_t* ast);
 
 #endif /* GENERATE_IR_H */
