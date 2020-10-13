@@ -121,7 +121,7 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 
 		for (size_t i = 0; i < sexpr->local_scope.assign_count; i++)
 		{
-			sexpr->local_scope.assigns = convert_ast_node(root, ast->children[i]);
+			sexpr->local_scope.assigns[i] = convert_ast_node(root, ast->children[i]);
 		}
 
 		sexpr->local_scope.value = convert_ast_node(root, ast->children[ast->children_count - 1]);
@@ -154,6 +154,176 @@ curly_ir_t convert_ast_to_ir(ast_t* ast)
 	}
 
 	return ir;
+}
+
+// print_ir_sexpr(ir_sexpr_t*, int, bool) -> void
+// Prints out an IR S expression to stdout.
+void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
+{
+	// Indent and print parenthesis
+	if (newline)
+	{
+		for (int i = 0; i < indent; i++)
+			printf("  ");
+		newline = false;
+	}
+	printf("(");
+
+	// Ad hoc match expression for printing
+	switch (sexpr->tag)
+	{
+		case CURLY_IR_TAGS_INT:
+			printf("%lli: i64", sexpr->i64);
+			break;
+		case CURLY_IR_TAGS_DOUBLE:
+			printf("%.05f: f64", sexpr->f64);
+			break;
+		case CURLY_IR_TAGS_BOOL:
+			printf("%s: bool", sexpr->i1 ? "true" : "false");
+			break;
+		case CURLY_IR_TAGS_SYMBOL:
+			printf("%s: ?", sexpr->symbol);
+			break;
+		case CURLY_IR_TAGS_INFIX:
+			printf("call(2) ");
+			switch (sexpr->infix.op)
+			{
+				case IR_BINOPS_MUL:
+					printf("*");
+					break;
+				case IR_BINOPS_DIV:
+					printf("/");
+					break;
+				case IR_BINOPS_MOD:
+					printf("%%");
+					break;
+				case IR_BINOPS_ADD:
+					printf("+");
+					break;
+				case IR_BINOPS_SUB:
+					printf("-");
+					break;
+				case IR_BINOPS_BSL:
+					printf("<<");
+					break;
+				case IR_BINOPS_BSR:
+					printf(">>");
+					break;
+				case IR_BINOPS_BITAND:
+					printf("&");
+					break;
+				case IR_BINOPS_BITOR:
+					printf("|");
+					break;
+				case IR_BINOPS_BITXOR:
+					printf("^");
+					break;
+				case IR_BINOPS_CMPEQ:
+					printf("==");
+					break;
+				case IR_BINOPS_CMPNEQ:
+					printf("!=");
+					break;
+				case IR_BINOPS_CMPLT:
+					printf("<");
+					break;
+				case IR_BINOPS_CMPLTE:
+					printf("<=");
+					break;
+				case IR_BINOPS_CMPGT:
+					printf(">");
+					break;
+				case IR_BINOPS_CMPGTE:
+					printf(">=");
+					break;
+				case IR_BINOPS_CMPIN:
+					printf("in");
+					break;
+				case IR_BINOPS_BOOLAND:
+					printf("and");
+					break;
+				case IR_BINOPS_BOOLOR:
+					printf("or");
+					break;
+				case IR_BINOPS_BOOLXOR:
+					printf("xor");
+					break;
+				default:
+					printf("???");
+					break;
+			}
+			printf(" ");
+			print_ir_sexpr(sexpr->infix.left, indent, false);
+			printf(" ");
+			print_ir_sexpr(sexpr->infix.right, indent, false);
+			break;
+		case CURLY_IR_TAGS_PREFIX:
+			printf("call(1) ");
+			switch (sexpr->prefix.op)
+			{
+				case IR_BINOPS_SPAN:
+					printf("*");
+					break;
+				case IR_BINOPS_NEG:
+					printf("-");
+					break;
+				default:
+					printf("???");
+					break;
+			}
+			printf(" ");
+			print_ir_sexpr(sexpr->prefix.operand, indent, false);
+			break;
+		case CURLY_IR_TAGS_ASSIGN:
+			printf("set %s\n", sexpr->assign.name);
+			print_ir_sexpr(sexpr->assign.value, indent + 1, true);
+			puts("");
+			newline = true;
+			break;
+		case CURLY_IR_TAGS_DECLARE:
+			printf("declare %s: ???", sexpr->declare.name);
+			break;
+		case CURLY_IR_TAGS_LOCAL_SCOPE:
+			puts("scope");
+			for (size_t i = 0; i < sexpr->local_scope.assign_count; i++)
+			{
+				print_ir_sexpr(sexpr->local_scope.assigns[i], indent + 1, true);
+				puts("");
+			}
+			print_ir_sexpr(sexpr->local_scope.value, indent + 1, true);
+			puts("");
+			newline = true;
+			break;
+		case CURLY_IR_TAGS_IF:
+			printf("if ");
+			print_ir_sexpr(sexpr->if_expr.cond, indent, false);
+			puts("");
+			print_ir_sexpr(sexpr->if_expr.then, indent + 1, true);
+			puts("");
+			print_ir_sexpr(sexpr->if_expr.elsy, indent + 1, true);
+			puts("");
+			newline = true;
+			break;
+		default:
+			printf("???");
+	}
+
+	// Indent and print parenthesis
+	if (newline)
+		for (int i = 0; i < indent; i++)
+			printf("  ");
+	printf(")");
+}
+
+// print_ir(curly_ir_t) -> void
+// Prints out IR to stdout.
+void print_ir(curly_ir_t ir)
+{
+	for (size_t i = 0; i < ir.expr_count; i++)
+	{
+		print_ir_sexpr(ir.expr[i], 0, true);
+		puts("");
+	}
 }
 
 // clean_ir_sexpr(ir_sexpr_t*) -> void

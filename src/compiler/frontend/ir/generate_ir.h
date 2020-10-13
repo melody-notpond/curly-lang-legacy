@@ -70,7 +70,7 @@ typedef struct s_ir_sexpr
 	// The value of the expression.
 	union
 	{
-		int i64;
+		int64_t i64;
 		double f64;
 		bool i1;
 		char* symbol;
@@ -133,6 +133,10 @@ typedef struct
 // convert_ast_to_ir(ast_t*) -> curly_ir_t
 // Converts a given ast root to IR.
 curly_ir_t convert_ast_to_ir(ast_t* ast);
+
+// print_ir(curly_ir_t) -> void
+// Prints out IR to stdout.
+void print_ir(curly_ir_t ir);
 
 // clean_ir(curly_ir_t) -> void
 // Cleans up Curly IR.

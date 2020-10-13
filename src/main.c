@@ -15,6 +15,7 @@
 
 #include "compiler/backends/llvm/codegen.h"
 #include "compiler/frontend/correctness/check.h"
+#include "compiler/frontend/ir/generate_ir.h"
 #include "compiler/frontend/parse/lexer.h"
 #include "compiler/frontend/parse/parser.h"
 #include "utils/list.h"
@@ -143,9 +144,16 @@ int main(int argc, char** argv)
 					if (res.ast->children_count == 0)
 						continue;
 
-					// Type check
+					// Print
 					print_ast(res.ast);
 
+					// Generate IR code
+					curly_ir_t ir = convert_ast_to_ir(res.ast);
+					print_ir(ir);
+					clean_ir(ir);
+					continue;
+
+					// Type check
 					// Build the LLVM IR if it's correct code
 					if (check_correctness(res.ast, scope))
 					{

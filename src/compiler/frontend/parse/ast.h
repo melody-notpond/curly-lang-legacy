@@ -13,6 +13,8 @@
 
 #include "lexer.h"
 
+#include "../correctness/types.h"
+
 // Represents a parsing error.
 typedef struct
 {
@@ -29,6 +31,8 @@ typedef struct
 // Represents an abstract syntax tree node.
 typedef struct s_ast
 {
+	type_t* type;
+
 	// The token the ast node represents.
 	token_t value;
 
