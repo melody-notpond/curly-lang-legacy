@@ -156,4 +156,56 @@ curly_ir_t convert_ast_to_ir(ast_t* ast)
 	return ir;
 }
 
+// clean_ir_sexpr(ir_sexpr_t*) -> void
+// Cleans up an IR S expression.
+void clean_ir_sexpr(ir_sexpr_t* sexpr)
+{
+	switch (sexpr->tag)
+	{
+		case CURLY_IR_TAGS_SYMBOL:
+			free(sexpr->symbol);
+			break;
+		case CURLY_IR_TAGS_INFIX:
+			clean_ir_sexpr(sexpr->infix.left);
+			clean_ir_sexpr(sexpr->infix.right);
+			break;
+		case CURLY_IR_TAGS_PREFIX:
+			clean_ir_sexpr(sexpr->prefix.operand);
+			break;
+		case CURLY_IR_TAGS_ASSIGN:
+			free(sexpr->assign.name);
+			clean_ir_sexpr(sexpr->assign.value);
+			break;
+		case CURLY_IR_TAGS_DECLARE:
+			free(sexpr->declare.name);
+			break;
+		case CURLY_IR_TAGS_LOCAL_SCOPE:
+			for (size_t i = 0; i < sexpr->local_scope.assign_count; i++)
+			{
+				clean_ir_sexpr(sexpr->local_scope.assigns[i]);
+			}
+			clean_ir_sexpr(sexpr->local_scope.value);
+			break;
+		case CURLY_IR_TAGS_IF:
+			clean_ir_sexpr(sexpr->if_expr.cond);
+			clean_ir_sexpr(sexpr->if_expr.then);
+			clean_ir_sexpr(sexpr->if_expr.elsy);
+			break;
+		default:
+			break;
+	}
 
+	free(sexpr);
+}
+
+// clean_ir(curly_ir_t) -> void
+// Cleans up Curly IR.
+void clean_ir(curly_ir_t ir)
+{
+	for (size_t i = 0; i < ir.expr_count; i++)
+	{
+		clean_ir_sexpr(ir.expr[i]);
+	}
+
+	free(ir.expr);
+}

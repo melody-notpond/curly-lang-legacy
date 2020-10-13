@@ -134,4 +134,8 @@ typedef struct
 // Converts a given ast root to IR.
 curly_ir_t convert_ast_to_ir(ast_t* ast);
 
+// clean_ir(curly_ir_t) -> void
+// Cleans up Curly IR.
+void clean_ir(curly_ir_t ir);
+
 #endif /* GENERATE_IR_H */
