@@ -54,25 +54,25 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 		sexpr->infix.left  = convert_ast_node(root, ast->children[0]);
 		sexpr->infix.right = convert_ast_node(root, ast->children[1]);
 		sexpr->infix.op = !strcmp(ast->value.value, "*")   ? IR_BINOPS_MUL
-					   : !strcmp(ast->value.value, "/")   ? IR_BINOPS_DIV
-					   : !strcmp(ast->value.value, "%")   ? IR_BINOPS_MOD
-					   : !strcmp(ast->value.value, "+")   ? IR_BINOPS_ADD
-					   : !strcmp(ast->value.value, "-")   ? IR_BINOPS_SUB
-					   : !strcmp(ast->value.value, "<<")  ? IR_BINOPS_BSL
-					   : !strcmp(ast->value.value, ">>")  ? IR_BINOPS_BSR
-					   : !strcmp(ast->value.value, "&")   ? IR_BINOPS_BITAND
-					   : !strcmp(ast->value.value, "|")   ? IR_BINOPS_BITOR
-					   : !strcmp(ast->value.value, "^")   ? IR_BINOPS_BITXOR
-					   : !strcmp(ast->value.value, "<")   ? IR_BINOPS_CMPLT
-					   : !strcmp(ast->value.value, ">")   ? IR_BINOPS_CMPGT
-					   : !strcmp(ast->value.value, "<=")  ? IR_BINOPS_CMPLTE
-					   : !strcmp(ast->value.value, ">=")  ? IR_BINOPS_CMPGTE
-					   : !strcmp(ast->value.value, "==")  ? IR_BINOPS_CMPEQ
-					   : !strcmp(ast->value.value, "!=")  ? IR_BINOPS_CMPNEQ
-					   : !strcmp(ast->value.value, "and") ? IR_BINOPS_BOOLAND
-					   : !strcmp(ast->value.value, "or")  ? IR_BINOPS_BOOLOR
-					   : !strcmp(ast->value.value, "xor") ? IR_BINOPS_BOOLXOR
-					   : -1;
+						: !strcmp(ast->value.value, "/")   ? IR_BINOPS_DIV
+						: !strcmp(ast->value.value, "%")   ? IR_BINOPS_MOD
+						: !strcmp(ast->value.value, "+")   ? IR_BINOPS_ADD
+						: !strcmp(ast->value.value, "-")   ? IR_BINOPS_SUB
+						: !strcmp(ast->value.value, "<<")  ? IR_BINOPS_BSL
+						: !strcmp(ast->value.value, ">>")  ? IR_BINOPS_BSR
+						: !strcmp(ast->value.value, "&")   ? IR_BINOPS_BITAND
+						: !strcmp(ast->value.value, "|")   ? IR_BINOPS_BITOR
+						: !strcmp(ast->value.value, "^")   ? IR_BINOPS_BITXOR
+						: !strcmp(ast->value.value, "<")   ? IR_BINOPS_CMPLT
+						: !strcmp(ast->value.value, ">")   ? IR_BINOPS_CMPGT
+						: !strcmp(ast->value.value, "<=")  ? IR_BINOPS_CMPLTE
+						: !strcmp(ast->value.value, ">=")  ? IR_BINOPS_CMPGTE
+						: !strcmp(ast->value.value, "==")  ? IR_BINOPS_CMPEQ
+						: !strcmp(ast->value.value, "!=")  ? IR_BINOPS_CMPNEQ
+						: !strcmp(ast->value.value, "and") ? IR_BINOPS_BOOLAND
+						: !strcmp(ast->value.value, "or")  ? IR_BINOPS_BOOLOR
+						: !strcmp(ast->value.value, "xor") ? IR_BINOPS_BOOLXOR
+						: -1;
 
 	// Prefix operators
 	} else if (!strcmp(ast->value.value, "*") || !strcmp(ast->value.value, "-"))
@@ -80,8 +80,8 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 		sexpr->tag = CURLY_IR_TAGS_PREFIX;
 		sexpr->prefix.operand = convert_ast_node(root, ast->children[0]);
 		sexpr->prefix.op = !strcmp(ast->value.value, "*") ? IR_BINOPS_SPAN
-						: !strcmp(ast->value.value, "-") ? IR_BINOPS_NEG
-						: -1;
+						 : !strcmp(ast->value.value, "-") ? IR_BINOPS_NEG
+						 : -1;
 
 	// Assignments
 	} else if (ast->value.type == LEX_TYPE_ASSIGN)
