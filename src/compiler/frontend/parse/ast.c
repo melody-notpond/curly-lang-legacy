@@ -18,7 +18,6 @@ ast_t* init_ast(token_t token)
 	ast_t* ast = malloc(sizeof(ast_t));
 	ast->value = token;
 	ast->value.value = token.value != NULL ? strdup(token.value) : NULL;
-	ast->type = NULL;
 	ast->children = NULL;
 	ast->children_count = 0;
 	ast->children_size = 0;

@@ -459,7 +459,7 @@ parse_result_t prefix(lexer_t* lex)
 	return application(lex);
 }
 
-// muldiv: prefix (('*'|'/') prefix)*
+// muldiv: prefix (('*'|'/'|'%') prefix)*
 infix_parser(muldiv, prefix, type, LEX_TYPE_MULDIV, true)
 
 // addsub: muldiv (('+'|'-') muldiv)*
@@ -468,12 +468,8 @@ infix_parser(addsub, muldiv, type, LEX_TYPE_ADDSUB, true)
 // bitshift: addsub (('<<'|'>>') addsub)*
 infix_parser(bitshift, addsub, type, LEX_TYPE_BITSHIFT, true)
 
-// typing: bitshift (':' bitshift)*
-// Note that the code correctness checker will assert only one colon pair is present per series
-infix_parser(typing, bitshift, type, LEX_TYPE_COLON, true)
-
 // bitand: bitshift (('&') bitshift)*
-infix_parser(bitand, typing, type, LEX_TYPE_AMP, true)
+infix_parser(bitand, bitshift, type, LEX_TYPE_AMP, true)
 
 // bitor: bitand (('|') bitand)*
 infix_parser(bitor, bitand, type, LEX_TYPE_BAR, true)

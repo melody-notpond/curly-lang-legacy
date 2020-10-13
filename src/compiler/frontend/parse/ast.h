@@ -12,7 +12,6 @@
 #include <stdbool.h>
 
 #include "lexer.h"
-#include "../correctness/types.h"
 
 // Represents a parsing error.
 typedef struct
@@ -32,9 +31,6 @@ typedef struct s_ast
 {
 	// The token the ast node represents.
 	token_t value;
-
-	// The type of the ast node's value.
-	type_t* type;
 
 	// The list of children of the ast node.
 	struct s_ast** children;
