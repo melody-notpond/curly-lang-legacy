@@ -43,6 +43,14 @@ bool check_correctness_helper(ir_sexpr_t* sexpr, ir_scope_t* scope /*, bool get_
 			if (!check_correctness_helper(sexpr->assign.value, scope))
 				return false;
 
+			// Check type doesn't change on reassignment
+			type_t* type = map_get(scope->var_types, sexpr->assign.name);
+			if (type != NULL && !type_subtype(type, sexpr->assign.value->type))
+			{
+				printf("Assigning incompatible type to %s found at %i:%i\n", sexpr->assign.name, sexpr->lino, sexpr->charpos);
+				return false;
+			} else sexpr->type = type;
+
 			// Assert the type is empty or matches
 			if (sexpr->type == NULL)
 				sexpr->type = sexpr->assign.value->type;

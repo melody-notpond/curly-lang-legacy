@@ -130,9 +130,9 @@ typedef struct
 	size_t expr_count;
 } curly_ir_t;
 
-// convert_ast_to_ir(ast_t*) -> curly_ir_t
+// convert_ast_to_ir(ast_t*, ir_scope_t*) -> curly_ir_t
 // Converts a given ast root to IR.
-curly_ir_t convert_ast_to_ir(ast_t* ast);
+curly_ir_t convert_ast_to_ir(ast_t* ast, ir_scope_t* scope);
 
 // print_ir(curly_ir_t) -> void
 // Prints out IR to stdout.

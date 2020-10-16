@@ -9,11 +9,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../correctness/type_generators.h"
 #include "generate_ir.h"
 
-// convert_ast_node(curly_ir_t*, ast_t*) -> ir_sexpr_t*
+// convert_ast_node(curly_ir_t*, ast_t*, ir_scope_t*) -> ir_sexpr_t*
 // Converts an ast node into an S expression.
-ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
+ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 {
 	ir_sexpr_t* sexpr = malloc(sizeof(ir_sexpr_t));
 	sexpr->type = NULL;
@@ -51,8 +52,8 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 	} else if (ast->value.tag == LEX_TAG_INFIX_OPERATOR)
 	{
 		sexpr->tag = CURLY_IR_TAGS_INFIX;
-		sexpr->infix.left  = convert_ast_node(root, ast->children[0]);
-		sexpr->infix.right = convert_ast_node(root, ast->children[1]);
+		sexpr->infix.left  = convert_ast_node(root, ast->children[0], scope);
+		sexpr->infix.right = convert_ast_node(root, ast->children[1], scope);
 		sexpr->infix.op = !strcmp(ast->value.value, "*")   ? IR_BINOPS_MUL
 						: !strcmp(ast->value.value, "/")   ? IR_BINOPS_DIV
 						: !strcmp(ast->value.value, "%")   ? IR_BINOPS_MOD
@@ -78,7 +79,7 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 	} else if (!strcmp(ast->value.value, "*") || !strcmp(ast->value.value, "-"))
 	{
 		sexpr->tag = CURLY_IR_TAGS_PREFIX;
-		sexpr->prefix.operand = convert_ast_node(root, ast->children[0]);
+		sexpr->prefix.operand = convert_ast_node(root, ast->children[0], scope);
 		sexpr->prefix.op = !strcmp(ast->value.value, "*") ? IR_BINOPS_SPAN
 						 : !strcmp(ast->value.value, "-") ? IR_BINOPS_NEG
 						 : -1;
@@ -96,13 +97,13 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 		{
 			name = head->children[0]->value.value;
 
-			// TODO extract types
+			sexpr->type = generate_type(head->children[1], scope, NULL, NULL);
 
 		// TODO functions, attributes, and head/tail
 		} else puts("Unsupported assignment!");
 
 		sexpr->assign.name = strdup(name);
-		sexpr->assign.value = convert_ast_node(root, ast->children[1]);
+		sexpr->assign.value = convert_ast_node(root, ast->children[1], scope);
 
 	// Declarations
 	} else if (ast->value.type == LEX_TYPE_COLON)
@@ -110,7 +111,7 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 		sexpr->tag = CURLY_IR_TAGS_DECLARE;
 		sexpr->declare.name = strdup(ast->children[0]->value.value);
 
-		// TODO extract types
+		sexpr->type = generate_type(ast->children[1], scope, NULL, NULL);
 
 	// With expressions
 	} else if (!strcmp(ast->value.value, "with"))
@@ -121,28 +122,32 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast)
 
 		for (size_t i = 0; i < sexpr->local_scope.assign_count; i++)
 		{
-			sexpr->local_scope.assigns[i] = convert_ast_node(root, ast->children[i]);
+			sexpr->local_scope.assigns[i] = convert_ast_node(root, ast->children[i], scope);
 		}
 
-		sexpr->local_scope.value = convert_ast_node(root, ast->children[ast->children_count - 1]);
+		sexpr->local_scope.value = convert_ast_node(root, ast->children[ast->children_count - 1], scope);
 
 	// If expressions
 	} else if (!strcmp(ast->value.value, "if"))
 	{
 		sexpr->tag = CURLY_IR_TAGS_IF;
-		sexpr->if_expr.cond = convert_ast_node(root, ast->children[0]);
-		sexpr->if_expr.then = convert_ast_node(root, ast->children[1]);
-		sexpr->if_expr.elsy = convert_ast_node(root, ast->children[2]);
+		sexpr->if_expr.cond = convert_ast_node(root, ast->children[0], scope);
+		sexpr->if_expr.then = convert_ast_node(root, ast->children[1], scope);
+		sexpr->if_expr.elsy = convert_ast_node(root, ast->children[2], scope);
 
 	// Unsupported syntax
-	} else return NULL;
+	} else
+	{
+		puts("Unsupported syntax!");
+		return NULL;
+	}
 
 	return sexpr;
 }
 
-// convert_ast_to_ir(ast_t*) -> curly_ir_t
+// convert_ast_to_ir(ast_t*, ir_scope_t*) -> curly_ir_t
 // Converts a given ast root to IR.
-curly_ir_t convert_ast_to_ir(ast_t* ast)
+curly_ir_t convert_ast_to_ir(ast_t* ast, ir_scope_t* scope)
 {
 	curly_ir_t ir;
 	ir.expr_count = ast->children_count;
@@ -150,7 +155,7 @@ curly_ir_t convert_ast_to_ir(ast_t* ast)
 
 	for (size_t i = 0; i < ir.expr_count; i++)
 	{
-		ir.expr[i] = convert_ast_node(&ir, ast->children[i]);
+		ir.expr[i] = convert_ast_node(&ir, ast->children[i], scope);
 	}
 
 	return ir;
@@ -167,22 +172,23 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 			printf("  ");
 		newline = false;
 	}
+	printf("%s: ", sexpr->type != NULL ? sexpr->type->type_name : "(null)");
 	printf("(");
 
 	// Ad hoc match expression for printing
 	switch (sexpr->tag)
 	{
 		case CURLY_IR_TAGS_INT:
-			printf("%lli: i64", sexpr->i64);
+			printf("%lli: Int", sexpr->i64);
 			break;
 		case CURLY_IR_TAGS_DOUBLE:
-			printf("%.05f: f64", sexpr->f64);
+			printf("%.05f: Float", sexpr->f64);
 			break;
 		case CURLY_IR_TAGS_BOOL:
-			printf("%s: bool", sexpr->i1 ? "true" : "false");
+			printf("%s: Bool", sexpr->i1 ? "true" : "false");
 			break;
 		case CURLY_IR_TAGS_SYMBOL:
-			printf("%s: ?", sexpr->symbol);
+			printf("%s: %s", sexpr->symbol, sexpr->type != NULL ? sexpr->type->type_name : "(null)");
 			break;
 		case CURLY_IR_TAGS_INFIX:
 			printf("call(2) ");
@@ -281,7 +287,7 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 			newline = true;
 			break;
 		case CURLY_IR_TAGS_DECLARE:
-			printf("declare %s: ???", sexpr->declare.name);
+			printf("declare %s: %s", sexpr->declare.name, sexpr->type != NULL ? sexpr->type->type_name : "(null)");
 			break;
 		case CURLY_IR_TAGS_LOCAL_SCOPE:
 			puts("scope");

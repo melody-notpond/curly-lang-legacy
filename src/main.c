@@ -71,6 +71,7 @@ int main(int argc, char** argv)
 			// Set up
 			puts("Curly REPL");
 			ir_scope_t* scope = push_scope(NULL);
+			create_primatives(scope);
 			lexer_t lex;
 			parse_result_t res;
 			LLVMContextRef context = LLVMContextCreate();
@@ -148,13 +149,14 @@ int main(int argc, char** argv)
 					print_ast(res.ast);
 
 					// Generate IR code
-					curly_ir_t ir = convert_ast_to_ir(res.ast);
+					curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
 					print_ir(ir);
 
 					// Type check
 					// Build the LLVM IR if it's correct code
 					if (check_correctness(ir, scope))
 					{
+						print_ir(ir);
 						clean_ir(ir);
 						continue;
 
@@ -282,7 +284,8 @@ int main(int argc, char** argv)
 				print_ast(res.ast);
 
 				// Generate IR code
-				curly_ir_t ir = convert_ast_to_ir(res.ast);
+				ir_scope_t* scope = push_scope(NULL);
+				curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
 				print_ir(ir);
 
 				// Type check
@@ -319,6 +322,7 @@ int main(int argc, char** argv)
 				} else printf("Check failed\n");
 
 				clean_ir(ir);
+				pop_scope(scope);
 			} else
 			{
 				// Print out parsing error
