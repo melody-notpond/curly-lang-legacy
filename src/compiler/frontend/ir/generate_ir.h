@@ -30,6 +30,7 @@ typedef enum
 // Represents an infix operation.
 typedef enum
 {
+	IR_BINOPS_NEG,
 	IR_BINOPS_MUL,
 	IR_BINOPS_DIV,
 	IR_BINOPS_MOD,
@@ -50,7 +51,6 @@ typedef enum
 	IR_BINOPS_BOOLAND,
 	IR_BINOPS_BOOLOR,
 	IR_BINOPS_BOOLXOR,
-	IR_BINOPS_NEG,
 	IR_BINOPS_SPAN
 } ir_binops_t;
 

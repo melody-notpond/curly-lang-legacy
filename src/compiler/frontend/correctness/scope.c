@@ -26,40 +26,6 @@ ir_scope_t* push_scope(ir_scope_t* parent)
 	return scope;
 }
 
-// convert_infix_op(char*) -> int
-// Converts an infix operator into its coresponding index in the list of type definitions.
-int convert_infix_op(char* op)
-{
-	if (op == NULL)
-		return -1;
-
-	switch (op[0])
-	{
-		case '*':
-			return 1;
-		case '/':
-			return 2;
-		case '%':
-			return 3;
-		case '+':
-			return 4;
-		case '-':
-			return 5;
-		case '<':
-			return op[1] == '<' && op[2] == '\0' ? 6 : -1;
-		case '>':
-			return op[1] == '>' && op[2] == '\0' ? 7 : -1;
-		case '&':
-			return 8;
-		case '|':
-			return 9;
-		case '^':
-			return 10;
-		default:
-			return -1;
-	}
-}
-
 // add_prefix_op(ir_scope_t*, type_t*, type_t*) -> void
 // Adds a new prefix operator to the scope.
 void add_prefix_op(ir_scope_t* scope, type_t* operand, type_t* out)
@@ -89,14 +55,10 @@ void add_prefix_op(ir_scope_t* scope, type_t* operand, type_t* out)
 	}
 }
 
-// add_infix_op(ir_scope_t*, char*, type_t*, type_t*, type_t*) -> void
+// add_infix_op(ir_scope_t*, ir_binops_t, type_t*, type_t*, type_t*) -> void
 // Adds an infix operation to the scope.
-void add_infix_op(ir_scope_t* scope, char* op, type_t* left, type_t* right, type_t* out)
+void add_infix_op(ir_scope_t* scope, ir_binops_t op, type_t* left, type_t* right, type_t* out)
 {
-	// Check that the op is valid
-	int op_index = convert_infix_op(op);
-	if (op_index < 0) return;
-
 	// Create the type
 	type_t* type = init_type(IR_TYPES_FUNC, NULL, 3);
 	type->field_types[0] = left;
@@ -109,12 +71,12 @@ void add_infix_op(ir_scope_t* scope, char* op, type_t* left, type_t* right, type
 	infix->next = NULL;
 
 	// Append the new operator
-	if (scope->infix_ops[op_index] == NULL)
-		scope->infix_ops[op_index] = infix;
+	if (scope->infix_ops[op] == NULL)
+		scope->infix_ops[op] = infix;
 	else
 	{
 		// Find the last element in the linked list
-		ir_infix_type_t* head = scope->infix_ops[op_index];
+		ir_infix_type_t* head = scope->infix_ops[op];
 		while (head->next != NULL)
 		{
 			head = head->next;
@@ -148,20 +110,16 @@ type_t* scope_lookup_prefix(ir_scope_t* scope, type_t* operand)
 	return NULL;
 }
 
-// scope_lookup_infix(ir_scope_t*, char*, type_t*, type_t*) -> type_t*
+// scope_lookup_infix(ir_scope_t*, ir_binops_t, type_t*, type_t*) -> type_t*
 // Looks up an infix operator based on the argument types and returns the result type.
-type_t* scope_lookup_infix(ir_scope_t* scope, char* op, type_t* left, type_t* right)
+type_t* scope_lookup_infix(ir_scope_t* scope, ir_binops_t op, type_t* left, type_t* right)
 {
-	// Check that the op is valid
-	int op_index = convert_infix_op(op);
-	if (op_index < 0) return NULL;
-
 	// Iterate over the scopes
 	ir_scope_t* top = scope;
 	while (top != NULL)
 	{
 		// Search for the infix operator in topmost scope
-		ir_infix_type_t* current = top->infix_ops[op_index];
+		ir_infix_type_t* current = top->infix_ops[op];
 		while (current != NULL)
 		{
 			if (type_subtype(current->type->field_types[0], left, false) && type_subtype(current->type->field_types[1], right, false))
@@ -199,25 +157,25 @@ type_t* scope_lookup_var_type(ir_scope_t* scope, char* name)
 	return NULL;
 }
 
-// scope_lookup_var_val(ir_scope_t*, char*) -> ast_t*
+// scope_lookup_var_val(ir_scope_t*, char*) -> ir_sexpr_t*
 // Looks up the value of a variable in the scope.
-ast_t* scope_lookup_var_val(ir_scope_t* scope, char* name)
+ir_sexpr_t* scope_lookup_var_val(ir_scope_t* scope, char* name)
 {
 	// Iterate over every scope
 	while (scope != NULL)
 	{
-		// Get the ast in the current scope
-		ast_t* ast = map_get(scope->var_vals, name);
+		// Get the S expression in the current scope
+		ir_sexpr_t* sexpr = map_get(scope->var_vals, name);
 
-		// Return the ast if found
-		if (ast != NULL)
-			return ast;
+		// Return the S expression if found
+		if (sexpr != NULL)
+			return sexpr;
 
 		// Get parent scope
 		scope = scope->parent;
 	}
 
-	// No ast was found
+	// No S expression was found
 	return NULL;
 }
 

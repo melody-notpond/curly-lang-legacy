@@ -28,7 +28,6 @@ void create_primatives(ir_scope_t* scope)
 	init_type(IR_TYPES_PRIMITIVE, "String", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Bool", 0);
 	//init_type(IR_TYPES_PRIMITIVE, "Dict", 0);
-	type_t* _type = init_type(IR_TYPES_PRIMITIVE, "Type", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Enum", 0);
 
 	// Add to scope
@@ -40,34 +39,28 @@ void create_primatives(ir_scope_t* scope)
 	}
 
 	// Define default arithmetic infix operations
-	add_infix_op(scope, "*", _int, _int, _int);
-	add_infix_op(scope, "*", _float, _int, _float);
-	add_infix_op(scope, "*", _int, _float, _float);
-	add_infix_op(scope, "*", _float, _float, _float);
-	add_infix_op(scope, "/", _int, _int, _int);
-	add_infix_op(scope, "/", _float, _int, _float);
-	add_infix_op(scope, "/", _int, _float, _float);
-	add_infix_op(scope, "/", _float, _float, _float);
-	add_infix_op(scope, "%", _int, _int, _int);
-	add_infix_op(scope, "+", _int, _int, _int);
-	add_infix_op(scope, "+", _float, _int, _float);
-	add_infix_op(scope, "+", _int, _float, _float);
-	add_infix_op(scope, "+", _float, _float, _float);
-	add_infix_op(scope, "-", _int, _int, _int);
-	add_infix_op(scope, "-", _float, _int, _float);
-	add_infix_op(scope, "-", _int, _float, _float);
-	add_infix_op(scope, "-", _float, _float, _float);
-	add_infix_op(scope, ">>", _int, _int, _int);
-	add_infix_op(scope, "<<", _int, _int, _int);
-	add_infix_op(scope, "&", _int, _int, _int);
-	add_infix_op(scope, "|", _int, _int, _int);
-	add_infix_op(scope, "^", _int, _int, _int);
-
-	// Define default type operations
-	add_infix_op(scope, "*", _type, _type, _type);
-	add_infix_op(scope, ">>", _type, _type, _type);
-	add_infix_op(scope, "&", _type, _type, _type);
-	add_infix_op(scope, "|", _type, _type, _type);
+	add_infix_op(scope, IR_BINOPS_MUL, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_MUL, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_MUL, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_MUL, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_DIV, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_MOD, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_ADD, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_ADD, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_ADD, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_ADD, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_SUB, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_BSL, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BSR, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITAND, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITOR, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITXOR, _int, _int, _int);
 
 	// Define default prefix operations
 	add_prefix_op(scope, _int, _int);

@@ -9,11 +9,11 @@
 #ifndef CHECK_H
 #define CHECK_H
 
-#include "../parse/ast.h"
+#include "../ir/generate_ir.h"
 #include "scope.h"
 
-// check_correctness(ast_t*, ir_scope_t*) -> void
-// Checks the correctness of an ast.
-bool check_correctness(ast_t* ast, ir_scope_t* scope);
+// check_correctness(curly_ir_t, ir_scope_t*) -> void
+// Checks the correctness of IR.
+bool check_correctness(curly_ir_t ir, ir_scope_t* scope);
 
 #endif /* CHECK_H */

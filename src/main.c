@@ -150,13 +150,14 @@ int main(int argc, char** argv)
 					// Generate IR code
 					curly_ir_t ir = convert_ast_to_ir(res.ast);
 					print_ir(ir);
-					clean_ir(ir);
-					continue;
 
 					// Type check
 					// Build the LLVM IR if it's correct code
-					if (check_correctness(res.ast, scope))
+					if (check_correctness(ir, scope))
 					{
+						clean_ir(ir);
+						continue;
+
 						generate_code(res.ast, env);
 						char* modstr = LLVMPrintModuleToString(env->header_mod);
 						printf("%s\n", modstr);
@@ -217,6 +218,8 @@ int main(int argc, char** argv)
 						empty_llvm_codegen_environment(env);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
+
+					clean_ir(ir);
 				} else
 				{
 					// Print out parsing error
@@ -276,9 +279,14 @@ int main(int argc, char** argv)
 
 			if (res.succ)
 			{
-				// Type check
 				print_ast(res.ast);
-				if (check_correctness(res.ast, NULL))
+
+				// Generate IR code
+				curly_ir_t ir = convert_ast_to_ir(res.ast);
+				print_ir(ir);
+
+				// Type check
+				if (check_correctness(ir, NULL))
 				{
 					// Build the LLVM IR
 					llvm_codegen_env_t* env = generate_code(res.ast, NULL);
@@ -309,6 +317,8 @@ int main(int argc, char** argv)
 					LLVMDisposeExecutionEngine(engine);
 					clean_llvm_codegen_environment(env);
 				} else printf("Check failed\n");
+
+				clean_ir(ir);
 			} else
 			{
 				// Print out parsing error
