@@ -10,11 +10,10 @@
 
 #include "llvm_types.h"
 
-// internal_type_to_llvm(llvm_codegen_env_t*, ast_t*) -> LLVMTypeRef
+// internal_type_to_llvm(llvm_codegen_env_t*, type_t*) -> LLVMTypeRef
 // Converts an internal type into an LLVM IR type.
-LLVMTypeRef internal_type_to_llvm(llvm_codegen_env_t* env, ast_t* ast)
+LLVMTypeRef internal_type_to_llvm(llvm_codegen_env_t* env, type_t* type)
 {
-	type_t* type = ast->type;
 	if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Int"))
 		return LLVMInt64Type();
 	else if (type->type_type == IR_TYPES_PRIMITIVE && !strcmp(type->type_name, "Float"))

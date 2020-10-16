@@ -32,7 +32,7 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 				sexpr->i64 = atoll(ast->value.value);
 				break;
 			case LEX_TYPE_FLOAT:
-				sexpr->tag = CURLY_IR_TAGS_DOUBLE;
+				sexpr->tag = CURLY_IR_TAGS_FLOAT;
 				sexpr->f64 = atof(ast->value.value);
 				break;
 			case LEX_TYPE_BOOL:
@@ -181,7 +181,7 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 		case CURLY_IR_TAGS_INT:
 			printf("%lli: Int", sexpr->i64);
 			break;
-		case CURLY_IR_TAGS_DOUBLE:
+		case CURLY_IR_TAGS_FLOAT:
 			printf("%.05f: Float", sexpr->f64);
 			break;
 		case CURLY_IR_TAGS_BOOL:

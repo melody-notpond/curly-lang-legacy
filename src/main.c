@@ -157,10 +157,8 @@ int main(int argc, char** argv)
 					if (check_correctness(ir, scope))
 					{
 						print_ir(ir);
-						clean_ir(ir);
-						continue;
 
-						generate_code(res.ast, env);
+						generate_code(ir, env);
 						char* modstr = LLVMPrintModuleToString(env->header_mod);
 						printf("%s\n", modstr);
 						free(modstr);
@@ -202,7 +200,7 @@ int main(int argc, char** argv)
 						LLVMDisposeGenericValue(LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {}));
 
 						// Print the result
-						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+						type_t* ret_type = ir.expr[ir.expr_count - 1]->type;
 						printf("  = ");
 						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
 							printf("%lli", last_repl_val.i64);
@@ -292,7 +290,7 @@ int main(int argc, char** argv)
 				if (check_correctness(ir, NULL))
 				{
 					// Build the LLVM IR
-					llvm_codegen_env_t* env = generate_code(res.ast, NULL);
+					llvm_codegen_env_t* env = generate_code(ir, NULL);
 					char* string = LLVMPrintModuleToString(env->body_mod);
 					printf("%s", string);
 					free(string);

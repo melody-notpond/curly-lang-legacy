@@ -23,7 +23,7 @@ bool check_correctness_helper(ir_sexpr_t* sexpr, ir_scope_t* scope /*, bool get_
 		case CURLY_IR_TAGS_INT:
 			sexpr->type = scope_lookup_type(scope, "Int");
 			return true;
-		case CURLY_IR_TAGS_DOUBLE:
+		case CURLY_IR_TAGS_FLOAT:
 			sexpr->type = scope_lookup_type(scope, "Float");
 			return true;
 		case CURLY_IR_TAGS_BOOL:
