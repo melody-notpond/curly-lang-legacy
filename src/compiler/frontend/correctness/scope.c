@@ -97,7 +97,7 @@ type_t* scope_lookup_prefix(ir_scope_t* scope, type_t* operand)
 		ir_infix_type_t* current = top->infix_ops[0];
 		while (current != NULL)
 		{
-			if (type_subtype(current->type->field_types[0], operand, false))
+			if (type_subtype(current->type->field_types[0], operand))
 				return current->type->field_types[1];
 			current = current->next;
 		}
@@ -122,7 +122,7 @@ type_t* scope_lookup_infix(ir_scope_t* scope, ir_binops_t op, type_t* left, type
 		ir_infix_type_t* current = top->infix_ops[op];
 		while (current != NULL)
 		{
-			if (type_subtype(current->type->field_types[0], left, false) && type_subtype(current->type->field_types[1], right, false))
+			if (type_subtype(current->type->field_types[0], left) && type_subtype(current->type->field_types[1], right))
 				return current->type->field_types[2];
 			current = current->next;
 		}

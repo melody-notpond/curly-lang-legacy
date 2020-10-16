@@ -46,7 +46,7 @@ bool check_correctness_helper(ir_sexpr_t* sexpr, ir_scope_t* scope /*, bool get_
 			// Assert the type is empty or matches
 			if (sexpr->type == NULL)
 				sexpr->type = sexpr->assign.value->type;
-			else if (!type_subtype(sexpr->type, sexpr->assign.value->type, true))
+			else if (!type_subtype(sexpr->type, sexpr->assign.value->type))
 			{
 				printf("Assigning incompatible type to %s found at %i:%i\n", sexpr->assign.name, sexpr->lino, sexpr->charpos);
 				return false;

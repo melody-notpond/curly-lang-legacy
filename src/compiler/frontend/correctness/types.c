@@ -86,9 +86,9 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	return type;
 }
 
-// type_subtype(type_t*, type_t*, bool) -> bool
+// type_subtype(type_t*, type_t*) -> bool
 // Returns true if the second type is a valid type under the first type.
-bool type_subtype(type_t* super, type_t* sub, bool override_fields)
+bool type_subtype(type_t* super, type_t* sub)
 {
 	if (super == NULL || sub == NULL)
 		return super == sub;
@@ -116,13 +116,9 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			// Union types check its subtypes against the passed subtype
 			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = type_subtype(super->field_types[i], sub, override_fields);
+				bool equal = type_subtype(super->field_types[i], sub);
 				if (equal)
-				{
-					if (override_fields)
-						sub->name_carry = super->field_names[i];
 					return true;
-				}
 			}
 			return false;
 		case IR_TYPES_PRODUCT:
@@ -133,22 +129,8 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i], override_fields);
+				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i]);
 				if (!equal) return false;
-
-				// Force null labels to match
-				if (override_fields)
-				{
-					if (sub->field_names[i] == NULL)
-					{
-						if (sub->field_types[i]->name_carry != NULL)
-						{
-							sub->field_names[i] = strdup(sub->field_types[i]->name_carry);
-							sub->field_types[i]->name_carry = NULL;
-						} else if (super->field_names[i] != NULL)
-							sub->field_names[i] = strdup(super->field_names[i]);
-					}
-				}
 			}
 
 			return true;
