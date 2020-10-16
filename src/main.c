@@ -15,6 +15,7 @@
 
 #include "compiler/backends/llvm/codegen.h"
 #include "compiler/frontend/correctness/check.h"
+#include "compiler/frontend/ir/generate_ir.h"
 #include "compiler/frontend/parse/lexer.h"
 #include "compiler/frontend/parse/parser.h"
 #include "utils/list.h"
@@ -70,6 +71,7 @@ int main(int argc, char** argv)
 			// Set up
 			puts("Curly REPL");
 			ir_scope_t* scope = push_scope(NULL);
+			create_primatives(scope);
 			lexer_t lex;
 			parse_result_t res;
 			LLVMContextRef context = LLVMContextCreate();
@@ -143,13 +145,20 @@ int main(int argc, char** argv)
 					if (res.ast->children_count == 0)
 						continue;
 
-					// Type check
+					// Print
 					print_ast(res.ast);
 
+					// Generate IR code
+					curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
+					print_ir(ir);
+
+					// Type check
 					// Build the LLVM IR if it's correct code
-					if (check_correctness(res.ast, scope))
+					if (check_correctness(ir, scope))
 					{
-						generate_code(res.ast, env);
+						print_ir(ir);
+
+						generate_code(ir, env);
 						char* modstr = LLVMPrintModuleToString(env->header_mod);
 						printf("%s\n", modstr);
 						free(modstr);
@@ -191,7 +200,7 @@ int main(int argc, char** argv)
 						LLVMDisposeGenericValue(LLVMRunFunction(engine, env->main_func, 0, (LLVMGenericValueRef[]) {}));
 
 						// Print the result
-						type_t* ret_type = res.ast->children[res.ast->children_count - 1]->type;
+						type_t* ret_type = ir.expr[ir.expr_count - 1]->type;
 						printf("  = ");
 						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
 							printf("%lli", last_repl_val.i64);
@@ -209,6 +218,8 @@ int main(int argc, char** argv)
 						empty_llvm_codegen_environment(env);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
+
+					clean_ir(ir);
 				} else
 				{
 					// Print out parsing error
@@ -268,12 +279,18 @@ int main(int argc, char** argv)
 
 			if (res.succ)
 			{
-				// Type check
 				print_ast(res.ast);
-				if (check_correctness(res.ast, NULL))
+
+				// Generate IR code
+				ir_scope_t* scope = push_scope(NULL);
+				curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
+				print_ir(ir);
+
+				// Type check
+				if (check_correctness(ir, NULL))
 				{
 					// Build the LLVM IR
-					llvm_codegen_env_t* env = generate_code(res.ast, NULL);
+					llvm_codegen_env_t* env = generate_code(ir, NULL);
 					char* string = LLVMPrintModuleToString(env->body_mod);
 					printf("%s", string);
 					free(string);
@@ -301,6 +318,9 @@ int main(int argc, char** argv)
 					LLVMDisposeExecutionEngine(engine);
 					clean_llvm_codegen_environment(env);
 				} else printf("Check failed\n");
+
+				clean_ir(ir);
+				pop_scope(scope);
 			} else
 			{
 				// Print out parsing error

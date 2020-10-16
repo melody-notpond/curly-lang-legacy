@@ -61,9 +61,9 @@ void create_primatives(ir_scope_t* scope);
 // Initialises a new type.
 type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count);
 
-// type_subtype(type_t*, type_t*, bool) -> bool
+// type_subtype(type_t*, type_t*) -> bool
 // Returns true if the second type is a valid type under the first type.
-bool type_subtype(type_t* super, type_t* sub, bool override_fields);
+bool type_subtype(type_t* super, type_t* sub);
 
 // types_equal(type_t*, type_t*) -> bool
 // Returns whether the two types are equal or not.

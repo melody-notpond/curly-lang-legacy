@@ -10,7 +10,7 @@
 #define SCOPE_H
 
 #include "../../../utils/hashmap.h"
-#include "../parse/ast.h"
+#include "../ir/generate_ir.h"
 #include "types.h"
 
 #define INFIX_OP_COUNT 11
@@ -52,25 +52,25 @@ ir_scope_t* push_scope(ir_scope_t* parent);
 // Adds a new prefix operator to the scope.
 void add_prefix_op(ir_scope_t* scope, type_t* operand, type_t* out);
 
-// add_infix_op(ir_scope_t*, char*, type_t*, type_t*, type_t*) -> void
+// add_infix_op(ir_scope_t*, ir_binops_t, type_t*, type_t*, type_t*) -> void
 // Adds an infix operation to the scope.
-void add_infix_op(ir_scope_t* scope, char* op, type_t* left, type_t* right, type_t* out);
+void add_infix_op(ir_scope_t* scope, ir_binops_t op, type_t* left, type_t* right, type_t* out);
 
 // scope_lookup_prefix(ir_scope_t*, type_t*) -> type_t*
 // Looks up a prefix operator based on the argument type and returns the result type.
 type_t* scope_lookup_prefix(ir_scope_t* scope, type_t* operand);
 
-// scope_lookup_infix(ir_scope_t*, char*, type_t*, type_t*) -> type_t*
+// scope_lookup_infix(ir_scope_t*, ir_binops_t, type_t*, type_t*) -> type_t*
 // Looks up an infix operator based on the argument types and returns the result type.
-type_t* scope_lookup_infix(ir_scope_t* scope, char* op, type_t* left, type_t* right);
+type_t* scope_lookup_infix(ir_scope_t* scope, ir_binops_t op, type_t* left, type_t* right);
 
 // scope_lookup_var_type(ir_scope_t*, char*) -> type_t*
 // Looks up the type of a variable in the scope.
 type_t* scope_lookup_var_type(ir_scope_t* scope, char* name);
 
-// scope_lookup_var_val(ir_scope_t*, char*) -> ast_t*
+// scope_lookup_var_val(ir_scope_t*, char*) -> ir_sexpr_t*
 // Looks up the value of a variable in the scope.
-ast_t* scope_lookup_var_val(ir_scope_t* scope, char* name);
+ir_sexpr_t* scope_lookup_var_val(ir_scope_t* scope, char* name);
 
 // scope_lookup_type(ir_scope_t*, char*) -> type_t*
 // Looks up a type in the scope.

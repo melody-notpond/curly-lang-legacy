@@ -191,7 +191,7 @@ token_t* lex_next(lexer_t* lex)
 				} else if (c == ':')
 				{
 					token.type = LEX_TYPE_COLON;
-					token.tag = LEX_TAG_INFIX_OPERATOR;
+					token.tag = LEX_TAG_OPERATOR;
 				} else if (c == '\n')
 				{
 					token.type = LEX_TYPE_NEWLINE;

@@ -28,7 +28,6 @@ void create_primatives(ir_scope_t* scope)
 	init_type(IR_TYPES_PRIMITIVE, "String", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Bool", 0);
 	//init_type(IR_TYPES_PRIMITIVE, "Dict", 0);
-	type_t* _type = init_type(IR_TYPES_PRIMITIVE, "Type", 0);
 	init_type(IR_TYPES_PRIMITIVE, "Enum", 0);
 
 	// Add to scope
@@ -40,34 +39,28 @@ void create_primatives(ir_scope_t* scope)
 	}
 
 	// Define default arithmetic infix operations
-	add_infix_op(scope, "*", _int, _int, _int);
-	add_infix_op(scope, "*", _float, _int, _float);
-	add_infix_op(scope, "*", _int, _float, _float);
-	add_infix_op(scope, "*", _float, _float, _float);
-	add_infix_op(scope, "/", _int, _int, _int);
-	add_infix_op(scope, "/", _float, _int, _float);
-	add_infix_op(scope, "/", _int, _float, _float);
-	add_infix_op(scope, "/", _float, _float, _float);
-	add_infix_op(scope, "%", _int, _int, _int);
-	add_infix_op(scope, "+", _int, _int, _int);
-	add_infix_op(scope, "+", _float, _int, _float);
-	add_infix_op(scope, "+", _int, _float, _float);
-	add_infix_op(scope, "+", _float, _float, _float);
-	add_infix_op(scope, "-", _int, _int, _int);
-	add_infix_op(scope, "-", _float, _int, _float);
-	add_infix_op(scope, "-", _int, _float, _float);
-	add_infix_op(scope, "-", _float, _float, _float);
-	add_infix_op(scope, ">>", _int, _int, _int);
-	add_infix_op(scope, "<<", _int, _int, _int);
-	add_infix_op(scope, "&", _int, _int, _int);
-	add_infix_op(scope, "|", _int, _int, _int);
-	add_infix_op(scope, "^", _int, _int, _int);
-
-	// Define default type operations
-	add_infix_op(scope, "*", _type, _type, _type);
-	add_infix_op(scope, ">>", _type, _type, _type);
-	add_infix_op(scope, "&", _type, _type, _type);
-	add_infix_op(scope, "|", _type, _type, _type);
+	add_infix_op(scope, IR_BINOPS_MUL, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_MUL, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_MUL, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_MUL, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_DIV, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_DIV, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_MOD, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_ADD, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_ADD, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_ADD, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_ADD, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_SUB, _float, _int, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _int, _float, _float);
+	add_infix_op(scope, IR_BINOPS_SUB, _float, _float, _float);
+	add_infix_op(scope, IR_BINOPS_BSL, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BSR, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITAND, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITOR, _int, _int, _int);
+	add_infix_op(scope, IR_BINOPS_BITXOR, _int, _int, _int);
 
 	// Define default prefix operations
 	add_prefix_op(scope, _int, _int);
@@ -93,9 +86,9 @@ type_t* init_type(ir_type_types_t type_type, char* name, size_t field_count)
 	return type;
 }
 
-// type_subtype(type_t*, type_t*, bool) -> bool
+// type_subtype(type_t*, type_t*) -> bool
 // Returns true if the second type is a valid type under the first type.
-bool type_subtype(type_t* super, type_t* sub, bool override_fields)
+bool type_subtype(type_t* super, type_t* sub)
 {
 	if (super == NULL || sub == NULL)
 		return super == sub;
@@ -123,13 +116,9 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			// Union types check its subtypes against the passed subtype
 			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = type_subtype(super->field_types[i], sub, override_fields);
+				bool equal = type_subtype(super->field_types[i], sub);
 				if (equal)
-				{
-					if (override_fields)
-						sub->name_carry = super->field_names[i];
 					return true;
-				}
 			}
 			return false;
 		case IR_TYPES_PRODUCT:
@@ -140,22 +129,8 @@ bool type_subtype(type_t* super, type_t* sub, bool override_fields)
 			// Compound types are equal if their field types are the same
 			for (size_t i = 0; i < super->field_count; i++)
 			{
-				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i], override_fields);
+				bool equal = (super->field_names[i] != NULL && sub->field_names[i] != NULL ? !strcmp(super->field_names[i], sub->field_names[i]) : true) && type_subtype(super->field_types[i], sub->field_types[i]);
 				if (!equal) return false;
-
-				// Force null labels to match
-				if (override_fields)
-				{
-					if (sub->field_names[i] == NULL)
-					{
-						if (sub->field_types[i]->name_carry != NULL)
-						{
-							sub->field_names[i] = strdup(sub->field_types[i]->name_carry);
-							sub->field_types[i]->name_carry = NULL;
-						} else if (super->field_names[i] != NULL)
-							sub->field_names[i] = strdup(super->field_names[i]);
-					}
-				}
 			}
 
 			return true;
