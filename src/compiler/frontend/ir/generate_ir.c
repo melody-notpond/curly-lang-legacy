@@ -172,7 +172,6 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 			printf("  ");
 		newline = false;
 	}
-	printf("%s: ", sexpr->type != NULL ? sexpr->type->type_name : "(null)");
 	printf("(");
 
 	// Ad hoc match expression for printing
