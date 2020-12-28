@@ -203,13 +203,13 @@ int main(int argc, char** argv)
 						type_t* ret_type = ir.expr[ir.expr_count - 1]->type;
 						printf("  = ");
 						if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Int"))
-							printf("%lli", last_repl_val.i64);
+							printf("%li", last_repl_val.i64);
 						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Float"))
 							printf("%.5f", last_repl_val.f64);
 						else if (ret_type->type_type == IR_TYPES_PRIMITIVE && !strcmp(ret_type->type_name, "Bool"))
 							printf("%s", last_repl_val.i1 ? "true" : "false");
 						else if (ret_type->type_type == IR_TYPES_FUNC)
-							printf("(%i) %p: %i/%i args, bitmap = %lli, args => %p", last_repl_val.func_app.reference_count, last_repl_val.func_app.func, last_repl_val.func_app.count, last_repl_val.func_app.arity, last_repl_val.func_app.thunk_bitmap, last_repl_val.func_app.args);
+							printf("(%i) %p: %i/%i args, bitmap = %li, args => %p", last_repl_val.func_app.reference_count, last_repl_val.func_app.func, last_repl_val.func_app.count, last_repl_val.func_app.arity, last_repl_val.func_app.thunk_bitmap, last_repl_val.func_app.args);
 						else printf("unknown value");
 						puts("");
 

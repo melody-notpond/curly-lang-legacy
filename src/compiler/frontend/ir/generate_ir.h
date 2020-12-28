@@ -9,6 +9,8 @@
 #ifndef GENERATE_IR_H
 #define GENERATE_IR_H
 
+#include <inttypes.h>
+
 #include "../correctness/types.h"
 #include "../parse/ast.h"
 
@@ -18,6 +20,7 @@ typedef enum
 	CURLY_IR_TAGS_INT,
 	CURLY_IR_TAGS_FLOAT,
 	CURLY_IR_TAGS_BOOL,
+	CURLY_IR_TAGS_FUNC,
 	CURLY_IR_TAGS_SYMBOL,
 	CURLY_IR_TAGS_INFIX,
 	CURLY_IR_TAGS_PREFIX,
@@ -54,6 +57,24 @@ typedef enum
 	IR_BINOPS_SPAN
 } ir_binops_t;
 
+typedef struct s_ir_sexpr ir_sexpr_t;
+
+// Function argument
+typedef struct
+{
+	type_t* type;
+	char* name;
+} ir_sexpr_func_arg_t;
+
+// A function
+typedef struct
+{
+	ir_sexpr_func_arg_t* args;
+	size_t arg_count;
+	
+	ir_sexpr_t* body;
+} ir_sexpr_func_t;
+
 // An S expression in IR code.
 typedef struct s_ir_sexpr
 {
@@ -64,6 +85,7 @@ typedef struct s_ir_sexpr
 	size_t pos;
 	int lino;
 	int charpos;
+
 	// The tag for the tagged union.
 	ir_types_t tag;
 
@@ -119,12 +141,20 @@ typedef struct s_ir_sexpr
 			struct s_ir_sexpr* then;
 			struct s_ir_sexpr* elsy;
 		} if_expr;
+
+		// Functions
+		size_t func_id;
 	};
 } ir_sexpr_t;
 
 // Represents the IR.
 typedef struct
 {
+	// The map of all functions.
+	ir_sexpr_func_t** funcs;
+	size_t func_count;
+	size_t func_size;
+	
 	// The list of all expressions.
 	ir_sexpr_t** expr;
 	size_t expr_count;

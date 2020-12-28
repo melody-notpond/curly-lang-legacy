@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../../../utils/list.h"
 #include "../correctness/type_generators.h"
 #include "generate_ir.h"
 
@@ -91,7 +92,7 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 		char* name = NULL;
 		ast_t* head = ast->children[0];
 
-		if (head->value.type == LEX_TYPE_SYMBOL)
+		if (head->value.type == LEX_TYPE_SYMBOL && head->children_count == 0)
 			name = head->value.value;
 		else if (head->value.type == LEX_TYPE_COLON)
 		{
@@ -99,7 +100,41 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 
 			sexpr->type = generate_type(head->children[1], scope, NULL, NULL);
 
-		// TODO functions, attributes, and head/tail
+		// Functions
+		} else if (head->value.type == LEX_TYPE_SYMBOL)
+		{
+			// Get the name of the function
+			name = head->value.value;
+
+			// Create function
+			ir_sexpr_func_t* func = malloc(sizeof(ir_sexpr_func_t));
+			func->arg_count = head->children_count;
+			func->args = calloc(func->arg_count, sizeof(ir_sexpr_func_arg_t));
+			for (size_t i = 0; i < func->arg_count; i++)
+			{
+				func->args[i].name = strdup(head->children[i]->children[0]->value.value);
+				func->args[i].type = generate_type(head->children[i]->children[1], scope, NULL, NULL);
+			}
+
+			// Generate body and add function
+			func->body = convert_ast_node(root, ast->children[1], scope);
+			list_append_element(root->funcs, root->func_size, root->func_count, ir_sexpr_func_arg_t, func);
+
+			// Create wrapper s expression
+			ir_sexpr_t* value = malloc(sizeof(ir_sexpr_t));
+			value->tag = CURLY_IR_TAGS_FUNC;
+			value->func_id = root->func_count - 1;
+			value->type = NULL; // generate_function_type(func, scope)
+			value->lino = ast->children[1]->value.lino;
+			value->charpos = ast->children[1]->value.charpos;
+			value->pos = ast->children[1]->value.pos;
+
+			// Create assignment
+			sexpr->assign.name = strdup(name);
+			sexpr->assign.value = value;
+			return sexpr;
+
+		// TODO attributes, and head/tail
 		} else puts("Unsupported assignment!");
 
 		sexpr->assign.name = strdup(name);
@@ -150,6 +185,9 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 curly_ir_t convert_ast_to_ir(ast_t* ast, ir_scope_t* scope)
 {
 	curly_ir_t ir;
+	ir.funcs = NULL;
+	ir.func_count = 0;
+	ir.func_size = 0;
 	ir.expr_count = ast->children_count;
 	ir.expr = calloc(ir.expr_count, sizeof(ir_sexpr_t*));
 
@@ -178,7 +216,7 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 	switch (sexpr->tag)
 	{
 		case CURLY_IR_TAGS_INT:
-			printf("%lli: Int", sexpr->i64);
+			printf("%li: Int", sexpr->i64);
 			break;
 		case CURLY_IR_TAGS_FLOAT:
 			printf("%.05f: Float", sexpr->f64);
@@ -309,6 +347,9 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 			puts("");
 			newline = true;
 			break;
+		case CURLY_IR_TAGS_FUNC:
+			printf("func-ref %li: (func)", sexpr->func_id);
+			break;
 		default:
 			printf("???");
 	}
@@ -324,6 +365,31 @@ void print_ir_sexpr(ir_sexpr_t* sexpr, int indent, bool newline)
 // Prints out IR to stdout.
 void print_ir(curly_ir_t ir)
 {
+	// Function parenthesis
+	if (ir.func_count > 0)
+		puts("(");
+
+	// Print out functions
+	for (size_t i = 0; i < ir.func_count; i++)
+	{
+		printf("  (\\");
+
+		for (size_t j = 0; j < ir.funcs[i]->arg_count; j++)
+		{
+			printf(" %s: type", ir.funcs[i]->args[j].name);
+		}
+		puts(".");
+
+		print_ir_sexpr(ir.funcs[i]->body, 2, true);
+
+		puts("\n  )");
+	}
+
+	// Function parenthesis
+	if (ir.func_count > 0)
+		puts(")");
+
+	// Print out expressions
 	for (size_t i = 0; i < ir.expr_count; i++)
 	{
 		print_ir_sexpr(ir.expr[i], 0, true);
