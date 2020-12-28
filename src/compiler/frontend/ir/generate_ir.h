@@ -160,9 +160,13 @@ typedef struct
 	size_t expr_count;
 } curly_ir_t;
 
-// convert_ast_to_ir(ast_t*, ir_scope_t*) -> curly_ir_t
+// init_ir(curly_ir_t*) -> void
+// Initialises an ir structure.
+void init_ir(curly_ir_t* ir);
+
+// convert_ast_to_ir(ast_t*, ir_scope_t*, curly_ir_t*) -> void
 // Converts a given ast root to IR.
-curly_ir_t convert_ast_to_ir(ast_t* ast, ir_scope_t* scope);
+void convert_ast_to_ir(ast_t* ast, ir_scope_t* scope, curly_ir_t* ir);
 
 // print_ir(curly_ir_t) -> void
 // Prints out IR to stdout.
@@ -171,5 +175,9 @@ void print_ir(curly_ir_t ir);
 // clean_ir(curly_ir_t) -> void
 // Cleans up Curly IR.
 void clean_ir(curly_ir_t ir);
+
+// clean_functions(curly_ir_t*) -> void
+// Cleans up a list of functions.
+void clean_functions(curly_ir_t* ir);
 
 #endif /* GENERATE_IR_H */

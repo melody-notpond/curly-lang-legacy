@@ -74,6 +74,8 @@ int main(int argc, char** argv)
 			create_primatives(scope);
 			lexer_t lex;
 			parse_result_t res;
+			curly_ir_t ir;
+			init_ir(&ir);
 			LLVMContextRef context = LLVMContextCreate();
 			llvm_codegen_env_t* env = create_llvm_codegen_environment(LLVMModuleCreateWithNameInContext("repl-header", context));
 			size_t globals_size = 0;
@@ -149,7 +151,7 @@ int main(int argc, char** argv)
 					print_ast(res.ast);
 
 					// Generate IR code
-					curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
+					convert_ast_to_ir(res.ast, scope, &ir);
 					print_ir(ir);
 
 					// Type check
@@ -218,8 +220,6 @@ int main(int argc, char** argv)
 						empty_llvm_codegen_environment(env);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
-
-					clean_ir(ir);
 				} else
 				{
 					// Print out parsing error
@@ -234,6 +234,8 @@ int main(int argc, char** argv)
 			}
 
 			// Final clean up
+			clean_functions(&ir);
+			clean_ir(ir);
 			clean_types();
 			pop_scope(scope);
 			clean_llvm_codegen_environment(env);
@@ -283,7 +285,9 @@ int main(int argc, char** argv)
 
 				// Generate IR code
 				ir_scope_t* scope = push_scope(NULL);
-				curly_ir_t ir = convert_ast_to_ir(res.ast, scope);
+				curly_ir_t ir;
+				init_ir(&ir);
+				convert_ast_to_ir(res.ast, scope, &ir);
 				print_ir(ir);
 
 				// Type check
@@ -319,6 +323,7 @@ int main(int argc, char** argv)
 					clean_llvm_codegen_environment(env);
 				} else printf("Check failed\n");
 
+				clean_functions(&ir);
 				clean_ir(ir);
 				pop_scope(scope);
 			} else

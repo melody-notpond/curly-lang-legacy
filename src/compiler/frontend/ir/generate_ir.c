@@ -180,23 +180,28 @@ ir_sexpr_t* convert_ast_node(curly_ir_t* root, ast_t* ast, ir_scope_t* scope)
 	return sexpr;
 }
 
-// convert_ast_to_ir(ast_t*, ir_scope_t*) -> curly_ir_t
-// Converts a given ast root to IR.
-curly_ir_t convert_ast_to_ir(ast_t* ast, ir_scope_t* scope)
+// init_ir(curly_ir_t*) -> void
+// Initialises an ir structure.
+void init_ir(curly_ir_t* ir)
 {
-	curly_ir_t ir;
-	ir.funcs = NULL;
-	ir.func_count = 0;
-	ir.func_size = 0;
-	ir.expr_count = ast->children_count;
-	ir.expr = calloc(ir.expr_count, sizeof(ir_sexpr_t*));
+	ir->funcs = NULL;
+	ir->func_count = 0;
+	ir->func_size = 0;
+	ir->expr = NULL;
+	ir->expr_count = 0;
+}
 
-	for (size_t i = 0; i < ir.expr_count; i++)
+// convert_ast_to_ir(ast_t*, ir_scope_t*, curly_ir_t*) -> void
+// Converts a given ast root to IR.
+void convert_ast_to_ir(ast_t* ast, ir_scope_t* scope, curly_ir_t* ir)
+{
+	ir->expr_count = ast->children_count;
+	ir->expr = calloc(ir->expr_count, sizeof(ir_sexpr_t*));
+
+	for (size_t i = 0; i < ir->expr_count; i++)
 	{
-		ir.expr[i] = convert_ast_node(&ir, ast->children[i], scope);
+		ir->expr[i] = convert_ast_node(ir, ast->children[i], scope);
 	}
-
-	return ir;
 }
 
 // print_ir_sexpr(ir_sexpr_t*, int, bool) -> void
@@ -449,4 +454,25 @@ void clean_ir(curly_ir_t ir)
 	}
 
 	free(ir.expr);
+	ir.expr = NULL;
+	ir.expr_count = 0;
+}
+
+// clean_functions(curly_ir_t*) -> void
+// Cleans up a list of functions.
+void clean_functions(curly_ir_t* ir)
+{
+	for (size_t i = 0; i < ir->func_count; i++)
+	{
+		for (size_t j = 0; j < ir->funcs[i]->arg_count; j++)
+		{
+			free(ir->funcs[i]->args[j].name);
+		}
+		free(ir->funcs[i]->args);
+		free(ir->funcs[i]);
+	}
+	free(ir->funcs);
+	ir->funcs = NULL;
+	ir->func_count = 0;
+	ir->func_size = 0;
 }
