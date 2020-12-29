@@ -26,6 +26,7 @@ llvm_scope_t* pop_llvm_scope(llvm_scope_t* scope)
 	llvm_scope_t* parent = scope->parent;
 	del_hashmap(scope->variables);
 	del_hashmap(scope->parameters);
+	free(scope);
 	return parent;
 }
 

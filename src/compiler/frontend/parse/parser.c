@@ -670,6 +670,7 @@ parse_result_t if_expr(lexer_t* lex)
 
 	// Consume else
 	consume(elsy, true, string, lex, "else", iffy, true);
+	clean_parse_result(elsy);
 
 	// Consume a newline
 	repush_lexer(lex);

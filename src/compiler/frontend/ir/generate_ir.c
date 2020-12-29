@@ -430,6 +430,7 @@ void clean_ir_sexpr(ir_sexpr_t* sexpr)
 			{
 				clean_ir_sexpr(sexpr->local_scope.assigns[i]);
 			}
+			free(sexpr->local_scope.assigns);
 			clean_ir_sexpr(sexpr->local_scope.value);
 			break;
 		case CURLY_IR_TAGS_IF:
@@ -444,18 +445,18 @@ void clean_ir_sexpr(ir_sexpr_t* sexpr)
 	free(sexpr);
 }
 
-// clean_ir(curly_ir_t) -> void
+// clean_ir(curly_ir_t*) -> void
 // Cleans up Curly IR.
-void clean_ir(curly_ir_t ir)
+void clean_ir(curly_ir_t* ir)
 {
-	for (size_t i = 0; i < ir.expr_count; i++)
+	for (size_t i = 0; i < ir->expr_count; i++)
 	{
-		clean_ir_sexpr(ir.expr[i]);
+		clean_ir_sexpr(ir->expr[i]);
 	}
 
-	free(ir.expr);
-	ir.expr = NULL;
-	ir.expr_count = 0;
+	free(ir->expr);
+	ir->expr = NULL;
+	ir->expr_count = 0;
 }
 
 // clean_functions(curly_ir_t*) -> void
@@ -469,6 +470,7 @@ void clean_functions(curly_ir_t* ir)
 			free(ir->funcs[i]->args[j].name);
 		}
 		free(ir->funcs[i]->args);
+		clean_ir_sexpr(ir->funcs[i]->body);
 		free(ir->funcs[i]);
 	}
 	free(ir->funcs);

@@ -220,6 +220,8 @@ int main(int argc, char** argv)
 						empty_llvm_codegen_environment(env);
 						LLVMDisposeExecutionEngine(engine);
 					} else printf("Check failed\n");
+
+					clean_ir(&ir);
 				} else
 				{
 					// Print out parsing error
@@ -235,9 +237,9 @@ int main(int argc, char** argv)
 
 			// Final clean up
 			clean_functions(&ir);
-			clean_ir(ir);
 			clean_types();
 			pop_scope(scope);
+			free(global_vals);
 			clean_llvm_codegen_environment(env);
 			LLVMContextDispose(context);
 			puts("Leaving Curly REPL");
@@ -324,7 +326,7 @@ int main(int argc, char** argv)
 				} else printf("Check failed\n");
 
 				clean_functions(&ir);
-				clean_ir(ir);
+				clean_ir(&ir);
 				pop_scope(scope);
 			} else
 			{

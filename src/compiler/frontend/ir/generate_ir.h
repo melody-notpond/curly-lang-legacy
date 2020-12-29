@@ -172,9 +172,9 @@ void convert_ast_to_ir(ast_t* ast, ir_scope_t* scope, curly_ir_t* ir);
 // Prints out IR to stdout.
 void print_ir(curly_ir_t ir);
 
-// clean_ir(curly_ir_t) -> void
+// clean_ir(curly_ir_t*) -> void
 // Cleans up Curly IR.
-void clean_ir(curly_ir_t ir);
+void clean_ir(curly_ir_t* ir);
 
 // clean_functions(curly_ir_t*) -> void
 // Cleans up a list of functions.
