@@ -1,4 +1,6 @@
 # Curly
+IMPORTANT NOTICE: This repo is now archived. For the current implementation of the language, please see https://github.com/jenra-uwu/curly-lang.
+
 Curly is a functional programming language that focuses on iterators. Some of its main implementation features include lazy evaluation, list comprehensions, and quantifiers.
 
 ## Example
